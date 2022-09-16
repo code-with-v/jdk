@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -51,6 +51,7 @@ import javax.management.remote.TargetedNotification;
 
 import com.sun.jmx.remote.util.ClassLogger;
 import com.sun.jmx.remote.util.EnvHelp;
+import java.lang.reflect.UndeclaredThrowableException;
 import java.util.concurrent.RejectedExecutionException;
 
 
@@ -145,22 +146,22 @@ public abstract class ClientNotifForwarder {
     /**
      * Called to fetch notifications from a server.
      */
-    protected abstract NotificationResult fetchNotifs(long clientSequenceNumber,
+    abstract protected NotificationResult fetchNotifs(long clientSequenceNumber,
                                                       int maxNotifications,
                                                       long timeout)
             throws IOException, ClassNotFoundException;
 
-    protected abstract Integer addListenerForMBeanRemovedNotif()
+    abstract protected Integer addListenerForMBeanRemovedNotif()
         throws IOException, InstanceNotFoundException;
 
-    protected abstract void removeListenerForMBeanRemovedNotif(Integer id)
+    abstract protected void removeListenerForMBeanRemovedNotif(Integer id)
         throws IOException, InstanceNotFoundException,
                ListenerNotFoundException;
 
     /**
      * Used to send out a notification about lost notifs
      */
-    protected abstract void lostNotifs(String message, long number);
+    abstract protected void lostNotifs(String message, long number);
 
 
     public synchronized void addNotificationListener(Integer listenerID,
@@ -193,8 +194,9 @@ public abstract class ClientNotifForwarder {
                    NotificationListener listener)
             throws ListenerNotFoundException, IOException {
 
-        List<Integer> ids = new ArrayList<>();
-        List<ClientListenerInfo> values = new ArrayList<>(infoList.values());
+        List<Integer> ids = new ArrayList<Integer>();
+        List<ClientListenerInfo> values =
+                new ArrayList<ClientListenerInfo>(infoList.values());
         for (int i=values.size()-1; i>=0; i--) {
             ClientListenerInfo li = values.get(i);
 
@@ -218,7 +220,8 @@ public abstract class ClientNotifForwarder {
 
         Integer id = null;
 
-        List<ClientListenerInfo> values = new ArrayList<>(infoList.values());
+        List<ClientListenerInfo> values =
+                new ArrayList<ClientListenerInfo>(infoList.values());
         for (int i=values.size()-1; i>=0; i--) {
             ClientListenerInfo li = values.get(i);
             if (li.sameAs(name, listener, filter, handback)) {
@@ -278,9 +281,10 @@ public abstract class ClientNotifForwarder {
                          "Remove all listeners registered at "+name);
         }
 
-        List<Integer> ids = new ArrayList<>();
+        List<Integer> ids = new ArrayList<Integer>();
 
-        List<ClientListenerInfo> values = new ArrayList<>(infoList.values());
+        List<ClientListenerInfo> values =
+                new ArrayList<ClientListenerInfo>(infoList.values());
         for (int i=values.size()-1; i>=0; i--) {
             ClientListenerInfo li = values.get(i);
             if (li.sameAs(name)) {
@@ -301,7 +305,7 @@ public abstract class ClientNotifForwarder {
      * and the thread used to fetch notifis will be stopped, a new thread can be
      * created only after the method <code>postReconnection</code> is called.
      *
-     * It is caller's responsibility to not re-call this method before calling
+     * It is caller's responsiblity to not re-call this method before calling
      * <code>postReconnection</code>.
      */
     public synchronized ClientListenerInfo[] preReconnection() throws IOException {
@@ -336,7 +340,9 @@ public abstract class ClientNotifForwarder {
             try {
                 wait();
             } catch (InterruptedException ire) {
-                throw new IOException(ire.toString(), ire);
+                IOException ioe = new IOException(ire.toString());
+                EnvHelp.initCause(ioe, ire);
+                throw ioe;
             }
         }
 
@@ -375,7 +381,9 @@ public abstract class ClientNotifForwarder {
                   try {
                       wait();
                   } catch (InterruptedException ire) {
-                      throw new IOException(ire.toString(), ire);
+                      IOException ioe = new IOException(ire.toString());
+                      EnvHelp.initCause(ioe, ire);
+                      throw ioe;
                   }
               }
 
@@ -432,7 +440,7 @@ public abstract class ClientNotifForwarder {
                 throw new SecurityException("AccessControlContext must not be null");
             }
             return AccessController.doPrivileged(
-                new PrivilegedAction<>() {
+                new PrivilegedAction<ClassLoader>() {
                     public ClassLoader run() {
                         try {
                             // get context class loader - may throw
@@ -506,7 +514,7 @@ public abstract class ClientNotifForwarder {
 
                     clientSequenceNumber = nr.getNextSequenceNumber();
 
-                    listeners = new HashMap<>();
+                    listeners = new HashMap<Integer, ClientListenerInfo>();
 
                     for (int i = 0 ; i < len ; i++) {
                         final TargetedNotification tn = notifs[i];
@@ -558,7 +566,7 @@ public abstract class ClientNotifForwarder {
             if (nr == null) {
                 if (logger.traceOn()) {
                     logger.trace("NotifFetcher-run",
-                            "Received null object as notifs, stops fetching because the "
+                            "Recieved null object as notifs, stops fetching because the "
                                     + "notification server is terminated.");
                 }
             }
@@ -789,7 +797,7 @@ public abstract class ClientNotifForwarder {
 
     /*
      * Called to decide whether need to start a thread for fetching notifs.
-     * <P>The parameter reconnected will decide whether to initialize the clientSequenceNumber,
+     * <P>The parameter reconnected will decide whether to initilize the clientSequenceNumber,
      * initilaizing the clientSequenceNumber means to ignore all notifications arrived before.
      * If it is reconnected, we will not initialize in order to get all notifications arrived
      * during the reconnection. It may cause the newly registered listeners to receive some
@@ -813,7 +821,10 @@ public abstract class ClientNotifForwarder {
                 try {
                     wait();
                 } catch (InterruptedException ire) {
-                    throw new IOException(ire.toString(), ire);
+                    IOException ioe = new IOException(ire.toString());
+                    EnvHelp.initCause(ioe, ire);
+
+                    throw ioe;
                 }
             }
 
@@ -890,7 +901,10 @@ public abstract class ClientNotifForwarder {
             try {
                 wait();
             } catch (InterruptedException ire) {
-                throw new IOException(ire.toString(), ire);
+                IOException ioe = new IOException(ire.toString());
+                EnvHelp.initCause(ioe, ire);
+
+                throw ioe;
             }
         }
 
@@ -906,7 +920,8 @@ public abstract class ClientNotifForwarder {
     private final ClassLoader defaultClassLoader;
     private Executor executor;
 
-    private final Map<Integer, ClientListenerInfo> infoList = new HashMap<>();
+    private final Map<Integer, ClientListenerInfo> infoList =
+            new HashMap<Integer, ClientListenerInfo>();
 
     // notif stuff
     private long clientSequenceNumber = -1;

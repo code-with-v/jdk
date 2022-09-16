@@ -26,9 +26,8 @@ import jdk.test.lib.process.*;
 
 /*
  * @test TestAbortOnVMOperationTimeout
- * @bug 8181143 8269523
+ * @bug 8181143
  * @summary Check abort on VM timeout is working
- * @requires vm.flagless
  * @library /test/lib
  * @modules java.base/jdk.internal.misc
  *          java.management
@@ -37,17 +36,12 @@ import jdk.test.lib.process.*;
 
 public class TestAbortOnVMOperationTimeout {
 
-    // A static array is unlikely to be optimised away by the JIT.
-    static Object[] arr;
-
     public static void main(String[] args) throws Exception {
         if (args.length > 0) {
-            arr = new Object[10_000_000];
+            Object[] arr = new Object[10_000_000];
             for (int i = 0; i < arr.length; i++) {
                arr[i] = new Object();
             }
-            // Try to force at least one full GC cycle.
-            System.gc();
             return;
         }
 
@@ -57,9 +51,9 @@ public class TestAbortOnVMOperationTimeout {
             testWith(delay, true);
         }
 
-        // These should fail: Serial is not very fast but we have seen the test
-        // execute as quickly as 2ms!
-        for (int delay : new int[]{0, 1}) {
+        // These should fail: Serial is not very fast. Traversing 10M objects in 5 ms
+        // means less than 0.5 ns per object, which is not doable.
+        for (int delay : new int[]{0, 1, 5}) {
             testWith(delay, false);
         }
     }
@@ -72,7 +66,6 @@ public class TestAbortOnVMOperationTimeout {
                 "-Xmx256m",
                 "-XX:+UseSerialGC",
                 "-XX:-CreateCoredumpOnCrash",
-                "-Xlog:gc",
                 "TestAbortOnVMOperationTimeout",
                 "foo"
         );
@@ -84,6 +77,6 @@ public class TestAbortOnVMOperationTimeout {
             output.shouldContain("VM operation took too long");
             output.shouldNotHaveExitValue(0);
         }
-        output.reportDiagnosticSummary();
     }
 }
+

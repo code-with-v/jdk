@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -33,11 +33,11 @@ import javax.lang.model.type.TypeMirror;
 
 import com.sun.source.doctree.DocTree;
 
-import com.sun.source.doctree.SerialFieldTree;
 import com.sun.source.doctree.SerialTree;
 import jdk.javadoc.internal.doclets.formats.html.markup.HtmlStyle;
 import jdk.javadoc.internal.doclets.formats.html.markup.TagName;
 import jdk.javadoc.internal.doclets.formats.html.markup.HtmlTree;
+import jdk.javadoc.internal.doclets.formats.html.markup.RawHtml;
 import jdk.javadoc.internal.doclets.formats.html.markup.Text;
 import jdk.javadoc.internal.doclets.toolkit.Content;
 import jdk.javadoc.internal.doclets.toolkit.SerializedFormWriter;
@@ -47,6 +47,11 @@ import jdk.javadoc.internal.doclets.toolkit.util.CommentHelper;
  * Generate serialized form for serializable fields.
  * Documentation denoted by the tags <code>serial</code> and
  * <code>serialField</code> is processed.
+ *
+ *  <p><b>This is NOT part of any supported API.
+ *  If you write code that depends on this, you do so at your own risk.
+ *  This code and its internal interfaces are subject to change or
+ *  deletion without notice.</b>
  */
 public class HtmlSerialFieldWriter extends FieldWriterImpl
         implements SerializedFormWriter.SerialFieldWriter {
@@ -59,67 +64,90 @@ public class HtmlSerialFieldWriter extends FieldWriterImpl
         return utils.serializableFields(te);
     }
 
+    /**
+     * Return the header for serializable fields section.
+     *
+     * @return a content tree for the header
+     */
     @Override
     public Content getSerializableFieldsHeader() {
-        return HtmlTree.UL(HtmlStyle.blockList);
+        HtmlTree ul = new HtmlTree(TagName.UL);
+        ul.setStyle(HtmlStyle.blockList);
+        return ul;
     }
 
+    /**
+     * Return the header for serializable fields content section.
+     *
+     * @param isLastContent true if the content being documented is the last content.
+     * @return a content tree for the header
+     */
     @Override
     public Content getFieldsContentHeader(boolean isLastContent) {
-        return new HtmlTree(TagName.LI).setStyle(HtmlStyle.blockList);
+        HtmlTree li = new HtmlTree(TagName.LI);
+        li.setStyle(HtmlStyle.blockList);
+        return li;
     }
 
+    /**
+     * Add serializable fields.
+     *
+     * @param heading the heading for the section
+     * @param serializableFieldsTree the tree to be added to the serializable fields
+     *        content tree
+     * @return a content tree for the serializable fields content
+     */
     @Override
-    public Content getSerializableFields(String heading, Content source) {
-        var section = HtmlTree.SECTION(HtmlStyle.detail);
-        if (!source.isEmpty()) {
+    public Content getSerializableFields(String heading, Content serializableFieldsTree) {
+        HtmlTree section = HtmlTree.SECTION(HtmlStyle.detail);
+        if (serializableFieldsTree.isValid()) {
             Content headingContent = Text.of(heading);
-            var serialHeading = HtmlTree.HEADING(Headings.SerializedForm.CLASS_SUBHEADING, headingContent);
+            Content serialHeading = HtmlTree.HEADING(Headings.SerializedForm.CLASS_SUBHEADING, headingContent);
             section.add(serialHeading);
-            section.add(source);
+            section.add(serializableFieldsTree);
         }
         return HtmlTree.LI(section);
     }
 
     @Override
-    public void addMemberHeader(TypeMirror fieldType, String fieldName, Content content) {
+    public void addMemberHeader(TypeMirror fieldType, String fieldName, Content contentTree) {
         Content nameContent = Text.of(fieldName);
-        var heading = HtmlTree.HEADING(Headings.SerializedForm.MEMBER_HEADING, nameContent);
-        content.add(heading);
-        var pre = new HtmlTree(TagName.PRE);
+        Content heading = HtmlTree.HEADING(Headings.SerializedForm.MEMBER_HEADING, nameContent);
+        contentTree.add(heading);
+        Content pre = new HtmlTree(TagName.PRE);
         Content fieldContent = writer.getLink(new HtmlLinkInfo(
                 configuration, HtmlLinkInfo.Kind.SERIAL_MEMBER, fieldType));
         pre.add(fieldContent);
         pre.add(" ");
         pre.add(fieldName);
-        content.add(pre);
+        contentTree.add(pre);
     }
 
     /**
      * Add the deprecated information for this member.
      *
      * @param field the field to document.
-     * @param content the content to which the deprecated info will be added
+     * @param contentTree the tree to which the deprecated info will be added
      */
     @Override
-    public void addMemberDeprecatedInfo(VariableElement field, Content content) {
-        addDeprecatedInfo(field, content);
+    public void addMemberDeprecatedInfo(VariableElement field, Content contentTree) {
+        addDeprecatedInfo(field, contentTree);
     }
 
     /**
      * Add the description text for this member.
      *
      * @param field the field to document.
-     * @param content the content to which the deprecated info will be added
+     * @param contentTree the tree to which the deprecated info will be added
      */
     @Override
-    public void addMemberDescription(VariableElement field, Content content) {
+    public void addMemberDescription(VariableElement field, Content contentTree) {
         if (!utils.getFullBody(field).isEmpty()) {
-            writer.addInlineComment(field, content);
+            writer.addInlineComment(field, contentTree);
         }
         List<? extends SerialTree> tags = utils.getSerialTrees(field);
         if (!tags.isEmpty() && !tags.get(0).getDescription().isEmpty()) {
-            writer.addInlineComment(field, tags.get(0), content);
+            writer.addInlineComment(field, tags.get(0), contentTree);
         }
     }
 
@@ -127,17 +155,16 @@ public class HtmlSerialFieldWriter extends FieldWriterImpl
      * Add the description text for this member represented by the tag.
      *
      * @param serialFieldTag the field to document (represented by tag)
-     * @param content the content to which the deprecated info will be added
+     * @param contentTree the tree to which the deprecated info will be added
      */
     @Override
-    public void addMemberDescription(VariableElement field, SerialFieldTree serialFieldTag, Content content) {
-        List<? extends DocTree> description = serialFieldTag.getDescription();
+    public void addMemberDescription(VariableElement field, DocTree serialFieldTag, Content contentTree) {
+        CommentHelper ch = utils.getCommentHelper(field);
+        List<? extends DocTree> description = ch.getDescription(serialFieldTag);
         if (!description.isEmpty()) {
-            Content serialFieldContent = writer.commentTagsToContent(field,
-                    description,
-                    new TagletWriterImpl.Context(false, false));
-            var div = HtmlTree.DIV(HtmlStyle.block, serialFieldContent);
-            content.add(div);
+            Content serialFieldContent = new RawHtml(ch.getText(description));
+            Content div = HtmlTree.DIV(HtmlStyle.block, serialFieldContent);
+            contentTree.add(div);
         }
     }
 
@@ -145,15 +172,15 @@ public class HtmlSerialFieldWriter extends FieldWriterImpl
      * Add the tag information for this member.
      *
      * @param field the field to document.
-     * @param content the content to which the member tags info will be added
+     * @param contentTree the tree to which the member tags info will be added
      */
     @Override
-    public void addMemberTags(VariableElement field, Content content) {
+    public void addMemberTags(VariableElement field, Content contentTree) {
         Content tagContent = writer.getBlockTagOutput(field);
         if (!tagContent.isEmpty()) {
-            var dl = HtmlTree.DL(HtmlStyle.notes);
+            HtmlTree dl = HtmlTree.DL(HtmlStyle.notes);
             dl.add(tagContent);
-            content.add(dl);
+            contentTree.add(dl);
         }
     }
 

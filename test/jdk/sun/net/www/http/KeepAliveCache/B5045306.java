@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,30 +24,19 @@
 /*
  * @test
  * @bug 5045306 6356004 6993490 8255124
- * @library /test/lib
+ * @modules java.base/sun.net.www
+ *          java.management
+ * @library ../../httptest/
+ * @build HttpCallback TestHttpServer HttpTransaction
  * @run main/othervm B5045306
  * @summary Http keep-alive implementation is not efficient
  */
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintWriter;
-import java.lang.management.ManagementFactory;
-import java.lang.management.ThreadInfo;
-import java.lang.management.ThreadMXBean;
-import java.net.HttpURLConnection;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.net.URL;
-import java.nio.charset.Charset;
+import java.net.*;
+import java.io.*;
+import java.lang.management.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
-
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
 
 /* Part 1:
  * The http client makes a connection to a URL whos content contains a lot of
@@ -62,19 +51,20 @@ import com.sun.net.httpserver.HttpServer;
  * Content-length header.
  */
 
-public class B5045306 {
-    static HttpServer server;
+public class B5045306
+{
+    static SimpleHttpTransaction httpTrans;
+    static TestHttpServer server;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         startHttpServer();
         clientHttpCalls();
     }
 
     public static void startHttpServer() {
         try {
-            server = HttpServer.create(new InetSocketAddress(InetAddress.getLocalHost(), 0), 10, "/", new SimpleHttpTransactionHandler());
-            server.setExecutor(Executors.newSingleThreadExecutor());
-            server.start();
+            httpTrans = new SimpleHttpTransaction();
+            server = new TestHttpServer(httpTrans, 1, 10, InetAddress.getLocalHost(), 0);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -86,10 +76,10 @@ public class B5045306 {
             uncaught.add(ex);
         });
         try {
-            System.out.println("http server listen on: " + server.getAddress().getPort());
+            System.out.println("http server listen on: " + server.getLocalPort());
             String hostAddr =  InetAddress.getLocalHost().getHostAddress();
             if (hostAddr.indexOf(':') > -1) hostAddr = "[" + hostAddr + "]";
-            String baseURLStr = "http://" + hostAddr + ":" + server.getAddress().getPort() + "/";
+            String baseURLStr = "http://" + hostAddr + ":" + server.getLocalPort() + "/";
 
             URL bigDataURL = new URL (baseURLStr + "firstCall");
             URL smallDataURL = new URL (baseURLStr + "secondCall");
@@ -108,7 +98,7 @@ public class B5045306 {
             uc = (HttpURLConnection)smallDataURL.openConnection(Proxy.NO_PROXY);
             uc.getResponseCode();
 
-            if (SimpleHttpTransactionHandler.failed)
+            if (SimpleHttpTransaction.failed)
                 throw new RuntimeException("Failed: Initial Keep Alive Connection is not being reused");
 
             // Part 2
@@ -147,7 +137,7 @@ public class B5045306 {
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
-            server.stop(1);
+            server.terminate();
         }
         if (!uncaught.isEmpty()) {
             throw new RuntimeException("Unhandled exception:", uncaught.get(0));
@@ -155,9 +145,9 @@ public class B5045306 {
     }
 }
 
-class SimpleHttpTransactionHandler implements HttpHandler
+class SimpleHttpTransaction implements HttpCallback
 {
-    static volatile boolean failed = false;
+    static boolean failed = false;
 
     // Need to have enough data here that is too large for the socket buffer to hold.
     // Also http.KeepAlive.remainingData must be greater than this value, default is 256K.
@@ -165,26 +155,26 @@ class SimpleHttpTransactionHandler implements HttpHandler
 
     int port1;
 
-    public void handle(HttpExchange trans) {
+    public void request(HttpTransaction trans) {
         try {
             String path = trans.getRequestURI().getPath();
             if (path.equals("/firstCall")) {
-                port1 = trans.getLocalAddress().getPort();
+                port1 = trans.channel().socket().getPort();
                 System.out.println("First connection on client port = " + port1);
 
                 byte[] responseBody = new byte[RESPONSE_DATA_LENGTH];
                 for (int i=0; i<responseBody.length; i++)
                     responseBody[i] = 0x41;
-                trans.sendResponseHeaders(200, 0);
-                try(PrintWriter pw = new PrintWriter(trans.getResponseBody(), false, Charset.forName("UTF-8"))) {
-                    pw.print(responseBody);
-                }
+                trans.setResponseEntityBody (responseBody, responseBody.length);
+                trans.sendResponse(200, "OK");
             } else if (path.equals("/secondCall")) {
-                int port2 = trans.getLocalAddress().getPort();
+                int port2 = trans.channel().socket().getPort();
                 System.out.println("Second connection on client port = " + port2);
 
                 if (port1 != port2)
                     failed = true;
+
+                trans.setResponseHeader ("Content-length", Integer.toString(0));
 
                  /* Force the server to not respond for more that the timeout
                   * set by the keepalive cleaner (5000 millis). This ensures the
@@ -192,19 +182,21 @@ class SimpleHttpTransactionHandler implements HttpHandler
                   * infinity. See 6993490. */
                 System.out.println("server sleeping...");
                 try {Thread.sleep(6000); } catch (InterruptedException e) {}
-                trans.sendResponseHeaders(200, -1);
+
+                trans.sendResponse(200, "OK");
             } else if(path.equals("/part2")) {
                 System.out.println("Call to /part2");
                 byte[] responseBody = new byte[RESPONSE_DATA_LENGTH];
                 for (int i=0; i<responseBody.length; i++)
                     responseBody[i] = 0x41;
+                trans.setResponseEntityBody (responseBody, responseBody.length);
+
                 // override the Content-length header to be greater than the actual response body
-                trans.sendResponseHeaders(200, responseBody.length+1);
-                try(PrintWriter pw = new PrintWriter(trans.getResponseBody(), false, Charset.forName("UTF-8"))) {
-                    pw.print(responseBody);
-                }
+                trans.setResponseHeader("Content-length", Integer.toString(responseBody.length+1));
+                trans.sendResponse(200, "OK");
+
                 // now close the socket
-                trans.close();
+                trans.channel().socket().close();
             }
         } catch (Exception e) {
             e.printStackTrace();

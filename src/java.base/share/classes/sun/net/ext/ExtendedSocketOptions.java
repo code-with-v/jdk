@@ -108,8 +108,7 @@ public abstract class ExtendedSocketOptions {
     }
 
     private static boolean isStreamOption(SocketOption<?> option, boolean server) {
-        if (option.name().startsWith("UDP_") || isUnixDomainOption(option)
-            || option.name().equals("IP_DONTFRAGMENT")) {
+        if (option.name().startsWith("UDP_") || isUnixDomainOption(option)) {
             return false;
         } else {
             return true;
@@ -133,11 +132,11 @@ public abstract class ExtendedSocketOptions {
     }
 
     /** Sets the value of a socket option, for the given socket. */
-    public abstract void setOption(FileDescriptor fd, SocketOption<?> option, Object value, boolean isIPv6)
+    public abstract void setOption(FileDescriptor fd, SocketOption<?> option, Object value)
             throws SocketException;
 
     /** Returns the value of a socket option, for the given socket. */
-    public abstract Object getOption(FileDescriptor fd, SocketOption<?> option, boolean isIPv6)
+    public abstract Object getOption(FileDescriptor fd, SocketOption<?> option)
             throws SocketException;
 
     protected ExtendedSocketOptions(Set<SocketOption<?>> options) {
@@ -206,7 +205,7 @@ public abstract class ExtendedSocketOptions {
         }
 
         @Override
-        public void setOption(FileDescriptor fd, SocketOption<?> option, Object value, boolean isIPv6)
+        public void setOption(FileDescriptor fd, SocketOption<?> option, Object value)
             throws SocketException
         {
             throw new UnsupportedOperationException(
@@ -214,7 +213,7 @@ public abstract class ExtendedSocketOptions {
         }
 
         @Override
-        public Object getOption(FileDescriptor fd, SocketOption<?> option, boolean isIPv6)
+        public Object getOption(FileDescriptor fd, SocketOption<?> option)
             throws SocketException
         {
             throw new UnsupportedOperationException(

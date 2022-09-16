@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2004, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,54 +24,56 @@
 /**
  * @test
  * @bug 5049976
+ * @modules java.base/sun.net.www
+ * @library ../../httptest/
  * @library /test/lib
- * @run main/othervm SetChunkedStreamingMode
+ * @build HttpCallback TestHttpServer ClosedChannelList HttpTransaction
+ * @run main SetChunkedStreamingMode
  * @summary Unspecified NPE is thrown when streaming output mode is enabled
  */
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintWriter;
-import java.net.HttpURLConnection;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.URL;
-import java.util.concurrent.Executors;
-
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
+import java.io.*;
+import java.net.*;
 import jdk.test.lib.net.URIBuilder;
 
-public class SetChunkedStreamingMode implements HttpHandler {
+public class SetChunkedStreamingMode implements HttpCallback {
 
-    void okReply (HttpExchange req) throws IOException {
-        req.sendResponseHeaders(200, 0);
-        try(PrintWriter pw = new PrintWriter(req.getResponseBody())) {
-            pw.print("Hello .");
+    void okReply (HttpTransaction req) throws IOException {
+        req.setResponseEntityBody ("Hello .");
+        req.sendResponse (200, "Ok");
+            System.out.println ("Server: sent response");
+        req.orderlyClose();
+    }
+
+    public void request (HttpTransaction req) {
+        try {
+            okReply (req);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        System.out.println ("Server: sent response");
     }
 
-    @Override
-    public void handle(HttpExchange exchange) throws IOException {
-        okReply(exchange);
+    static void read (InputStream is) throws IOException {
+        int c;
+        System.out.println ("reading");
+        while ((c=is.read()) != -1) {
+            System.out.write (c);
+        }
+        System.out.println ("");
+        System.out.println ("finished reading");
     }
 
-    static HttpServer server;
+    static TestHttpServer server;
 
     public static void main (String[] args) throws Exception {
         try {
-            InetAddress loopback = InetAddress.getLoopbackAddress();
-            server = HttpServer.create(new InetSocketAddress(loopback, 0), 10);
-            server.createContext("/", new SetChunkedStreamingMode());
-            server.setExecutor(Executors.newSingleThreadExecutor());
-            server.start();
-            System.out.println ("Server: listening on port: " + server.getAddress().getPort());
+            server = new TestHttpServer(new SetChunkedStreamingMode(), 1, 10,
+                    InetAddress.getLoopbackAddress(), 0);
+            System.out.println ("Server: listening on port: " + server.getLocalPort());
             URL url = URIBuilder.newBuilder()
                 .scheme("http")
                 .loopback()
-                .port(server.getAddress().getPort())
+                .port(server.getLocalPort())
                 .path("/")
                 .toURL();
             System.out.println ("Client: connecting to " + url);
@@ -82,15 +84,15 @@ public class SetChunkedStreamingMode implements HttpHandler {
             InputStream is = urlc.getInputStream();
         } catch (Exception e) {
             if (server != null) {
-                server.stop(1);
+                server.terminate();
             }
             throw e;
         }
-        server.stop(1);
+        server.terminate();
     }
 
     public static void except (String s) {
-        server.stop(1);
+        server.terminate();
         throw new RuntimeException (s);
     }
 }

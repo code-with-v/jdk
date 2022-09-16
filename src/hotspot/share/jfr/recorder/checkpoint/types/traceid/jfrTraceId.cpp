@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,24 +28,25 @@
 #include "classfile/symbolTable.hpp"
 #include "jfr/recorder/checkpoint/types/traceid/jfrTraceId.inline.hpp"
 #include "jfr/utilities/jfrTypes.hpp"
+#include "oops/arrayKlass.inline.hpp"
+#include "oops/klass.inline.hpp"
 #include "oops/instanceKlass.inline.hpp"
 #include "oops/method.hpp"
 #include "oops/oop.inline.hpp"
-#include "prims/jvmtiThreadState.hpp"
 #include "runtime/atomic.hpp"
-#include "runtime/javaThread.hpp"
-#include "runtime/jniHandles.inline.hpp"
 #include "runtime/vm_version.hpp"
-#include "utilities/growableArray.hpp"
+#include "runtime/jniHandles.inline.hpp"
+#include "runtime/thread.inline.hpp"
+#include "utilities/debug.hpp"
 
-// returns updated value
-static traceid atomic_inc(traceid volatile* const dest, traceid stride = 1) {
+ // returns updated value
+static traceid atomic_inc(traceid volatile* const dest) {
   assert(VM_Version::supports_cx8(), "invariant");
   traceid compare_value;
   traceid exchange_value;
   do {
     compare_value = *dest;
-    exchange_value = compare_value + stride;
+    exchange_value = compare_value + 1;
   } while (Atomic::cmpxchg(dest, compare_value, exchange_value) != compare_value);
   return exchange_value;
 }
@@ -53,6 +54,11 @@ static traceid atomic_inc(traceid volatile* const dest, traceid stride = 1) {
 static traceid next_class_id() {
   static volatile traceid class_id_counter = LAST_TYPE_ID + 1; // + 1 is for the void.class primitive
   return atomic_inc(&class_id_counter) << TRACE_ID_SHIFT;
+}
+
+static traceid next_thread_id() {
+  static volatile traceid thread_id_counter = 0;
+  return atomic_inc(&thread_id_counter);
 }
 
 static traceid next_module_id() {
@@ -111,36 +117,15 @@ static void check_klass(const Klass* klass) {
 }
 
 void JfrTraceId::assign(const Klass* klass) {
-  assert(klass != nullptr, "invariant");
+  assert(klass != NULL, "invariant");
   klass->set_trace_id(next_class_id());
   check_klass(klass);
   const Klass* const super = klass->super();
-  if (super == nullptr) {
+  if (super == NULL) {
     return;
   }
   if (IS_EVENT_KLASS(super)) {
     tag_as_jdk_jfr_event_sub(klass);
-    return;
-  }
-  // Redefining / retransforming?
-  JavaThread* const jt = JavaThread::current();
-  assert(jt != nullptr, "invariant");
-  JvmtiThreadState* const state = jt->jvmti_thread_state();
-  if (state == nullptr) {
-    return;
-  }
-  const GrowableArray<Klass*>* const redef_klasses = state->get_classes_being_redefined();
-  if (redef_klasses == nullptr || redef_klasses->is_empty()) {
-    return;
-  }
-  for (int i = 0; i < redef_klasses->length(); ++i) {
-    if (klass->name() == redef_klasses->at(i)->name() && klass->class_loader_data() == redef_klasses->at(i)->class_loader_data()) {
-      // 'klass' is a scratch klass. If the klass being redefined is a host klass, then tag the scratch klass as well.
-      if (is_event_host(redef_klasses->at(i))) {
-        SET_EVENT_HOST_KLASS(klass);
-        assert(is_event_host(klass), "invariant");
-      }
-    }
   }
 }
 
@@ -165,6 +150,10 @@ void JfrTraceId::assign(const ClassLoaderData* cld) {
 
 traceid JfrTraceId::assign_primitive_klass_id() {
   return next_class_id();
+}
+
+traceid JfrTraceId::assign_thread_id() {
+  return next_thread_id();
 }
 
 // A mirror representing a primitive class (e.g. int.class) has no reified Klass*,
@@ -199,7 +188,6 @@ traceid JfrTraceId::load_raw(jclass jc) {
   return load(jc, true);
 }
 
-#if INCLUDE_CDS
 // used by CDS / APPCDS as part of "remove_unshareable_info"
 void JfrTraceId::remove(const Klass* k) {
   assert(k != NULL, "invariant");
@@ -231,7 +219,6 @@ void JfrTraceId::restore(const Klass* k) {
     next_class_id();
   }
 }
-#endif // INCLUDE_CDS
 
 bool JfrTraceId::in_visible_set(const jclass jc) {
   assert(jc != NULL, "invariant");
@@ -286,12 +273,3 @@ void JfrTraceId::tag_as_event_host(const jclass jc) {
   tag_as_event_host(k);
   assert(IS_EVENT_HOST_KLASS(k), "invariant");
 }
-
-void JfrTraceId::untag_jdk_jfr_event_sub(const Klass* k) {
-  assert(k != NULL, "invariant");
-  if (JfrTraceId::is_jdk_jfr_event_sub(k)) {
-    CLEAR_JDK_JFR_EVENT_SUBKLASS(k);
-  }
-  assert(IS_NOT_AN_EVENT_SUB_KLASS(k), "invariant");
-}
-

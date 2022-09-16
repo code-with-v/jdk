@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,7 +30,6 @@ import java.net.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.lang.StackWalker.*;
 
 /**
  * The JCE security manager.
@@ -40,11 +39,15 @@ import java.lang.StackWalker.*;
  * algorithm, by consulting the configured jurisdiction policy files and
  * the cryptographic permissions bundled with the applet/application.
  *
+ * <p>Note that this security manager is never installed, only instantiated.
+ *
  * @author Jan Luehe
  *
  * @since 1.4
  */
-final class JceSecurityManager {
+
+@SuppressWarnings("removal")
+final class JceSecurityManager extends SecurityManager {
 
     private static final CryptoPermissions defaultPolicy;
     private static final CryptoPermissions exemptPolicy;
@@ -58,25 +61,17 @@ final class JceSecurityManager {
 
     // singleton instance
     static final JceSecurityManager INSTANCE;
-    static final StackWalker WALKER;
 
     static {
         defaultPolicy = JceSecurity.getDefaultPolicy();
         exemptPolicy = JceSecurity.getExemptPolicy();
         allPerm = CryptoAllPermission.INSTANCE;
-
-        PrivilegedAction<JceSecurityManager> paSM = JceSecurityManager::new;
-        @SuppressWarnings("removal")
-        JceSecurityManager dummySecurityManager =
-                AccessController.doPrivileged(paSM);
-        INSTANCE = dummySecurityManager;
-
-        PrivilegedAction<StackWalker> paWalker =
-                () -> StackWalker.getInstance(Option.RETAIN_CLASS_REFERENCE);
-        @SuppressWarnings("removal")
-        StackWalker dummyWalker = AccessController.doPrivileged(paWalker);
-
-        WALKER = dummyWalker;
+        INSTANCE = AccessController.doPrivileged(
+                new PrivilegedAction<>() {
+                    public JceSecurityManager run() {
+                        return new JceSecurityManager();
+                    }
+                });
     }
 
     private JceSecurityManager() {
@@ -87,11 +82,10 @@ final class JceSecurityManager {
      * Returns the maximum allowable crypto strength for the given
      * applet/application, for the given algorithm.
      */
-    CryptoPermission getCryptoPermission(String theAlg) {
-
+    CryptoPermission getCryptoPermission(String alg) {
         // Need to convert to uppercase since the crypto perm
-        // lookup is case-sensitive.
-        final String alg = theAlg.toUpperCase(Locale.ENGLISH);
+        // lookup is case sensitive.
+        alg = alg.toUpperCase(Locale.ENGLISH);
 
         // If CryptoAllPermission is granted by default, we return that.
         // Otherwise, this will be the permission we return if anything goes
@@ -106,19 +100,28 @@ final class JceSecurityManager {
         // javax.crypto.* packages.
         // NOTE: javax.crypto.* package maybe subject to package
         // insertion, so need to check its classloader as well.
-        return WALKER.walk(s -> s.map(StackFrame::getDeclaringClass)
-                .filter(c -> !c.getPackageName().equals("javax.crypto"))
-                .map(cls -> {
-                    URL callerCodeBase = JceSecurity.getCodeBase(cls);
-                    return (callerCodeBase != null) ?
-                            getCryptoPermissionFromURL(callerCodeBase,
-                                    alg, defaultPerm) : defaultPerm;})
-                .findFirst().get()         // nulls not possible for Optional
-        );
-    }
+        Class<?>[] context = getClassContext();
+        URL callerCodeBase = null;
+        int i;
+        for (i=0; i<context.length; i++) {
+            Class<?> cls = context[i];
+            callerCodeBase = JceSecurity.getCodeBase(cls);
+            if (callerCodeBase != null) {
+                break;
+            } else {
+                if (cls.getName().startsWith("javax.crypto.")) {
+                    // skip jce classes since they aren't the callers
+                    continue;
+                }
+                // use default permission when the caller is system classes
+                return defaultPerm;
+            }
+        }
 
-    CryptoPermission getCryptoPermissionFromURL(URL callerCodeBase,
-            String alg, CryptoPermission defaultPerm) {
+        if (i == context.length) {
+            return defaultPerm;
+        }
+
         CryptoPermissions appPerms = exemptCache.get(callerCodeBase);
         if (appPerms == null) {
             // no match found in cache
@@ -199,6 +202,7 @@ final class JceSecurityManager {
                     return cp;
                 }
             } catch (Exception e) {
+                continue;
             }
         }
         return defaultPerm;
@@ -227,9 +231,14 @@ final class JceSecurityManager {
     // Only used by javax.crypto.Cipher constructor to disallow Cipher
     // objects being constructed by untrusted code (See bug 4341369 &
     // 4334690 for more info).
-    boolean isCallerTrusted(Class<?> caller, Provider provider) {
+    boolean isCallerTrusted(Provider provider) {
         // Get the caller and its codebase.
-        if (caller != null) {
+        Class<?>[] context = getClassContext();
+        if (context.length >= 3) {
+            // context[0]: class javax.crypto.JceSecurityManager
+            // context[1]: class javax.crypto.Cipher (or other JCE API class)
+            // context[2]: this is what we are gonna check
+            Class<?> caller = context[2];
             URL callerCodeBase = JceSecurity.getCodeBase(caller);
             if (callerCodeBase == null) {
                 return true;

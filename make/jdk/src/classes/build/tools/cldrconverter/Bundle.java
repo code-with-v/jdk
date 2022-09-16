@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,9 +25,6 @@
 
 package build.tools.cldrconverter;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
@@ -37,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 class Bundle {
@@ -51,21 +47,21 @@ class Bundle {
                                                     FORMATDATA);
     }
 
-    private static final Map<String, Bundle> bundles = new HashMap<>();
+    private final static Map<String, Bundle> bundles = new HashMap<>();
 
-    private static final String[] NUMBER_PATTERN_KEYS = {
+    private final static String[] NUMBER_PATTERN_KEYS = {
         "NumberPatterns/decimal",
         "NumberPatterns/currency",
         "NumberPatterns/percent",
         "NumberPatterns/accounting"
     };
 
-    private static final String[] COMPACT_NUMBER_PATTERN_KEYS = {
-        "short.CompactNumberPatterns",
-        "long.CompactNumberPatterns"
+    private final static String[] COMPACT_NUMBER_PATTERN_KEYS = {
+            "short.CompactNumberPatterns",
+            "long.CompactNumberPatterns"
     };
 
-    private static final String[] NUMBER_ELEMENT_KEYS = {
+    private final static String[] NUMBER_ELEMENT_KEYS = {
         "NumberElements/decimal",
         "NumberElements/group",
         "NumberElements/list",
@@ -81,45 +77,41 @@ class Bundle {
         "NumberElements/currencyGroup",
     };
 
-    private static final String[] TIME_PATTERN_KEYS = {
+    private final static String[] TIME_PATTERN_KEYS = {
         "DateTimePatterns/full-time",
         "DateTimePatterns/long-time",
         "DateTimePatterns/medium-time",
         "DateTimePatterns/short-time",
     };
 
-    private static final String[] DATE_PATTERN_KEYS = {
+    private final static String[] DATE_PATTERN_KEYS = {
         "DateTimePatterns/full-date",
         "DateTimePatterns/long-date",
         "DateTimePatterns/medium-date",
         "DateTimePatterns/short-date",
     };
 
-    private static final String[] DATETIME_PATTERN_KEYS = {
+    private final static String[] DATETIME_PATTERN_KEYS = {
         "DateTimePatterns/full-dateTime",
         "DateTimePatterns/long-dateTime",
         "DateTimePatterns/medium-dateTime",
         "DateTimePatterns/short-dateTime",
     };
 
-    private static final String[] ERA_KEYS = {
+    private final static String[] ERA_KEYS = {
         "long.Eras",
         "Eras",
         "narrow.Eras"
     };
 
-    // DateFormatItem prefix
-    static final String DATEFORMATITEM_KEY_PREFIX = "DateFormatItem.";
-    static final String DATEFORMATITEM_INPUT_REGIONS_PREFIX = "DateFormatItemInputRegions.";
-
     // Keys for individual time zone names
-    private static final String TZ_GEN_LONG_KEY = "timezone.displayname.generic.long";
-    private static final String TZ_GEN_SHORT_KEY = "timezone.displayname.generic.short";
-    private static final String TZ_STD_LONG_KEY = "timezone.displayname.standard.long";
-    private static final String TZ_STD_SHORT_KEY = "timezone.displayname.standard.short";
-    private static final String TZ_DST_LONG_KEY = "timezone.displayname.daylight.long";
-    private static final String TZ_DST_SHORT_KEY = "timezone.displayname.daylight.short";
-    private static final String[] ZONE_NAME_KEYS = {
+    private final static String TZ_GEN_LONG_KEY = "timezone.displayname.generic.long";
+    private final static String TZ_GEN_SHORT_KEY = "timezone.displayname.generic.short";
+    private final static String TZ_STD_LONG_KEY = "timezone.displayname.standard.long";
+    private final static String TZ_STD_SHORT_KEY = "timezone.displayname.standard.short";
+    private final static String TZ_DST_LONG_KEY = "timezone.displayname.daylight.long";
+    private final static String TZ_DST_SHORT_KEY = "timezone.displayname.daylight.short";
+    private final static String[] ZONE_NAME_KEYS = {
         TZ_STD_LONG_KEY,
         TZ_STD_SHORT_KEY,
         TZ_DST_LONG_KEY,
@@ -270,7 +262,7 @@ class Bundle {
         CLDRConverter.handleAliases(myMap);
 
         // another hack: parentsMap is not used for date-time resources.
-        if (isRoot()) {
+        if ("root".equals(id)) {
             parentsMap = null;
         }
 
@@ -295,14 +287,6 @@ class Bundle {
             handleDateTimeFormatPatterns(TIME_PATTERN_KEYS, myMap, parentsMap, calendarType, "TimePatterns");
             handleDateTimeFormatPatterns(DATE_PATTERN_KEYS, myMap, parentsMap, calendarType, "DatePatterns");
             handleDateTimeFormatPatterns(DATETIME_PATTERN_KEYS, myMap, parentsMap, calendarType, "DateTimePatterns");
-
-            // Skeleton
-            handleSkeletonPatterns(myMap, calendarType);
-        }
-
-        // Skeleton input regions
-        if (isRoot()) {
-            skeletonInputRegions(myMap);
         }
 
         // First, weed out any empty timezone or metazone names from myMap.
@@ -663,9 +647,8 @@ class Bundle {
     private void convertDateTimePatternLetter(CalendarType calendarType, char cldrLetter, int count, StringBuilder sb) {
         switch (cldrLetter) {
             case 'u':
-            case 'U':
-                // Change cldr letter 'u'/'U' to 'y', as 'u' is interpreted as
-                // "Extended year (numeric)", and 'U' as "Cyclic year" in CLDR/LDML,
+                // Change cldr letter 'u' to 'y', as 'u' is interpreted as
+                // "Extended year (numeric)" in CLDR/LDML,
                 // which is not supported in SimpleDateFormat and
                 // j.t.f.DateTimeFormatter, so it is replaced with 'y'
                 // as the best approximation
@@ -732,7 +715,7 @@ class Bundle {
                 // this is a workaround in which 'B' character
                 // appearing in CLDR date-time pattern is replaced
                 // with 'a' character and hence resolved with am/pm strings.
-                // This workaround is based on the fallback mechanism
+                // This workaround is based on the the fallback mechanism
                 // specified in LDML spec for 'B' character, when a locale
                 // does not have data for day period ('B')
                 appendN('a', count, sb);
@@ -757,19 +740,6 @@ class Bundle {
             }
         }
         return false;
-    }
-
-    private void handleSkeletonPatterns(Map<String, Object> myMap, CalendarType calendarType) {
-        String calendarPrefix = calendarType.keyElementName();
-        myMap.putAll(myMap.entrySet().stream()
-            .filter(e -> e.getKey().startsWith(Bundle.DATEFORMATITEM_KEY_PREFIX))
-            .collect(Collectors.toMap(
-                e -> calendarPrefix + e.getKey(),
-                e -> translateDateFormatLetters(calendarType,
-                        (String)e.getValue(),
-                        this::convertDateTimePatternLetter)
-            ))
-        );
     }
 
     @FunctionalInterface
@@ -819,15 +789,5 @@ class Bundle {
                     }});
         }
         return numArray;
-    }
-
-    private static void skeletonInputRegions(Map<String, Object> myMap) {
-        myMap.putAll(myMap.entrySet().stream()
-                .filter(e -> e.getKey().startsWith(Bundle.DATEFORMATITEM_INPUT_REGIONS_PREFIX))
-                .collect(Collectors.toMap(
-                        e -> e.getKey(),
-                        e -> ((String)e.getValue()).trim()
-                ))
-        );
     }
 }

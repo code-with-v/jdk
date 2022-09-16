@@ -34,7 +34,7 @@ package sun.security.krb5;
 import sun.security.krb5.internal.*;
 import sun.security.util.*;
 import java.net.*;
-import java.util.ArrayList;
+import java.util.Vector;
 import java.util.Locale;
 import java.io.IOException;
 import java.math.BigInteger;
@@ -270,14 +270,15 @@ public class PrincipalName implements Cloneable {
             if (subDer.getTag() != DerValue.tag_SequenceOf) {
                 throw new Asn1Exception(Krb5.ASN1_BAD_ID);
             }
-            ArrayList<String> v = new ArrayList<>();
+            Vector<String> v = new Vector<>();
             DerValue subSubDer;
             while(subDer.getData().available() > 0) {
                 subSubDer = subDer.getData().getDerValue();
                 String namePart = new KerberosString(subSubDer).toString();
-                v.add(namePart);
+                v.addElement(namePart);
             }
-            nameStrings = v.toArray(new String[0]);
+            nameStrings = new String[v.size()];
+            v.copyInto(nameStrings);
             validateNameStrings(nameStrings);
         } else  {
             throw new Asn1Exception(Krb5.ASN1_BAD_ID);
@@ -325,7 +326,7 @@ public class PrincipalName implements Cloneable {
     // Code repetition, realm parsed again by class Realm
     private static String[] parseName(String name) {
 
-        ArrayList<String> tempStrings = new ArrayList<>();
+        Vector<String> tempStrings = new Vector<>();
         String temp = name;
         int i = 0;
         int componentStart = 0;
@@ -345,7 +346,7 @@ public class PrincipalName implements Cloneable {
                 else {
                     if (componentStart <= i) {
                         component = temp.substring(componentStart, i);
-                        tempStrings.add(component);
+                        tempStrings.addElement(component);
                     }
                     componentStart = i + 1;
                 }
@@ -362,7 +363,7 @@ public class PrincipalName implements Cloneable {
                     } else {
                         if (componentStart < i) {
                             component = temp.substring(componentStart, i);
-                            tempStrings.add(component);
+                            tempStrings.addElement(component);
                         }
                         componentStart = i + 1;
                         break;
@@ -374,10 +375,11 @@ public class PrincipalName implements Cloneable {
 
         if (i == temp.length()) {
             component = temp.substring(componentStart, i);
-            tempStrings.add(component);
+            tempStrings.addElement(component);
         }
 
-        String[] result = tempStrings.toArray(new String[0]);
+        String[] result = new String[tempStrings.size()];
+        tempStrings.copyInto(result);
         return result;
     }
 

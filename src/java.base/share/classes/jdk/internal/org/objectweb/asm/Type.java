@@ -56,7 +56,6 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package jdk.internal.org.objectweb.asm;
 
 import java.lang.reflect.Constructor;
@@ -472,7 +471,7 @@ public final class Type {
             case '(':
                 return new Type(METHOD, descriptorBuffer, descriptorBegin, descriptorEnd);
             default:
-                throw new IllegalArgumentException("Invalid descriptor: " + descriptorBuffer);
+                throw new IllegalArgumentException();
         }
     }
 
@@ -925,4 +924,3 @@ public final class Type {
         return getDescriptor();
     }
 }
-

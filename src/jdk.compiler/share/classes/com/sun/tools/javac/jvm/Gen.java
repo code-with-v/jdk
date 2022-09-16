@@ -860,10 +860,6 @@ public class Gen extends JCTree.Visitor {
      *  @param pt      The expression's expected type (proto-type).
      */
     public Item genExpr(JCTree tree, Type pt) {
-        if (!code.isAlive()) {
-            return items.makeStackItem(pt);
-        }
-
         Type prevPt = this.pt;
         try {
             if (tree.type.constValue() != null) {
@@ -1303,9 +1299,9 @@ public class Gen extends JCTree.Visitor {
 
             List<JCCase> l = cases;
             for (int i = 0; i < labels.length; i++) {
-                if (l.head.labels.head instanceof JCConstantCaseLabel constLabel) {
+                if (l.head.labels.head.isExpression()) {
                     Assert.check(l.head.labels.size() == 1);
-                    int val = ((Number) constLabel.expr.type.constValue()).intValue();
+                    int val = ((Number)((JCExpression) l.head.labels.head).type.constValue()).intValue();
                     labels[i] = val;
                     if (val < lo) lo = val;
                     if (hi < val) hi = val;
@@ -1514,8 +1510,8 @@ public class Gen extends JCTree.Visitor {
     //where
         /** Generate code for a try or synchronized statement
          *  @param body      The body of the try or synchronized statement.
-         *  @param catchers  The list of catch clauses.
-         *  @param env       The current environment of the body.
+         *  @param catchers  The lis of catch clauses.
+         *  @param env       the environment current for the body.
          */
         void genTry(JCTree body, List<JCCatch> catchers, Env<GenContext> env) {
             int limit = code.nextreg;
@@ -1527,13 +1523,7 @@ public class Gen extends JCTree.Visitor {
             code.statBegin(TreeInfo.endPos(body));
             genFinalizer(env);
             code.statBegin(TreeInfo.endPos(env.tree));
-            Chain exitChain;
-            boolean actualTry = env.tree.hasTag(TRY);
-            if (startpc == endpc && actualTry) {
-                exitChain = code.branch(dontgoto);
-            } else {
-                exitChain = code.branch(goto_);
-            }
+            Chain exitChain = code.branch(goto_);
             endFinalizerGap(env);
             env.info.finalize.afterBody();
             boolean hasFinalizer =
@@ -1551,7 +1541,7 @@ public class Gen extends JCTree.Visitor {
                 }
                 endFinalizerGap(env);
             }
-            if (hasFinalizer && (startpc != endpc || !actualTry)) {
+            if (hasFinalizer) {
                 // Create a new register segment to avoid allocating
                 // the same variables in finalizers and other statements.
                 code.newRegSegment();

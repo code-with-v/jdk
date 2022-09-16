@@ -80,7 +80,7 @@ public class TestJFRWithJMX {
             throw new SkippedException("test cannot be run under rootless podman configuration");
         }
 
-        DockerTestUtils.buildJdkContainerImage(imageName);
+        DockerTestUtils.buildJdkDockerImage(imageName, "Dockerfile-BasicTest", "jdk-docker");
 
         try {
             test();

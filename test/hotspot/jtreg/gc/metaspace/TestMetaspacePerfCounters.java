@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -37,10 +37,9 @@ import static jdk.test.lib.Asserts.*;
 import gc.testlibrary.PerfCounter;
 import gc.testlibrary.PerfCounters;
 
-/* @test id=Serial-64
+/* @test TestMetaspacePerfCountersSerial
  * @bug 8014659
  * @requires vm.gc.Serial
- * @requires vm.bits == "64"
  * @library /test/lib /
  * @summary Tests that performance counters for metaspace and compressed class
  *          space exists and works.
@@ -48,14 +47,13 @@ import gc.testlibrary.PerfCounters;
  *          java.compiler
  *          java.management/sun.management
  *          jdk.internal.jvmstat/sun.jvmstat.monitor
- * @run main/othervm -XX:-UseCompressedOops -XX:-UseCompressedClassPointers -XX:+UsePerfData -XX:+UseSerialGC gc.metaspace.TestMetaspacePerfCounters
- * @run main/othervm -XX:+UseCompressedOops -XX:+UseCompressedClassPointers -XX:+UsePerfData -XX:+UseSerialGC gc.metaspace.TestMetaspacePerfCounters
+ * @run main/othervm -XX:+IgnoreUnrecognizedVMOptions -XX:-UseCompressedOops -XX:-UseCompressedClassPointers -XX:+UsePerfData -XX:+UseSerialGC gc.metaspace.TestMetaspacePerfCounters
+ * @run main/othervm -XX:+IgnoreUnrecognizedVMOptions -XX:+UseCompressedOops -XX:+UseCompressedClassPointers -XX:+UsePerfData -XX:+UseSerialGC gc.metaspace.TestMetaspacePerfCounters
  */
 
-/* @test id=Parallel-64
+/* @test TestMetaspacePerfCountersParallel
  * @bug 8014659
  * @requires vm.gc.Parallel
- * @requires vm.bits == "64"
  * @library /test/lib /
  * @summary Tests that performance counters for metaspace and compressed class
  *          space exists and works.
@@ -63,14 +61,13 @@ import gc.testlibrary.PerfCounters;
  *          java.compiler
  *          java.management/sun.management
  *          jdk.internal.jvmstat/sun.jvmstat.monitor
- * @run main/othervm -XX:-UseCompressedOops -XX:-UseCompressedClassPointers -XX:+UsePerfData -XX:+UseParallelGC gc.metaspace.TestMetaspacePerfCounters
- * @run main/othervm -XX:+UseCompressedOops -XX:+UseCompressedClassPointers -XX:+UsePerfData -XX:+UseParallelGC gc.metaspace.TestMetaspacePerfCounters
+ * @run main/othervm -XX:+IgnoreUnrecognizedVMOptions -XX:-UseCompressedOops -XX:-UseCompressedClassPointers -XX:+UsePerfData -XX:+UseParallelGC gc.metaspace.TestMetaspacePerfCounters
+ * @run main/othervm -XX:+IgnoreUnrecognizedVMOptions -XX:+UseCompressedOops -XX:+UseCompressedClassPointers -XX:+UsePerfData -XX:+UseParallelGC gc.metaspace.TestMetaspacePerfCounters
  */
 
-/* @test id=G1-64
+/* @test TestMetaspacePerfCountersG1
  * @bug 8014659
  * @requires vm.gc.G1
- * @requires vm.bits == "64"
  * @library /test/lib /
  * @summary Tests that performance counters for metaspace and compressed class
  *          space exists and works.
@@ -78,14 +75,13 @@ import gc.testlibrary.PerfCounters;
  *          java.compiler
  *          java.management/sun.management
  *          jdk.internal.jvmstat/sun.jvmstat.monitor
- * @run main/othervm -XX:-UseCompressedOops -XX:-UseCompressedClassPointers -XX:+UsePerfData -XX:+UseG1GC gc.metaspace.TestMetaspacePerfCounters
- * @run main/othervm -XX:+UseCompressedOops -XX:+UseCompressedClassPointers -XX:+UsePerfData -XX:+UseG1GC gc.metaspace.TestMetaspacePerfCounters
+ * @run main/othervm -XX:+IgnoreUnrecognizedVMOptions -XX:-UseCompressedOops -XX:-UseCompressedClassPointers -XX:+UsePerfData -XX:+UseG1GC gc.metaspace.TestMetaspacePerfCounters
+ * @run main/othervm -XX:+IgnoreUnrecognizedVMOptions -XX:+UseCompressedOops -XX:+UseCompressedClassPointers -XX:+UsePerfData -XX:+UseG1GC gc.metaspace.TestMetaspacePerfCounters
  */
 
-/* @test id=Shenandoah-64
+/* @test TestMetaspacePerfCountersShenandoah
  * @bug 8014659
  * @requires vm.gc.Shenandoah
- * @requires vm.bits == "64"
  * @library /test/lib /
  * @summary Tests that performance counters for metaspace and compressed class
  *          space exists and works.
@@ -93,96 +89,9 @@ import gc.testlibrary.PerfCounters;
  *          java.compiler
  *          java.management/sun.management
  *          jdk.internal.jvmstat/sun.jvmstat.monitor
- * @run main/othervm -XX:-UseCompressedOops -XX:-UseCompressedClassPointers -XX:+UsePerfData -XX:+UseShenandoahGC gc.metaspace.TestMetaspacePerfCounters
- * @run main/othervm -XX:+UseCompressedOops -XX:+UseCompressedClassPointers -XX:+UsePerfData -XX:+UseShenandoahGC gc.metaspace.TestMetaspacePerfCounters
+ * @run main/othervm -XX:+IgnoreUnrecognizedVMOptions -XX:-UseCompressedOops -XX:-UseCompressedClassPointers -XX:+UsePerfData -XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC gc.metaspace.TestMetaspacePerfCounters
+ * @run main/othervm -XX:+IgnoreUnrecognizedVMOptions -XX:+UseCompressedOops -XX:+UseCompressedClassPointers -XX:+UsePerfData -XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC gc.metaspace.TestMetaspacePerfCounters
  */
-
-/* @test id=Epsilon-64
- * @bug 8014659
- * @requires vm.gc.Epsilon
- * @requires vm.bits == "64"
- * @library /test/lib /
- * @summary Tests that performance counters for metaspace and compressed class
- *          space exists and works.
- * @modules java.base/jdk.internal.misc
- *          java.compiler
- *          java.management/sun.management
- *          jdk.internal.jvmstat/sun.jvmstat.monitor
- * @run main/othervm -XX:+UnlockExperimentalVMOptions -XX:-UseCompressedOops -XX:-UseCompressedClassPointers -XX:+UsePerfData -XX:+UseEpsilonGC gc.metaspace.TestMetaspacePerfCounters
- * @run main/othervm -XX:+UnlockExperimentalVMOptions -XX:+UseCompressedOops -XX:+UseCompressedClassPointers -XX:+UsePerfData -XX:+UseEpsilonGC gc.metaspace.TestMetaspacePerfCounters
- */
-
-/* @test id=Serial-32
- * @bug 8014659
- * @requires vm.gc.Serial
- * @requires vm.bits == "32"
- * @library /test/lib /
- * @summary Tests that performance counters for metaspace and compressed class
- *          space exists and works.
- * @modules java.base/jdk.internal.misc
- *          java.compiler
- *          java.management/sun.management
- *          jdk.internal.jvmstat/sun.jvmstat.monitor
- * @run main/othervm -XX:+UsePerfData -XX:+UseSerialGC gc.metaspace.TestMetaspacePerfCounters
- */
-
-/* @test id=Parallel-32
- * @bug 8014659
- * @requires vm.gc.Parallel
- * @requires vm.bits == "32"
- * @library /test/lib /
- * @summary Tests that performance counters for metaspace and compressed class
- *          space exists and works.
- * @modules java.base/jdk.internal.misc
- *          java.compiler
- *          java.management/sun.management
- *          jdk.internal.jvmstat/sun.jvmstat.monitor
- * @run main/othervm -XX:+UsePerfData -XX:+UseParallelGC gc.metaspace.TestMetaspacePerfCounters
- */
-
-/* @test id=G1-32
- * @bug 8014659
- * @requires vm.gc.G1
- * @requires vm.bits == "32"
- * @library /test/lib /
- * @summary Tests that performance counters for metaspace and compressed class
- *          space exists and works.
- * @modules java.base/jdk.internal.misc
- *          java.compiler
- *          java.management/sun.management
- *          jdk.internal.jvmstat/sun.jvmstat.monitor
- * @run main/othervm -XX:+UsePerfData -XX:+UseG1GC gc.metaspace.TestMetaspacePerfCounters
- */
-
-/* @test id=Shenandoah-32
- * @bug 8014659
- * @requires vm.gc.Shenandoah
- * @requires vm.bits == "32"
- * @library /test/lib /
- * @summary Tests that performance counters for metaspace and compressed class
- *          space exists and works.
- * @modules java.base/jdk.internal.misc
- *          java.compiler
- *          java.management/sun.management
- *          jdk.internal.jvmstat/sun.jvmstat.monitor
- * @run main/othervm -XX:+UsePerfData -XX:+UseShenandoahGC gc.metaspace.TestMetaspacePerfCounters
- */
-
-
-/* @test id=Epsilon-32
- * @bug 8014659
- * @requires vm.gc.Epsilon
- * @requires vm.bits == "32"
- * @library /test/lib /
- * @summary Tests that performance counters for metaspace and compressed class
- *          space exists and works.
- * @modules java.base/jdk.internal.misc
- *          java.compiler
- *          java.management/sun.management
- *          jdk.internal.jvmstat/sun.jvmstat.monitor
- * @run main/othervm -XX:+UsePerfData -XX:+UnlockExperimentalVMOptions -XX:+UseEpsilonGC gc.metaspace.TestMetaspacePerfCounters
- */
-
 public class TestMetaspacePerfCounters {
     public static Class<?> fooClass = null;
     private static final String[] counterNames = {"minCapacity", "maxCapacity", "capacity", "used"};

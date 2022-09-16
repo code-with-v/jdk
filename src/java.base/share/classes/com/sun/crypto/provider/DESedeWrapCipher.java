@@ -181,7 +181,10 @@ public final class DESedeWrapCipher extends CipherSpi {
             engineInit(opmode, key, (AlgorithmParameterSpec) null, random);
         } catch (InvalidAlgorithmParameterException iape) {
             // should never happen
-            throw new InvalidKeyException("Parameters required", iape);
+            InvalidKeyException ike =
+                new InvalidKeyException("Parameters required");
+            ike.initCause(iape);
+            throw ike;
         }
     }
 
@@ -282,8 +285,11 @@ public final class DESedeWrapCipher extends CipherSpi {
                 paramsEng.engineInit(params.getEncoded());
                 ivSpec = paramsEng.engineGetParameterSpec(IvParameterSpec.class);
             } catch (Exception ex) {
-                throw new InvalidAlgorithmParameterException
-                    ("Wrong parameter type: IV expected", ex);
+                InvalidAlgorithmParameterException iape =
+                    new InvalidAlgorithmParameterException
+                        ("Wrong parameter type: IV expected");
+                iape.initCause(ex);
+                throw iape;
             }
         }
         engineInit(opmode, key, ivSpec, random);

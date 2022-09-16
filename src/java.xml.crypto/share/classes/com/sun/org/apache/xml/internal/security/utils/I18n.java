@@ -160,7 +160,7 @@ public final class I18n {
         I18n.resourceBundle =
             ResourceBundle.getBundle(
                 Constants.exceptionMessagesResourceBundleBase,
-                Locale.of(languageCode, countryCode)
+                new Locale(languageCode, countryCode)
             );
         alreadyInitialized = true;
     }

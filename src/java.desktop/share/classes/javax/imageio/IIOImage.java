@@ -99,7 +99,7 @@ public class IIOImage {
      * @param metadata an {@code IIOMetadata} object, or
      * {@code null}.
      *
-     * @throws IllegalArgumentException if {@code image} is
+     * @exception IllegalArgumentException if {@code image} is
      * {@code null}.
      */
     public IIOImage(RenderedImage image,
@@ -127,7 +127,7 @@ public class IIOImage {
      * @param metadata an {@code IIOMetadata} object, or
      * {@code null}.
      *
-     * @throws IllegalArgumentException if {@code raster} is
+     * @exception IllegalArgumentException if {@code raster} is
      * {@code null}.
      */
     public IIOImage(Raster raster,
@@ -163,7 +163,7 @@ public class IIOImage {
      *
      * @param image a {@code RenderedImage}.
      *
-     * @throws IllegalArgumentException if {@code image} is
+     * @exception IllegalArgumentException if {@code image} is
      * {@code null}.
      *
      * @see #getRenderedImage
@@ -213,7 +213,7 @@ public class IIOImage {
      *
      * @param raster a {@code Raster}.
      *
-     * @throws IllegalArgumentException if {@code raster} is
+     * @exception IllegalArgumentException if {@code raster} is
      * {@code null}.
      *
      * @see #getRaster
@@ -245,9 +245,9 @@ public class IIOImage {
      *
      * @return a thumbnail image, as a {@code BufferedImage}.
      *
-     * @throws IndexOutOfBoundsException if the supplied index is
+     * @exception IndexOutOfBoundsException if the supplied index is
      * negative or larger than the largest valid index.
-     * @throws ClassCastException if a
+     * @exception ClassCastException if a
      * non-{@code BufferedImage} object is encountered in the
      * list of thumbnails at the given index.
      *

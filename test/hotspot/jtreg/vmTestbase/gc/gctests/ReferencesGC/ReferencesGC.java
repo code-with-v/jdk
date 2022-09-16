@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,12 +30,8 @@
  *
  * @library /vmTestbase
  *          /test/lib
- * @build jdk.test.whitebox.WhiteBox
- * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
  * @run main/othervm
- *      -Xbootclasspath/a:.
- *      -XX:+UnlockDiagnosticVMOptions
- *      -XX:+WhiteBoxAPI
+ *      -XX:-UseGCOverheadLimit
  *      gc.gctests.ReferencesGC.ReferencesGC
  *      -range 200
  *      -ratio 0.9
@@ -45,11 +41,12 @@
 package gc.gctests.ReferencesGC;
 
 import java.lang.ref.*;
-
-import jdk.test.whitebox.WhiteBox;
 import nsk.share.TestFailure;
+import nsk.share.gc.Algorithms;
 import nsk.share.gc.GC;
 import nsk.share.gc.ThreadedGCTest;
+import nsk.share.gc.gp.GarbageProducer;
+import nsk.share.gc.gp.GarbageUtils;
 import nsk.share.test.ExecutionController;
 
 public class ReferencesGC extends ThreadedGCTest {
@@ -90,6 +87,7 @@ public class ReferencesGC extends ThreadedGCTest {
         WeakReference wr[] = new WeakReference[RANGE];
         SoftReference sr[] = new SoftReference[RANGE];
         PhantomReference phr[] = new PhantomReference[RANGE];
+        GarbageProducer gp = GarbageUtils.getArrayProducers().get(0);
         int iter = 0;
 
         @Override
@@ -100,16 +98,21 @@ public class ReferencesGC extends ThreadedGCTest {
 
             while (stresser.continueExecution()) {
                 int totalLive = 0;
-
-                refq = new ReferenceQueue();
-                alive = new int[3];
-                wrong = new int[3];
-                for (int j = 0; j < RANGE; j++) {
-                    holder[j] = new CircularLinkedList();
-                    holder[j].addNelements(300);
-                    wr[j] = new WeakReference(holder[j], refq);
-                    sr[j] = new SoftReference(holder[j], refq);
-                    phr[j] = new PhantomReference(holder[j], refq);
+                try {
+                    refq = new ReferenceQueue();
+                    alive = new int[3];
+                    wrong = new int[3];
+                    for (int j = 0; j < RANGE; j++) {
+                        holder[j] = new CircularLinkedList();
+                        holder[j].addNelements(300);
+                        wr[j] = new WeakReference(holder[j], refq);
+                        sr[j] = new SoftReference(holder[j], refq);
+                        phr[j] = new PhantomReference(holder[j], refq);
+                    }
+                } catch (OutOfMemoryError oome) {
+                    // we should just skip the test
+                    // the other thread could eat all memory
+                    continue;
                 }
 
                 for (int i = 0; i < RANGE; i++) {
@@ -131,11 +134,12 @@ public class ReferencesGC extends ThreadedGCTest {
                     holder[i] = null;
                 }
 
-                // WB.fullGC() is guaranteed to clear all kinds of weak references.
-                WhiteBox.getWhiteBox().fullGC();
+                Algorithms.eatMemory(stresser);
                 if (!stresser.continueExecution()) {
                     break;
                 }
+                // At this point OOME was thrown and accordingly to spec
+                // all weak refs should be processed
 
                 long waitTime = System.currentTimeMillis() + finalizationMaxTime;
                 int totalQ = 0;

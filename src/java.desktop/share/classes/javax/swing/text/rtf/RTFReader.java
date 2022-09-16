@@ -22,38 +22,15 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-
 package javax.swing.text.rtf;
 
+import java.lang.*;
+import java.util.*;
+import java.io.*;
 import java.awt.Color;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.StreamTokenizer;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.util.Dictionary;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.Map;
-import java.util.Set;
-import java.util.Vector;
-
-import javax.swing.text.AttributeSet;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.MutableAttributeSet;
-import javax.swing.text.SimpleAttributeSet;
-import javax.swing.text.Style;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyleContext;
-import javax.swing.text.StyledDocument;
-import javax.swing.text.TabStop;
-
-import static java.nio.charset.StandardCharsets.ISO_8859_1;
+import javax.swing.text.*;
 
 /**
  * Takes a sequence of RTF tokens and text and appends the text
@@ -89,12 +66,12 @@ class RTFReader extends RTFParser
   Dictionary<Integer, String> fontTable;
   /** This array maps color indices to Color objects. */
   Color[] colorTable;
-  /** This Map maps character style numbers to Style objects. */
-  Map<Integer, Style> characterStyles;
-  /** This Map maps paragraph style numbers to Style objects. */
-  Map<Integer, Style> paragraphStyles;
-  /** This Map maps section style numbers to Style objects. */
-  Map<Integer, Style> sectionStyles;
+  /** This array maps character style numbers to Style objects. */
+  Style[] characterStyles;
+  /** This array maps paragraph style numbers to Style objects. */
+  Style[] paragraphStyles;
+  /** This array maps section style numbers to Style objects. */
+  Style[] sectionStyles;
 
   /** This is the RTF version number, extracted from the \rtf keyword.
    *  The version information is currently not used. */
@@ -615,7 +592,7 @@ static char[] readCharset(InputStream strm)
     char[] values = new char[256];
     int i;
     StreamTokenizer in = new StreamTokenizer(new BufferedReader(
-            new InputStreamReader(strm, ISO_8859_1)));
+            new InputStreamReader(strm, "ISO-8859-1")));
 
     in.eolIsSignificant(false);
     in.commentChar('#');
@@ -669,7 +646,8 @@ interface Destination {
 /** This data-sink class is used to implement ignored destinations
  *  (e.g. {\*\blegga blah blah blah} )
  *  It accepts all keywords and text but does nothing with them. */
-static class DiscardingDestination implements Destination {
+class DiscardingDestination implements Destination
+{
     public void handleBinaryBlob(byte[] data)
     {
         /* Discard binary blobs. */
@@ -864,9 +842,9 @@ class StylesheetDestination
 
     public void close()
     {
-        Map<Integer, Style> chrStyles = new HashMap<>();
-        Map<Integer, Style> pgfStyles = new HashMap<>();
-        Map<Integer, Style> secStyles = new HashMap<>();
+        Vector<Style> chrStyles = new Vector<Style>();
+        Vector<Style> pgfStyles = new Vector<Style>();
+        Vector<Style> secStyles = new Vector<Style>();
         Enumeration<StyleDefiningDestination> styles = definedStyles.elements();
         while(styles.hasMoreElements()) {
             StyleDefiningDestination style;
@@ -875,24 +853,32 @@ class StylesheetDestination
             defined = style.realize();
             warning("Style "+style.number+" ("+style.styleName+"): "+defined);
             String stype = (String)defined.getAttribute(Constants.StyleType);
-            Map<Integer, Style> toMap;
+            Vector<Style> toSet;
             if (stype.equals(Constants.STSection)) {
-                toMap = secStyles;
+                toSet = secStyles;
             } else if (stype.equals(Constants.STCharacter)) {
-                toMap = chrStyles;
+                toSet = chrStyles;
             } else {
-                toMap = pgfStyles;
+                toSet = pgfStyles;
             }
-            toMap.put(style.number, defined);
+            if (toSet.size() <= style.number)
+                toSet.setSize(style.number + 1);
+            toSet.setElementAt(defined, style.number);
         }
         if (!(chrStyles.isEmpty())) {
-            characterStyles = chrStyles;
+            Style[] styleArray = new Style[chrStyles.size()];
+            chrStyles.copyInto(styleArray);
+            characterStyles = styleArray;
         }
         if (!(pgfStyles.isEmpty())) {
-            paragraphStyles = pgfStyles;
+            Style[] styleArray = new Style[pgfStyles.size()];
+            pgfStyles.copyInto(styleArray);
+            paragraphStyles = styleArray;
         }
         if (!(secStyles.isEmpty())) {
-            sectionStyles = secStyles;
+            Style[] styleArray = new Style[secStyles.size()];
+            secStyles.copyInto(styleArray);
+            sectionStyles = styleArray;
         }
 
 /* (old debugging code)
@@ -975,14 +961,6 @@ class StylesheetDestination
 
         public boolean handleKeyword(String keyword, int parameter)
         {
-            // As per http://www.biblioscape.com/rtf15_spec.htm#Heading2
-            // we are restricting control word delimiter numeric value
-            // to be within -32767 through 32767
-            if (parameter > 32767) {
-                parameter = 32767;
-            } else if (parameter < -32767) {
-                parameter = -32767;
-            }
             if (keyword.equals("s")) {
                 characterStyle = false;
                 sectionStyle = false;
@@ -1005,27 +983,19 @@ class StylesheetDestination
             return true;
         }
 
-        public Style realize() {
-            return realize(null);
-        }
-
-        private Style realize(Set<Integer> alreadyMetBasisIndexSet)
+        public Style realize()
         {
             Style basis = null;
             Style next = null;
 
-            if (alreadyMetBasisIndexSet == null) {
-                alreadyMetBasisIndexSet = new HashSet<>();
-            }
-
             if (realizedStyle != null)
                 return realizedStyle;
 
-            if (basedOn != STYLENUMBER_NONE && alreadyMetBasisIndexSet.add(basedOn)) {
+            if (basedOn != STYLENUMBER_NONE) {
                 StyleDefiningDestination styleDest;
-                styleDest = definedStyles.get(basedOn);
+                styleDest = definedStyles.get(Integer.valueOf(basedOn));
                 if (styleDest != null && styleDest != this) {
-                    basis = styleDest.realize(alreadyMetBasisIndexSet);
+                    basis = styleDest.realize();
                 }
             }
 
@@ -1070,7 +1040,7 @@ class StylesheetDestination
 
 /** Handles the info group. Currently no info keywords are recognized
  *  so this is a subclass of DiscardingDestination. */
-static class InfoDestination
+class InfoDestination
     extends DiscardingDestination
     implements Destination
 {
@@ -1326,19 +1296,19 @@ abstract class AttributeTrackingDestination implements Destination
 
         if (keyword.equals("s") &&
             paragraphStyles != null) {
-            parserState.put("paragraphStyle", paragraphStyles.get(parameter));
+            parserState.put("paragraphStyle", paragraphStyles[parameter]);
             return true;
         }
 
         if (keyword.equals("cs") &&
             characterStyles != null) {
-            parserState.put("characterStyle", characterStyles.get(parameter));
+            parserState.put("characterStyle", characterStyles[parameter]);
             return true;
         }
 
         if (keyword.equals("ds") &&
             sectionStyles != null) {
-            parserState.put("sectionStyle", sectionStyles.get(parameter));
+            parserState.put("sectionStyle", sectionStyles[parameter]);
             return true;
         }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,17 +36,12 @@ import sun.awt.SunToolkit;
 import sun.lwawt.LWToolkit;
 import sun.lwawt.macosx.*;
 
-@SuppressWarnings("serial") // JDK implementation class
+@SuppressWarnings({"removal","serial"}) // JDK implementation class
 final class ScreenMenu extends Menu
         implements ContainerListener, ComponentListener,
                    ScreenMenuPropertyHandler {
 
     static {
-        loadAWTLibrary();
-    }
-
-    @SuppressWarnings("removal")
-    private static void loadAWTLibrary() {
         java.security.AccessController.doPrivileged(
             new java.security.PrivilegedAction<Void>() {
                 public Void run() {
@@ -351,8 +346,11 @@ final class ScreenMenu extends Menu
         // Tell our parent to add/remove us
         final MenuContainer parent = getParent();
 
-        if (parent instanceof ScreenMenu sm) {
-            sm.setChildVisible(fInvoker, b);
+        if (parent != null) {
+            if (parent instanceof ScreenMenu) {
+                final ScreenMenu sm = (ScreenMenu)parent;
+                sm.setChildVisible(fInvoker, b);
+            }
         }
     }
 
@@ -420,9 +418,9 @@ final class ScreenMenu extends Menu
             final KeyStroke ks = mi.getAccelerator();
             if (ks != null) hashCode ^= ks.hashCode();
 
-            hashCode ^= Boolean.hashCode(mi.isVisible());
-            hashCode ^= Boolean.hashCode(mi.isEnabled());
-            hashCode ^= Boolean.hashCode(mi.isSelected());
+            hashCode ^= Boolean.valueOf(mi.isVisible()).hashCode();
+            hashCode ^= Boolean.valueOf(mi.isEnabled()).hashCode();
+            hashCode ^= Boolean.valueOf(mi.isSelected()).hashCode();
 
         } else if (m instanceof JSeparator) {
             hashCode ^= "-".hashCode();

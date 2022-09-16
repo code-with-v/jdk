@@ -40,8 +40,6 @@ public class isexceeded001 {
     public static int run(String[] argv, PrintStream out) {
         ArgumentHandler argHandler = new ArgumentHandler(argv);
         Log log = new Log(out, argHandler);
-        log.enableVerbose(true);
-
         monitor = Monitor.getMemoryMonitor(log, argHandler);
         List pools = monitor.getMemoryPoolMBeans();
 

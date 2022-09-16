@@ -23,7 +23,7 @@
  */
 
 /**
- * @test
+ * @test TestMemoryMXBeans
  * @summary Test JMX memory beans
  * @requires vm.gc.Shenandoah
  * @modules java.base/jdk.internal.misc

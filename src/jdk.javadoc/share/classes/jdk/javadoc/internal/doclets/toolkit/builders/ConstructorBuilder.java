@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -40,6 +40,11 @@ import static jdk.javadoc.internal.doclets.toolkit.util.VisibleMemberTable.Kind.
 
 /**
  * Builds documentation for a constructor.
+ *
+ *  <p><b>This is NOT part of any supported API.
+ *  If you write code that depends on this, you do so at your own risk.
+ *  This code and its internal interfaces are subject to change or
+ *  deletion without notice.</b>
  */
 public class ConstructorBuilder extends AbstractMemberBuilder {
 
@@ -106,83 +111,83 @@ public class ConstructorBuilder extends AbstractMemberBuilder {
     }
 
     @Override
-    public void build(Content target) throws DocletException {
-        buildConstructorDoc(target);
+    public void build(Content contentTree) throws DocletException {
+        buildConstructorDoc(contentTree);
     }
 
     /**
      * Build the constructor documentation.
      *
-     * @param target the content to which the documentation will be added
+     * @param detailsList the content tree to which the documentation will be added
      * @throws DocletException if there is a problem while building the documentation
      */
-    protected void buildConstructorDoc(Content target) throws DocletException {
+    protected void buildConstructorDoc(Content detailsList) throws DocletException {
         if (hasMembersToDocument()) {
-            Content constructorDetailsHeader = writer.getConstructorDetailsHeader(target);
+            Content constructorDetailsTreeHeader = writer.getConstructorDetailsTreeHeader(detailsList);
             Content memberList = writer.getMemberList();
 
             for (Element constructor : constructors) {
                 currentConstructor = (ExecutableElement)constructor;
-                Content constructorContent = writer.getConstructorHeaderContent(currentConstructor);
+                Content constructorDocTree = writer.getConstructorDocTreeHeader(currentConstructor);
 
-                buildSignature(constructorContent);
-                buildDeprecationInfo(constructorContent);
-                buildPreviewInfo(constructorContent);
-                buildConstructorComments(constructorContent);
-                buildTagInfo(constructorContent);
+                buildSignature(constructorDocTree);
+                buildDeprecationInfo(constructorDocTree);
+                buildPreviewInfo(constructorDocTree);
+                buildConstructorComments(constructorDocTree);
+                buildTagInfo(constructorDocTree);
 
-                memberList.add(writer.getMemberListItem(constructorContent));
+                memberList.add(writer.getMemberListItem(constructorDocTree));
             }
-            Content constructorDetails = writer.getConstructorDetails(constructorDetailsHeader, memberList);
-            target.add(constructorDetails);
+            Content constructorDetails = writer.getConstructorDetails(constructorDetailsTreeHeader, memberList);
+            detailsList.add(constructorDetails);
         }
     }
 
     /**
      * Build the signature.
      *
-     * @param constructorContent the content to which the documentation will be added
+     * @param constructorDocTree the content tree to which the documentation will be added
      */
-    protected void buildSignature(Content constructorContent) {
-        constructorContent.add(writer.getSignature(currentConstructor));
+    protected void buildSignature(Content constructorDocTree) {
+        constructorDocTree.add(writer.getSignature(currentConstructor));
     }
 
     /**
      * Build the deprecation information.
      *
-     * @param constructorContent the content to which the documentation will be added
+     * @param constructorDocTree the content tree to which the documentation will be added
      */
-    protected void buildDeprecationInfo(Content constructorContent) {
-        writer.addDeprecated(currentConstructor, constructorContent);
+    protected void buildDeprecationInfo(Content constructorDocTree) {
+        writer.addDeprecated(currentConstructor, constructorDocTree);
     }
 
     /**
      * Build the preview information.
      *
-     * @param constructorContent the content to which the documentation will be added
+     * @param constructorDocTree the content tree to which the documentation will be added
      */
-    protected void buildPreviewInfo(Content constructorContent) {
-        writer.addPreview(currentConstructor, constructorContent);
+    protected void buildPreviewInfo(Content constructorDocTree) {
+        writer.addPreview(currentConstructor, constructorDocTree);
     }
 
     /**
      * Build the comments for the constructor.  Do nothing if
      * {@link BaseOptions#noComment()} is set to true.
      *
-     * @param constructorContent the content to which the documentation will be added
+     * @param constructorDocTree the content tree to which the documentation will be added
      */
-    protected void buildConstructorComments(Content constructorContent) {
+    protected void buildConstructorComments(Content constructorDocTree) {
         if (!options.noComment()) {
-            writer.addComments(currentConstructor, constructorContent);
+            writer.addComments(currentConstructor, constructorDocTree);
         }
     }
 
     /**
      * Build the tag information.
      *
-     * @param constructorContent the content to which the documentation will be added
+     * @param constructorDocTree the content tree to which the documentation will be added
      */
-    protected void buildTagInfo(Content constructorContent) {
-        writer.addTags(currentConstructor, constructorContent);
+    protected void buildTagInfo(Content constructorDocTree) {
+        writer.addTags(currentConstructor, constructorDocTree);
     }
 }

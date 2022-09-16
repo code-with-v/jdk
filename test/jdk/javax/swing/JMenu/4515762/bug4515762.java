@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -21,15 +21,9 @@
  * questions.
  */
 
-import java.awt.Robot;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.KeyEvent;
-import javax.swing.JFrame;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.SwingUtilities;
+import java.awt.*;
+import java.awt.event.*;
+import javax.swing.*;
 
 /**
  * @test
@@ -43,8 +37,8 @@ import javax.swing.SwingUtilities;
  */
 public class bug4515762 {
 
-    private static volatile boolean actionExpected;
-    private static volatile boolean actionRecieved;
+    private static volatile boolean actionExpected = false;
+    private static volatile boolean actionRecieved = false;
     private static JFrame frame;
 
     /**
@@ -105,18 +99,18 @@ public class bug4515762 {
         return menuItem;
     }
 
-    public static void checkAction(String str) {
+    public static void checkAction() {
         if (actionRecieved == true) {
             actionRecieved = false;
         } else {
-            throw new RuntimeException("Action has not been received: " + str);
+            throw new RuntimeException("Action has not been received");
         }
     }
 
     public static void main(String[] args) throws Throwable {
         try {
             Robot robot = new Robot();
-            robot.setAutoDelay(100);
+            robot.setAutoDelay(250);
 
             SwingUtilities.invokeAndWait(new Runnable() {
 
@@ -125,7 +119,6 @@ public class bug4515762 {
                     frame = new JFrame("Test");
                     frame.setJMenuBar(createMenuBar());
                     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                    frame.setLocationRelativeTo(null);
                     frame.pack();
                     frame.setVisible(true);
                     frame.toFront();
@@ -133,7 +126,6 @@ public class bug4515762 {
             });
 
             robot.waitForIdle();
-            robot.delay(1000);
 
             Util.hitMnemonics(robot, KeyEvent.VK_D);
             robot.waitForIdle();
@@ -141,9 +133,7 @@ public class bug4515762 {
             // Press the S key many times (should not cause an action peformed)
             int TIMES = 5;
             for (int i = 0; i < TIMES; i++) {
-                robot.keyPress(KeyEvent.VK_S);
-                robot.keyRelease(KeyEvent.VK_S);
-                robot.waitForIdle();
+                Util.hitKeys(robot, KeyEvent.VK_S);
             }
             robot.waitForIdle();
 
@@ -156,7 +146,7 @@ public class bug4515762 {
             robot.keyRelease(KeyEvent.VK_S);
             robot.waitForIdle();
 
-            checkAction("pressing VK_S");
+            checkAction();
 
             Util.hitMnemonics(robot, KeyEvent.VK_U);
             robot.waitForIdle();
@@ -165,31 +155,28 @@ public class bug4515762 {
             robot.keyRelease(KeyEvent.VK_M);
             robot.waitForIdle();
 
-            checkAction("pressing VK_M");
+            checkAction();
 
             Util.hitMnemonics(robot, KeyEvent.VK_U);
             robot.waitForIdle();
-            robot.keyPress(KeyEvent.VK_T);
-            robot.keyRelease(KeyEvent.VK_T);
+            Util.hitKeys(robot, KeyEvent.VK_T);
             robot.waitForIdle();
 
-            checkAction("pressing VK_T");
-
-            Util.hitMnemonics(robot, KeyEvent.VK_U);
-            robot.waitForIdle();
-            robot.keyPress(KeyEvent.VK_W);
-            robot.keyRelease(KeyEvent.VK_W);
-            robot.waitForIdle();
-
-            checkAction("pressing VK_W");
+            checkAction();
 
             Util.hitMnemonics(robot, KeyEvent.VK_U);
             robot.waitForIdle();
-            robot.keyPress(KeyEvent.VK_U);
-            robot.keyRelease(KeyEvent.VK_U);
+            Util.hitKeys(robot, KeyEvent.VK_W);
             robot.waitForIdle();
 
-            checkAction("pressing VK_U");
+            checkAction();
+
+            Util.hitMnemonics(robot, KeyEvent.VK_U);
+            robot.waitForIdle();
+            Util.hitKeys(robot, KeyEvent.VK_U);
+            robot.waitForIdle();
+
+            checkAction();
         } finally {
             if (frame != null) SwingUtilities.invokeAndWait(() -> frame.dispose());
         }

@@ -41,18 +41,17 @@
 // Compress char[] to byte[] by compressing 16 bytes at once.
 void C2_MacroAssembler::string_compress_16(Register src, Register dst, Register cnt,
                                            Register tmp1, Register tmp2, Register tmp3, Register tmp4, Register tmp5,
-                                           Label& Lfailure, bool ascii) {
+                                           Label& Lfailure) {
 
   const Register tmp0 = R0;
-  const int byte_mask = ascii ? 0x7F : 0xFF;
   assert_different_registers(src, dst, cnt, tmp0, tmp1, tmp2, tmp3, tmp4, tmp5);
   Label Lloop, Lslow;
 
   // Check if cnt >= 8 (= 16 bytes)
-  lis(tmp1, byte_mask);           // tmp1 = 0x00FF00FF00FF00FF (non ascii case)
+  lis(tmp1, 0xFF);                // tmp1 = 0x00FF00FF00FF00FF
   srwi_(tmp2, cnt, 3);
   beq(CCR0, Lslow);
-  ori(tmp1, tmp1, byte_mask);
+  ori(tmp1, tmp1, 0xFF);
   rldimi(tmp1, tmp1, 32, 0);
   mtctr(tmp2);
 
@@ -68,7 +67,7 @@ void C2_MacroAssembler::string_compress_16(Register src, Register dst, Register 
   rldimi(tmp4, tmp4, 2*8, 2*8);   // _4_6_7_7
 
   andc_(tmp0, tmp0, tmp1);
-  bne(CCR0, Lfailure);            // Not latin1/ascii.
+  bne(CCR0, Lfailure);            // Not latin1.
   addi(src, src, 16);
 
   rlwimi(tmp3, tmp2, 0*8, 24, 31);// _____1_3
@@ -88,47 +87,18 @@ void C2_MacroAssembler::string_compress_16(Register src, Register dst, Register 
 }
 
 // Compress char[] to byte[]. cnt must be positive int.
-void C2_MacroAssembler::string_compress(Register src, Register dst, Register cnt, Register tmp,
-                                        Label& Lfailure, bool ascii) {
-  const int byte_mask = ascii ? 0x7F : 0xFF;
+void C2_MacroAssembler::string_compress(Register src, Register dst, Register cnt, Register tmp, Label& Lfailure) {
   Label Lloop;
   mtctr(cnt);
 
   bind(Lloop);
   lhz(tmp, 0, src);
-  cmplwi(CCR0, tmp, byte_mask);
-  bgt(CCR0, Lfailure);            // Not latin1/ascii.
+  cmplwi(CCR0, tmp, 0xff);
+  bgt(CCR0, Lfailure);            // Not latin1.
   addi(src, src, 2);
   stb(tmp, 0, dst);
   addi(dst, dst, 1);
   bdnz(Lloop);
-}
-
-void C2_MacroAssembler::encode_iso_array(Register src, Register dst, Register len,
-                                         Register tmp1, Register tmp2, Register tmp3, Register tmp4, Register tmp5,
-                                         Register result, bool ascii) {
-  Label Lslow, Lfailure1, Lfailure2, Ldone;
-
-  string_compress_16(src, dst, len, tmp1, tmp2, tmp3, tmp4, tmp5, Lfailure1, ascii);
-  rldicl_(result, len, 0, 64-3); // Remaining characters.
-  beq(CCR0, Ldone);
-  bind(Lslow);
-  string_compress(src, dst, result, tmp2, Lfailure2, ascii);
-  li(result, 0);
-  b(Ldone);
-
-  bind(Lfailure1);
-  mr(result, len);
-  mfctr(tmp1);
-  rldimi_(result, tmp1, 3, 0); // Remaining characters.
-  beq(CCR0, Ldone);
-  b(Lslow);
-
-  bind(Lfailure2);
-  mfctr(result); // Remaining characters.
-
-  bind(Ldone);
-  subf(result, result, len);
 }
 
 // Inflate byte[] to char[] by inflating 16 bytes at once.
@@ -565,16 +535,16 @@ void C2_MacroAssembler::string_indexof_char(Register result, Register haystack, 
 } // string_indexof_char
 
 
-void C2_MacroAssembler::count_positives(Register src, Register cnt, Register result,
-                                        Register tmp1, Register tmp2) {
+void C2_MacroAssembler::has_negatives(Register src, Register cnt, Register result,
+                                      Register tmp1, Register tmp2) {
   const Register tmp0 = R0;
   assert_different_registers(src, result, cnt, tmp0, tmp1, tmp2);
-  Label Lfastloop, Lslow, Lloop, Ldone;
+  Label Lfastloop, Lslow, Lloop, Lnoneg, Ldone;
 
   // Check if cnt >= 8 (= 16 bytes)
   lis(tmp1, (int)(short)0x8080);  // tmp1 = 0x8080808080808080
   srwi_(tmp2, cnt, 4);
-  mr(result, src);                // Use result reg to point to the current position.
+  li(result, 1);                  // Assume there's a negative byte.
   beq(CCR0, Lslow);
   ori(tmp1, tmp1, 0x8080);
   rldimi(tmp1, tmp1, 32, 0);
@@ -582,28 +552,30 @@ void C2_MacroAssembler::count_positives(Register src, Register cnt, Register res
 
   // 2x unrolled loop
   bind(Lfastloop);
-  ld(tmp2, 0, result);
-  ld(tmp0, 8, result);
+  ld(tmp2, 0, src);
+  ld(tmp0, 8, src);
 
   orr(tmp0, tmp2, tmp0);
 
   and_(tmp0, tmp0, tmp1);
-  bne(CCR0, Lslow);               // Found negative byte.
-  addi(result, result, 16);
+  bne(CCR0, Ldone);               // Found negative byte.
+  addi(src, src, 16);
+
   bdnz(Lfastloop);
 
-  bind(Lslow);                    // Fallback to slow version.
-  subf(tmp0, src, result);        // Bytes known positive.
-  subf_(tmp0, tmp0, cnt);         // Remaining Bytes.
-  beq(CCR0, Ldone);
+  bind(Lslow);                    // Fallback to slow version
+  rldicl_(tmp0, cnt, 0, 64-4);
+  beq(CCR0, Lnoneg);
   mtctr(tmp0);
   bind(Lloop);
-  lbz(tmp0, 0, result);
+  lbz(tmp0, 0, src);
+  addi(src, src, 1);
   andi_(tmp0, tmp0, 0x80);
   bne(CCR0, Ldone);               // Found negative byte.
-  addi(result, result, 1);
   bdnz(Lloop);
+  bind(Lnoneg);
+  li(result, 0);
 
   bind(Ldone);
-  subf(result, src, result);      // Result is offset from src.
 }
+

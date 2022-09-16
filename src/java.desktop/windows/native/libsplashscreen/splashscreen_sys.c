@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,6 +22,11 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+
+// copy from awt.h
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0600
+#endif
 
 // copy from awt.h
 #ifndef _WIN32_IE
@@ -442,7 +447,7 @@ SplashInitPlatform(Splash * splash)
     splash->isLayered = FALSE;
     hdc = GetDC(NULL);
     paletteMode = (GetDeviceCaps(hdc, RASTERCAPS) & RC_PALETTE) != 0;
-    if (!paletteMode) {
+    if (UpdateLayeredWindow && !paletteMode) {
         splash->isLayered = TRUE;
     }
     splash->byteAlignment = 4;

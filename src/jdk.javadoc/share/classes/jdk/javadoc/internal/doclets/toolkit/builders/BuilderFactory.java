@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -38,9 +38,18 @@ import jdk.javadoc.internal.doclets.toolkit.PropertyWriter;
 import jdk.javadoc.internal.doclets.toolkit.WriterFactory;
 import jdk.javadoc.internal.doclets.toolkit.util.ClassTree;
 
+
+
+
 /**
  * The factory for constructing builders.
+ *
+ *  <p><b>This is NOT part of any supported API.
+ *  If you write code that depends on this, you do so at your own risk.
+ *  This code and its internal interfaces are subject to change or
+ *  deletion without notice.</b>
  */
+
 public class BuilderFactory {
 
     /**
@@ -124,11 +133,26 @@ public class BuilderFactory {
      * @return an instance of the annotation type member builder for the given
      *         annotation type.
      */
-    public AbstractMemberBuilder getAnnotationTypeMemberBuilder(
+    public AbstractMemberBuilder getAnnotationTypeOptionalMemberBuilder(
             ClassWriter classWriter) {
-        return AnnotationTypeMemberBuilder.getInstance(context,
+        return AnnotationTypeOptionalMemberBuilder.getInstance(context,
             classWriter.getTypeElement(),
-            writerFactory.getAnnotationTypeMemberWriter(classWriter));
+            writerFactory.getAnnotationTypeOptionalMemberWriter(classWriter));
+    }
+
+    /**
+     * Return an instance of the annotation type member builder for the given
+     * class.
+     *
+     * @param classWriter the writer for the enclosing annotation type
+     * @return an instance of the annotation type member builder for the given
+     *         annotation type.
+     */
+    public AbstractMemberBuilder getAnnotationTypeRequiredMemberBuilder(
+            ClassWriter classWriter) {
+        return AnnotationTypeRequiredMemberBuilder.getInstance(context,
+            classWriter.getTypeElement(),
+            writerFactory.getAnnotationTypeRequiredMemberWriter(classWriter));
     }
 
     /**

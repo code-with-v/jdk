@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,7 +36,6 @@ import java.net.http.HttpResponse;
 import jdk.internal.net.http.common.Logger;
 import jdk.internal.net.http.common.Utils;
 import static java.lang.String.format;
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
  * Implements chunked/fixed transfer encodings of HTTP/1.1 responses.
@@ -104,7 +103,6 @@ class ResponseContent {
         // A current-state message suitable for inclusion in an exception
         // detail message.
         String currentStateMessage();
-        void onError(Throwable t);
     }
 
     // Returns a parser that will take care of parsing the received byte
@@ -161,7 +159,7 @@ class ResponseContent {
             printable.get(bytes, 0, bytes.length);
             String msg = "============== accepted ==================\n";
             try {
-                var str = new String(bytes, UTF_8);
+                var str = new String(bytes, "UTF-8");
                 msg += str;
             } catch (Exception x) {
                 msg += x;
@@ -177,12 +175,6 @@ class ResponseContent {
             if (debug.on())
                 debug.log("onSubscribe: "  + pusher.getClass().getName());
             pusher.onSubscribe(this.sub = sub);
-        }
-
-        @Override
-        public void onError(Throwable t) {
-            closedExceptionally = t;
-            onComplete.accept(t);
         }
 
         @Override
@@ -485,12 +477,6 @@ class ResponseContent {
         }
 
         @Override
-        public void onError(Throwable t) {
-            closedExceptionally = t;
-            onComplete.accept(t);
-        }
-
-        @Override
         public String currentStateMessage() {
             return format("http1_0 content, bytes received: %d", breceived);
         }
@@ -502,6 +488,7 @@ class ResponseContent {
                     debug.log("already closed: " + closedExceptionally);
                 return;
             }
+            boolean completed = false;
             try {
                 if (debug.on())
                     debug.log("Parser got %d bytes ", b.remaining());
@@ -518,7 +505,9 @@ class ResponseContent {
             } catch (Throwable t) {
                 if (debug.on()) debug.log("Unexpected exception", t);
                 closedExceptionally = t;
-                onComplete.accept(t);
+                if (!completed) {
+                    onComplete.accept(t);
+                }
             }
         }
 
@@ -573,16 +562,6 @@ class ResponseContent {
                 } finally {
                     onComplete.accept(t);
                 }
-            }
-        }
-
-        @Override
-        public void onError(Throwable t) {
-            if (contentLength != 0) {
-                closedExceptionally = t;
-                onComplete.accept(t);
-            } else {
-                onComplete.accept(null);
             }
         }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -66,10 +66,6 @@ import static jdk.jpackage.internal.StandardBundlerParam.MAIN_CLASS;
 import static jdk.jpackage.internal.StandardBundlerParam.PREDEFINED_APP_IMAGE;
 import static jdk.jpackage.internal.StandardBundlerParam.VERSION;
 import static jdk.jpackage.internal.StandardBundlerParam.ADD_LAUNCHERS;
-import static jdk.jpackage.internal.StandardBundlerParam.SIGN_BUNDLE;
-import static jdk.jpackage.internal.StandardBundlerParam.APP_STORE;
-import static jdk.jpackage.internal.StandardBundlerParam.getPredefinedAppImage;
-import static jdk.jpackage.internal.StandardBundlerParam.hasPredefinedAppImage;
 
 public class MacAppImageBuilder extends AbstractAppImageBuilder {
 
@@ -89,8 +85,6 @@ public class MacAppImageBuilder extends AbstractAppImageBuilder {
     private final Path macOSDir;
     private final Path runtimeDir;
     private final Path runtimeRoot;
-
-    private final boolean withPackageFile;
 
     private static List<String> keyChains;
 
@@ -148,6 +142,26 @@ public class MacAppImageBuilder extends AbstractAppImageBuilder {
                 return f;
             },
             (s, p) -> Path.of(s));
+
+    public static final StandardBundlerParam<Boolean> SIGN_BUNDLE  =
+            new StandardBundlerParam<>(
+            Arguments.CLIOptions.MAC_SIGN.getId(),
+            Boolean.class,
+            params -> false,
+            // valueOf(null) is false, we actually do want null in some cases
+            (s, p) -> (s == null || "null".equalsIgnoreCase(s)) ?
+                    null : Boolean.valueOf(s)
+        );
+
+    public static final StandardBundlerParam<Boolean> APP_STORE =
+            new StandardBundlerParam<>(
+            Arguments.CLIOptions.MAC_APP_STORE.getId(),
+            Boolean.class,
+            params -> false,
+            // valueOf(null) is false, we actually do want null in some cases
+            (s, p) -> (s == null || "null".equalsIgnoreCase(s)) ?
+                    null : Boolean.valueOf(s)
+        );
 
     public static final BundlerParamInfo<Path> ENTITLEMENTS =
             new StandardBundlerParam<>(
@@ -245,11 +259,10 @@ public class MacAppImageBuilder extends AbstractAppImageBuilder {
                      (s, p) -> Arrays.asList(s.split("(,|\\s)+"))
              );
 
-    public MacAppImageBuilder(Path imageOutDir, boolean withPackageFile) {
+    public MacAppImageBuilder(Path imageOutDir) {
         super(imageOutDir);
 
         this.root = imageOutDir;
-        this.withPackageFile = withPackageFile;
         this.contentsDir = root.resolve("Contents");
         this.resourcesDir = appLayout.destktopIntegrationDirectory();
         this.macOSDir = appLayout.launchersDirectory();
@@ -265,12 +278,6 @@ public class MacAppImageBuilder extends AbstractAppImageBuilder {
     @Override
     public void prepareApplicationFiles(Map<String, ? super Object> params)
             throws IOException {
-        // If predefine app image is provided, then just sign it and return.
-        if (PREDEFINED_APP_IMAGE.fetchFrom(params) != null) {
-            doSigning(params);
-            return;
-        }
-
         Files.createDirectories(macOSDir);
 
         Map<String, ? super Object> originalParams = new HashMap<>(params);
@@ -312,11 +319,6 @@ public class MacAppImageBuilder extends AbstractAppImageBuilder {
         // Copy class path entries to Java folder
         copyApplication(params);
 
-        if (withPackageFile) {
-            new PackageFile(APP_NAME.fetchFrom(params)).save(
-                    ApplicationLayout.macAppImage().resolveAt(root));
-        }
-
         /*********** Take care of "config" files *******/
 
         createResource(TEMPLATE_BUNDLE_ICON, params)
@@ -336,8 +338,7 @@ public class MacAppImageBuilder extends AbstractAppImageBuilder {
         }
 
         copyRuntimeFiles(params);
-
-        doSigning(params);
+        sign(params);
     }
 
     private void copyRuntimeFiles(Map<String, ? super Object> params)
@@ -363,9 +364,7 @@ public class MacAppImageBuilder extends AbstractAppImageBuilder {
         }
     }
 
-    private void doSigning(Map<String, ? super Object> params)
-            throws IOException {
-
+    private void sign(Map<String, ? super Object> params) throws IOException {
         if (Optional.ofNullable(
                 SIGN_BUNDLE.fetchFrom(params)).orElse(Boolean.TRUE)) {
             try {
@@ -381,12 +380,6 @@ public class MacAppImageBuilder extends AbstractAppImageBuilder {
                         ENTITLEMENTS.fetchFrom(params));
             }
             restoreKeychainList(params);
-        } else if (Platform.isArmMac()) {
-            signAppBundle(params, root, "-", null, null);
-        } else {
-            // Calling signAppBundle() without signingIdentity will result in
-            // unsigning app bundle
-            signAppBundle(params, root, null, null, null);
         }
     }
 
@@ -609,6 +602,7 @@ public class MacAppImageBuilder extends AbstractAppImageBuilder {
             Log.error(I18N.getString("message.keychain.error"));
             return;
         }
+
         boolean contains = keychainList.stream().anyMatch(
                     str -> str.trim().equals("\""+keyChainPath.trim()+"\""));
         if (contains) {
@@ -623,9 +617,7 @@ public class MacAppImageBuilder extends AbstractAppImageBuilder {
             if (path.startsWith("\"") && path.endsWith("\"")) {
                 path = path.substring(1, path.length()-1);
             }
-            if (!keyChains.contains(path)) {
-                keyChains.add(path);
-            }
+            keyChains.add(path);
         });
 
         List<String> args = new ArrayList<>();
@@ -664,40 +656,7 @@ public class MacAppImageBuilder extends AbstractAppImageBuilder {
         IOUtils.exec(pb);
     }
 
-    private static List<String> getCodesignArgs(
-            boolean force, Path path, String signingIdentity,
-            String identifierPrefix, Path entitlements, String keyChain) {
-        List<String> args = new ArrayList<>();
-        args.addAll(Arrays.asList("/usr/bin/codesign",
-                    "-s", signingIdentity,
-                    "-vvvv"));
-
-        if (!signingIdentity.equals("-")) {
-            args.addAll(Arrays.asList("--timestamp",
-                    "--options", "runtime",
-                    "--prefix", identifierPrefix));
-            if (keyChain != null && !keyChain.isEmpty()) {
-                args.add("--keychain");
-                args.add(keyChain);
-            }
-            if (Files.isExecutable(path)) {
-                if (entitlements != null) {
-                    args.add("--entitlements");
-                    args.add(entitlements.toString());
-                }
-            }
-        }
-
-        if (force) {
-            args.add("--force");
-        }
-
-        args.add(path.toString());
-
-        return args;
-    }
-
-    private static void signAppBundle(
+    static void signAppBundle(
             Map<String, ? super Object> params, Path appLocation,
             String signingIdentity, String identifierPrefix, Path entitlements)
             throws IOException {
@@ -709,8 +668,8 @@ public class MacAppImageBuilder extends AbstractAppImageBuilder {
         try (Stream<Path> stream = Files.walk(appLocation)) {
             stream.peek(path -> { // fix permissions
                 try {
-                    Set<PosixFilePermission> pfp
-                            = Files.getPosixFilePermissions(path);
+                    Set<PosixFilePermission> pfp =
+                            Files.getPosixFilePermissions(path);
                     if (!pfp.contains(PosixFilePermission.OWNER_WRITE)) {
                         pfp = EnumSet.copyOf(pfp);
                         pfp.add(PosixFilePermission.OWNER_WRITE);
@@ -719,56 +678,68 @@ public class MacAppImageBuilder extends AbstractAppImageBuilder {
                 } catch (IOException e) {
                     Log.verbose(e);
                 }
-            }).filter(p -> Files.isRegularFile(p)
-                    && (Files.isExecutable(p) || p.toString().endsWith(".dylib"))
-                    && !(p.toString().contains("dylib.dSYM/Contents"))
-                    && !(p.toString().endsWith(appExecutable))
-            ).forEach(p -> {
+            }).filter(p -> Files.isRegularFile(p) &&
+                      (Files.isExecutable(p) || p.toString().endsWith(".dylib"))
+                      && !(p.toString().contains("dylib.dSYM/Contents"))
+                      && !(p.toString().endsWith(appExecutable))
+                     ).forEach(p -> {
                 // noinspection ThrowableResultOfMethodCallIgnored
-                if (toThrow.get() != null) {
-                    return;
-                }
+                if (toThrow.get() != null) return;
 
                 // If p is a symlink then skip the signing process.
                 if (Files.isSymbolicLink(p)) {
                     Log.verbose(MessageFormat.format(I18N.getString(
                             "message.ignoring.symlink"), p.toString()));
                 } else {
-                    // unsign everything before signing
-                    List<String> args = new ArrayList<>();
+                    List<String> args;
+                    // runtime and Framework files will be signed below
+                    // but they need to be unsigned first here
+                    if ((p.toString().contains("/Contents/runtime")) ||
+                        (p.toString().contains("/Contents/Frameworks"))) {
+
+                        args = new ArrayList<>();
+                        args.addAll(Arrays.asList("/usr/bin/codesign",
+                                "--remove-signature", p.toString()));
+                        try {
+                            Set<PosixFilePermission> oldPermissions =
+                                    Files.getPosixFilePermissions(p);
+                            p.toFile().setWritable(true, true);
+                            ProcessBuilder pb = new ProcessBuilder(args);
+                            IOUtils.exec(pb);
+                            Files.setPosixFilePermissions(p,oldPermissions);
+                        } catch (IOException ioe) {
+                            Log.verbose(ioe);
+                            toThrow.set(ioe);
+                            return;
+                        }
+                    }
+                    args = new ArrayList<>();
                     args.addAll(Arrays.asList("/usr/bin/codesign",
-                            "--remove-signature", p.toString()));
+                            "--timestamp",
+                            "--options", "runtime",
+                            "-s", signingIdentity,
+                            "--prefix", identifierPrefix,
+                            "-vvvv"));
+                    if (keyChain != null && !keyChain.isEmpty()) {
+                        args.add("--keychain");
+                        args.add(keyChain);
+                    }
+                    if (Files.isExecutable(p)) {
+                        if (entitlements != null) {
+                            args.add("--entitlements");
+                            args.add(entitlements.toString());
+                        }
+                    }
+                    args.add(p.toString());
                     try {
                         Set<PosixFilePermission> oldPermissions =
                                 Files.getPosixFilePermissions(p);
                         p.toFile().setWritable(true, true);
                         ProcessBuilder pb = new ProcessBuilder(args);
-                        // run quietly
-                        IOUtils.exec(pb, false, null, false,
-                                Executor.INFINITE_TIMEOUT, true);
+                        IOUtils.exec(pb);
                         Files.setPosixFilePermissions(p, oldPermissions);
                     } catch (IOException ioe) {
-                        Log.verbose(ioe);
                         toThrow.set(ioe);
-                        return;
-                    }
-
-                    // Sign only if we have identity
-                    if (signingIdentity != null) {
-                        args = getCodesignArgs(false, p, signingIdentity,
-                                identifierPrefix, entitlements, keyChain);
-                        try {
-                            Set<PosixFilePermission> oldPermissions
-                                    = Files.getPosixFilePermissions(p);
-                            p.toFile().setWritable(true, true);
-                            ProcessBuilder pb = new ProcessBuilder(args);
-                            // run quietly
-                            IOUtils.exec(pb, false, null, false,
-                                    Executor.INFINITE_TIMEOUT, true);
-                            Files.setPosixFilePermissions(p, oldPermissions);
-                        } catch (IOException ioe) {
-                            toThrow.set(ioe);
-                        }
                     }
                 }
             });
@@ -778,19 +749,31 @@ public class MacAppImageBuilder extends AbstractAppImageBuilder {
             throw ioe;
         }
 
-        // We cannot continue signing without identity
-        if (signingIdentity == null) {
-            return;
-        }
-
         // sign all runtime and frameworks
         Consumer<? super Path> signIdentifiedByPList = path -> {
             //noinspection ThrowableResultOfMethodCallIgnored
             if (toThrow.get() != null) return;
 
             try {
-                List<String> args = getCodesignArgs(true, path, signingIdentity,
-                            identifierPrefix, entitlements, keyChain);
+                List<String> args = new ArrayList<>();
+                args.addAll(Arrays.asList("/usr/bin/codesign",
+                        "--timestamp",
+                        "--options", "runtime",
+                        "--force",
+                        "-s", signingIdentity, // sign with this key
+                        "--prefix", identifierPrefix,
+                        // use the identifier as a prefix
+                        "-vvvv"));
+
+                if (keyChain != null && !keyChain.isEmpty()) {
+                    args.add("--keychain");
+                    args.add(keyChain);
+                }
+                if (entitlements != null) {
+                    args.add("--entitlements");
+                    args.add(entitlements.toString());
+                }
+                args.add(path.toString());
                 ProcessBuilder pb = new ProcessBuilder(args);
 
                 IOUtils.exec(pb);
@@ -821,9 +804,29 @@ public class MacAppImageBuilder extends AbstractAppImageBuilder {
         }
 
         // sign the app itself
-        List<String> args = getCodesignArgs(true, appLocation, signingIdentity,
-                identifierPrefix, entitlements, keyChain);
-        ProcessBuilder pb = new ProcessBuilder(args);
+        List<String> args = new ArrayList<>();
+        args.addAll(Arrays.asList("/usr/bin/codesign",
+                "--timestamp",
+                "--options", "runtime",
+                "--force",
+                "-s", signingIdentity,
+                "--prefix", identifierPrefix,
+                "-vvvv"));
+
+        if (keyChain != null && !keyChain.isEmpty()) {
+            args.add("--keychain");
+            args.add(keyChain);
+        }
+
+        if (entitlements != null) {
+            args.add("--entitlements");
+            args.add(entitlements.toString());
+        }
+
+        args.add(appLocation.toString());
+
+        ProcessBuilder pb =
+                new ProcessBuilder(args.toArray(new String[args.size()]));
 
         IOUtils.exec(pb);
     }
@@ -860,4 +863,5 @@ public class MacAppImageBuilder extends AbstractAppImageBuilder {
 
         return null;
     }
+
 }

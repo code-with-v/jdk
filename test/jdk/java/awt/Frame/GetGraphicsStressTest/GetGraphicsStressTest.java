@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * @test
- * @bug 8235638 8235739 8285094
+ * @bug 8235638 8235739
  * @key headful
  */
 public final class GetGraphicsStressTest {
@@ -44,11 +44,6 @@ public final class GetGraphicsStressTest {
             endtime = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
             test();
         }
-        /*
-         * This test needs to give the desktop time to recover to avoid
-         * destabilising other tests.
-         */
-        Thread.sleep(10000);
     }
 
     private static void test() throws Exception {

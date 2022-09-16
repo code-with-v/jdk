@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -47,37 +47,32 @@ import sun.security.x509.AlgorithmId;
 public class SignatureUtil {
 
     /**
-     * Convert OID.1.2.3.4 or 1.2.3.4 to its matching stdName, and return
-     * upper case algorithm name.
+     * Convert OID.1.2.3.4 or 1.2.3.4 to its matching stdName.
      *
      * @param algName input, could be in any form
-     * @return the matching algorithm name or the OID string in upper case.
+     * @return the matching stdName, or {@code algName} if it is not in the
+     *      form of an OID, or the OID value if no match is found.
      */
     private static String checkName(String algName) {
-        algName = algName.toUpperCase(Locale.ENGLISH);
-        if (algName.contains(".")) {
+        if (algName.indexOf(".") == -1) {
+            return algName;
+        } else {
             // convert oid to String
             if (algName.startsWith("OID.")) {
                 algName = algName.substring(4);
             }
             KnownOIDs ko = KnownOIDs.findMatch(algName);
-            if (ko != null) {
-                return ko.stdName().toUpperCase(Locale.ENGLISH);
-            }
+            return ko != null ? ko.stdName() : algName;
         }
-        return algName;
     }
 
     // Utility method of creating an AlgorithmParameters object with
     // the specified algorithm name and encoding
-    //
-    // Note this method can be called only after converting OID.1.2.3.4 or
-    // 1.2.3.4 to its matching stdName, which is implemented in the
-    // checkName(String) method.
     private static AlgorithmParameters createAlgorithmParameters(String algName,
             byte[] paramBytes) throws ProviderException {
 
         try {
+            algName = checkName(algName);
             AlgorithmParameters result =
                 AlgorithmParameters.getInstance(algName);
             result.init(paramBytes);
@@ -101,11 +96,11 @@ public class SignatureUtil {
 
         AlgorithmParameterSpec paramSpec = null;
         if (params != null) {
-            sigName = checkName(sigName);
-            // AlgorithmParameters.getAlgorithm() may return oid if it's
+            sigName = checkName(sigName).toUpperCase(Locale.ENGLISH);
+            // AlgorithmParameters.getAlgorithm() may returns oid if it's
             // created during DER decoding. Convert to use the standard name
             // before passing it to RSAUtil
-            if (params.getAlgorithm().contains(".")) {
+            if (params.getAlgorithm().indexOf(".") != -1) {
                 try {
                     params = createAlgorithmParameters(sigName,
                         params.getEncoded());
@@ -114,9 +109,9 @@ public class SignatureUtil {
                 }
             }
 
-            if (sigName.contains("RSA")) {
+            if (sigName.indexOf("RSA") != -1) {
                 paramSpec = RSAUtil.getParamSpec(params);
-            } else if (sigName.contains("ECDSA")) {
+            } else if (sigName.indexOf("ECDSA") != -1) {
                 try {
                     paramSpec = params.getParameterSpec(ECParameterSpec.class);
                 } catch (Exception e) {
@@ -145,16 +140,23 @@ public class SignatureUtil {
         AlgorithmParameterSpec paramSpec = null;
 
         if (paramBytes != null) {
-            sigName = checkName(sigName);
-            if (sigName.contains("RSA")) {
+            sigName = checkName(sigName).toUpperCase(Locale.ENGLISH);
+            if (sigName.indexOf("RSA") != -1) {
                 AlgorithmParameters params =
                     createAlgorithmParameters(sigName, paramBytes);
                 paramSpec = RSAUtil.getParamSpec(params);
-            } else if (sigName.contains("ECDSA")) {
-                // Some certificates have params in an ECDSA algorithmID.
-                // According to RFC 3279 2.2.3 and RFC 5758 3.2,
-                // they are useless and should be ignored.
-                return null;
+            } else if (sigName.indexOf("ECDSA") != -1) {
+                try {
+                    Provider p = Signature.getInstance(sigName).getProvider();
+                    paramSpec = ECUtil.getECParameterSpec(p, paramBytes);
+                } catch (Exception e) {
+                    throw new ProviderException("Error handling EC parameters", e);
+                }
+                // ECUtil discards exception and returns null, so we need to check
+                // the returned value
+                if (paramSpec == null) {
+                    throw new ProviderException("Error handling EC parameters");
+                }
             } else {
                 throw new ProviderException
                      ("Unrecognized algorithm for signature parameters " +
@@ -168,7 +170,8 @@ public class SignatureUtil {
     // for verification with the specified key and params (may be null)
     public static void initVerifyWithParam(Signature s, PublicKey key,
             AlgorithmParameterSpec params)
-            throws InvalidAlgorithmParameterException, InvalidKeyException {
+            throws ProviderException, InvalidAlgorithmParameterException,
+            InvalidKeyException {
         SharedSecrets.getJavaSecuritySignatureAccess().initVerify(s, key, params);
     }
 
@@ -177,7 +180,8 @@ public class SignatureUtil {
     public static void initVerifyWithParam(Signature s,
             java.security.cert.Certificate cert,
             AlgorithmParameterSpec params)
-            throws InvalidAlgorithmParameterException, InvalidKeyException {
+            throws ProviderException, InvalidAlgorithmParameterException,
+            InvalidKeyException {
         SharedSecrets.getJavaSecuritySignatureAccess().initVerify(s, cert, params);
     }
 
@@ -185,7 +189,8 @@ public class SignatureUtil {
     // for signing with the specified key and params (may be null)
     public static void initSignWithParam(Signature s, PrivateKey key,
             AlgorithmParameterSpec params, SecureRandom sr)
-            throws InvalidAlgorithmParameterException, InvalidKeyException {
+            throws ProviderException, InvalidAlgorithmParameterException,
+            InvalidKeyException {
         SharedSecrets.getJavaSecuritySignatureAccess().initSign(s, key, params, sr);
     }
 
@@ -311,7 +316,7 @@ public class SignatureUtil {
     public static AlgorithmParameterSpec getDefaultParamSpec(
             String sigAlg, Key k) {
         sigAlg = checkName(sigAlg);
-        if (sigAlg.equals("RSASSA-PSS")) {
+        if (sigAlg.equalsIgnoreCase("RSASSA-PSS")) {
             if (k instanceof RSAKey) {
                 AlgorithmParameterSpec spec = ((RSAKey) k).getParams();
                 if (spec instanceof PSSParameterSpec) {
@@ -337,10 +342,10 @@ public class SignatureUtil {
      * Create a Signature that has been initialized with proper key and params.
      *
      * @param sigAlg signature algorithms
-     * @param key private key
+     * @param key public or private key
      * @param provider (optional) provider
      */
-    public static Signature fromKey(String sigAlg, PrivateKey key, String provider)
+    public static Signature fromKey(String sigAlg, Key key, String provider)
             throws NoSuchAlgorithmException, NoSuchProviderException,
                    InvalidKeyException{
         Signature sigEngine = (provider == null || provider.isEmpty())
@@ -353,10 +358,10 @@ public class SignatureUtil {
      * Create a Signature that has been initialized with proper key and params.
      *
      * @param sigAlg signature algorithms
-     * @param key private key
+     * @param key public or private key
      * @param provider (optional) provider
      */
-    public static Signature fromKey(String sigAlg, PrivateKey key, Provider provider)
+    public static Signature fromKey(String sigAlg, Key key, Provider provider)
             throws NoSuchAlgorithmException, InvalidKeyException{
         Signature sigEngine = (provider == null)
                 ? Signature.getInstance(sigAlg)
@@ -364,12 +369,17 @@ public class SignatureUtil {
         return autoInitInternal(sigAlg, key, sigEngine);
     }
 
-    private static Signature autoInitInternal(String alg, PrivateKey key, Signature s)
+    private static Signature autoInitInternal(String alg, Key key, Signature s)
             throws InvalidKeyException {
         AlgorithmParameterSpec params = SignatureUtil
                 .getDefaultParamSpec(alg, key);
         try {
-            SignatureUtil.initSignWithParam(s, key, params, null);
+            if (key instanceof PrivateKey) {
+                SignatureUtil.initSignWithParam(s, (PrivateKey) key, params,
+                        null);
+            } else {
+                SignatureUtil.initVerifyWithParam(s, (PublicKey) key, params);
+            }
         } catch (InvalidAlgorithmParameterException e) {
             throw new AssertionError("Should not happen", e);
         }
@@ -426,7 +436,7 @@ public class SignatureUtil {
      */
     public static void checkKeyAndSigAlgMatch(PrivateKey key, String sAlg) {
         String kAlg = key.getAlgorithm().toUpperCase(Locale.ENGLISH);
-        sAlg = checkName(sAlg);
+        sAlg = checkName(sAlg).toUpperCase(Locale.ENGLISH);
         switch (sAlg) {
             case "RSASSA-PSS" -> {
                 if (!kAlg.equals("RSASSA-PSS")
@@ -482,11 +492,12 @@ public class SignatureUtil {
      * @return the default alg, might be null if unsupported
      */
     public static String getDefaultSigAlgForKey(PrivateKey k) {
-        String kAlg = k.getAlgorithm().toUpperCase(Locale.ENGLISH);
-        return switch (kAlg) {
-            case "DSA" -> "SHA256withDSA";
-            case "RSA" -> ifcFfcStrength(KeyUtil.getKeySize(k)) + "withRSA";
-            case "EC" -> ecStrength(KeyUtil.getKeySize(k)) + "withECDSA";
+        String kAlg = k.getAlgorithm();
+        return switch (kAlg.toUpperCase(Locale.ENGLISH)) {
+            case "DSA", "RSA" -> ifcFfcStrength(KeyUtil.getKeySize(k))
+                    + "with" + kAlg;
+            case "EC" -> ecStrength(KeyUtil.getKeySize(k))
+                    + "withECDSA";
             case "EDDSA" -> k instanceof EdECPrivateKey
                     ? ((EdECPrivateKey) k).getParams().getName()
                     : kAlg;
@@ -511,16 +522,11 @@ public class SignatureUtil {
                 64, PSSParameterSpec.TRAILER_FIELD_BC);
     }
 
-    // SP800-57 part 1 rev5 table 2 "Comparable security strengths of
-    // symmetric block cipher and asymmetric-key algorithms", and table 3
-    // "Maximum security strengths for hash and hash-based functions"
-    // define security strength for various algorithms.
-    // Besides matching the security strength, the default algorithms may
-    // also be chosen based on various recommendations such as NIST CNSA.
+    // The following values are from SP800-57 part 1 rev 4 tables 2 and 3
 
     /**
-     * Return the default message digest algorithm based on the specified
-     * EC key size.
+     * Return the default message digest algorithm with the same security
+     * strength as the specified EC key size.
      *
      * Attention: sync with the @implNote inside
      * {@link jdk.security.jarsigner.JarSigner.Builder#getDefaultSignatureAlgorithm}.
@@ -528,27 +534,27 @@ public class SignatureUtil {
     private static String ecStrength (int bitLength) {
         if (bitLength >= 512) { // 256 bits of strength
             return "SHA512";
-        } else {
-            // per CNSA, use SHA-384
+        } else if (bitLength >= 384) {  // 192 bits of strength
             return "SHA384";
+        } else { // 128 bits of strength and less
+            return "SHA256";
         }
     }
 
     /**
-     * Return the default message digest algorithm based on both the
-     * security strength of the specified IFC/FFC key size, i.e. RSA,
-     * RSASSA-PSS, and the recommendation from NIST CNSA, e.g. use SHA-384
-     * and min 3072-bit.
+     * Return the default message digest algorithm with the same security
+     * strength as the specified IFC/FFC key size.
      *
      * Attention: sync with the @implNote inside
      * {@link jdk.security.jarsigner.JarSigner.Builder#getDefaultSignatureAlgorithm}.
      */
-    private static String ifcFfcStrength(int bitLength) {
-        if (bitLength > 7680) { // 256 bits security strength
+    private static String ifcFfcStrength (int bitLength) {
+        if (bitLength > 7680) { // 256 bits
             return "SHA512";
-        } else {
-            // per CNSA, use SHA-384 unless keysize is too small
-            return (bitLength >= 624 ? "SHA384" : "SHA256");
+        } else if (bitLength > 3072) {  // 192 bits
+            return "SHA384";
+        } else  { // 128 bits and less
+            return "SHA256";
         }
     }
 }

@@ -34,6 +34,7 @@ class ValueType;
 class   VoidType;
 class   IntType;
 class     IntConstant;
+class     IntInterval;
 class   LongType;
 class     LongConstant;
 class   FloatType;
@@ -52,6 +53,8 @@ class     ClassType;
 class       ClassConstant;
 class     MethodType;
 class       MethodConstant;
+class     MethodDataType;
+class       MethodDataConstant;
 class   AddressType;
 class     AddressConstant;
 class   IllegalType;
@@ -129,6 +132,7 @@ class ValueType: public CompilationResourceObj {
   bool is_instance()                             { return as_InstanceType() != NULL; }
   bool is_class()                                { return as_ClassType()    != NULL; }
   bool is_method()                               { return as_MethodType()   != NULL; }
+  bool is_method_data()                          { return as_MethodDataType() != NULL; }
   bool is_address()                              { return as_AddressType()  != NULL; }
   bool is_illegal()                              { return tag() == illegalTag; }
 
@@ -151,8 +155,10 @@ class ValueType: public CompilationResourceObj {
   virtual ClassType*        as_ClassType()       { return NULL; }
   virtual MetadataType*     as_MetadataType()    { return NULL; }
   virtual MethodType*       as_MethodType()      { return NULL; }
+  virtual MethodDataType*   as_MethodDataType()  { return NULL; }
   virtual AddressType*      as_AddressType()     { return NULL; }
   virtual IllegalType*      as_IllegalType()     { return NULL; }
+
   virtual IntConstant*      as_IntConstant()     { return NULL; }
   virtual LongConstant*     as_LongConstant()    { return NULL; }
   virtual FloatConstant*    as_FloatConstant()   { return NULL; }
@@ -161,12 +167,14 @@ class ValueType: public CompilationResourceObj {
   virtual InstanceConstant* as_InstanceConstant(){ return NULL; }
   virtual ClassConstant*    as_ClassConstant()   { return NULL; }
   virtual MethodConstant*   as_MethodConstant()  { return NULL; }
+  virtual MethodDataConstant* as_MethodDataConstant() { return NULL; }
   virtual ArrayConstant*    as_ArrayConstant()   { return NULL; }
   virtual StableArrayConstant* as_StableArrayConstant()   { return NULL; }
   virtual AddressConstant*  as_AddressConstant() { return NULL; }
 
   // type operations
   ValueType* meet(ValueType* y) const;
+  ValueType* join(ValueType* y) const;
 
   // debugging
   void print(outputStream* s = tty)              { s->print("%s", name()); }
@@ -204,6 +212,25 @@ class IntConstant: public IntType {
 
   virtual bool is_constant() const               { return true; }
   virtual IntConstant* as_IntConstant()          { return this; }
+};
+
+
+class IntInterval: public IntType {
+ private:
+  jint _beg;
+  jint _end;
+
+ public:
+  IntInterval(jint beg, jint end) {
+    assert(beg <= end, "illegal interval");
+    _beg = beg;
+    _end = end;
+  }
+
+  jint beg() const                               { return _beg; }
+  jint end() const                               { return _end; }
+
+  virtual bool is_interval() const               { return true; }
 };
 
 
@@ -420,6 +447,28 @@ class MethodConstant: public MethodType {
   virtual bool is_constant() const                      { return true; }
 
   virtual MethodConstant* as_MethodConstant()           { return this; }
+  virtual ciMetadata* constant_value() const            { return _value; }
+};
+
+
+class MethodDataType: public MetadataType {
+ public:
+  virtual MethodDataType* as_MethodDataType()           { return this; }
+};
+
+
+class MethodDataConstant: public MethodDataType {
+ private:
+  ciMethodData* _value;
+
+ public:
+  MethodDataConstant(ciMethodData* value)               { _value = value; }
+
+  ciMethodData* value() const                           { return _value; }
+
+  virtual bool is_constant() const                      { return true; }
+
+  virtual MethodDataConstant* as_MethodDataConstant()   { return this; }
   virtual ciMetadata* constant_value() const            { return _value; }
 };
 

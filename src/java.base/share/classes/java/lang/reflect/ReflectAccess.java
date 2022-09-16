@@ -127,9 +127,4 @@ class ReflectAccess implements jdk.internal.access.JavaLangReflectAccess {
     {
         return ctor.newInstanceWithCaller(args, true, caller);
     }
-
-    public Object invokeDefault(Object proxy, Method method, Object[] args, Class<?> caller)
-            throws Throwable {
-        return Proxy.invokeDefault(proxy, method, args, caller);
-    }
 }

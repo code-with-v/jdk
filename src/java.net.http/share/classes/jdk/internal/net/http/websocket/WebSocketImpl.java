@@ -25,7 +25,6 @@
 
 package jdk.internal.net.http.websocket;
 
-import jdk.internal.net.http.HttpClientFacade;
 import jdk.internal.net.http.common.Demand;
 import jdk.internal.net.http.common.Log;
 import jdk.internal.net.http.common.Logger;
@@ -38,7 +37,6 @@ import java.io.IOException;
 import java.lang.ref.Reference;
 import java.net.ProtocolException;
 import java.net.URI;
-import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -46,7 +44,6 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.Executor;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -118,12 +115,10 @@ public final class WebSocketImpl implements WebSocket {
     private final SequentialScheduler receiveScheduler
             = new SequentialScheduler(new ReceiveTask());
     private final Demand demand = new Demand();
-    private final Executor clientExecutor;
 
     public static CompletableFuture<WebSocket> newInstanceAsync(BuilderImpl b) {
         Function<Result, WebSocket> newWebSocket = r -> {
             WebSocket ws = newInstance(b.getUri(),
-                                       b.getClient(),
                                        r.subprotocol,
                                        b.getListener(),
                                        r.transport);
@@ -145,11 +140,10 @@ public final class WebSocketImpl implements WebSocket {
 
     /* Exposed for testing purposes */
     static WebSocketImpl newInstance(URI uri,
-                                     HttpClient client,
                                      String subprotocol,
                                      Listener listener,
                                      TransportFactory transport) {
-        WebSocketImpl ws = new WebSocketImpl(uri, client, subprotocol, listener, transport);
+        WebSocketImpl ws = new WebSocketImpl(uri, subprotocol, listener, transport);
         // This initialisation is outside of the constructor for the sake of
         // safe publication of WebSocketImpl.this
         ws.signalOpen();
@@ -157,12 +151,10 @@ public final class WebSocketImpl implements WebSocket {
     }
 
     private WebSocketImpl(URI uri,
-                          HttpClient client,
                           String subprotocol,
                           Listener listener,
                           TransportFactory transportFactory) {
         this.uri = requireNonNull(uri);
-        this.clientExecutor = ((HttpClientFacade)client).theExecutor();
         this.subprotocol = requireNonNull(subprotocol);
         this.listener = requireNonNull(listener);
         // Why 6? 1 sendPing/sendPong + 1 sendText/sendBinary + 1 Close +
@@ -364,7 +356,7 @@ public final class WebSocketImpl implements WebSocket {
             debug.log("request %s", n);
         }
         if (demand.increase(n)) {
-            receiveScheduler.runOrSchedule(clientExecutor);
+            receiveScheduler.runOrSchedule();
         }
     }
 
@@ -406,7 +398,7 @@ public final class WebSocketImpl implements WebSocket {
      * The assumptions about order is as follows:
      *
      *     - state is never changed more than twice inside the `run` method:
-     *       x --(1)--> IDLE --(2)--> y (otherwise we're losing events, or
+     *       x --(1)--> IDLE --(2)--> y (otherwise we're loosing events, or
      *       overwriting parts of messages creating a mess since there's no
      *       queueing)
      *     - OPEN is always the first state
@@ -710,7 +702,7 @@ public final class WebSocketImpl implements WebSocket {
 
     private void signalOpen() {
         debug.log("signalOpen");
-        receiveScheduler.runOrSchedule(clientExecutor);
+        receiveScheduler.runOrSchedule();
     }
 
     private void signalError(Throwable error) {
@@ -842,7 +834,7 @@ public final class WebSocketImpl implements WebSocket {
             if (currentState == ERROR || currentState == CLOSE) {
                 break;
             } else if (state.compareAndSet(currentState, newState)) {
-                receiveScheduler.runOrSchedule(clientExecutor);
+                receiveScheduler.runOrSchedule();
                 success = true;
                 break;
             }
@@ -858,7 +850,7 @@ public final class WebSocketImpl implements WebSocket {
         State witness = state.compareAndExchange(expectedState, newState);
         boolean success = false;
         if (witness == expectedState) {
-            receiveScheduler.runOrSchedule(clientExecutor);
+            receiveScheduler.runOrSchedule();
             success = true;
         } else if (witness != ERROR && witness != CLOSE) {
             // This should be the only reason for inability to change the state

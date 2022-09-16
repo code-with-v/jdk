@@ -183,7 +183,7 @@ public class PumpReader extends Reader {
     }
 
     @Override
-    public synchronized int read(CharBuffer target) throws IOException {
+    public int read(CharBuffer target) throws IOException {
         if (!target.hasRemaining()) {
             return 0;
         }

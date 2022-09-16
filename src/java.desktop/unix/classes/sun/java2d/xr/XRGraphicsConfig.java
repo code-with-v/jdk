@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,12 +25,14 @@
 
 package sun.java2d.xr;
 
-import sun.awt.X11ComponentPeer;
+import java.awt.Transparency;
 import sun.awt.X11GraphicsConfig;
+import sun.awt.X11ComponentPeer;
 import sun.awt.X11GraphicsDevice;
 import sun.awt.X11GraphicsEnvironment;
 import sun.awt.image.SurfaceManager;
 import sun.java2d.SurfaceData;
+import sun.java2d.loops.SurfaceType;
 
 public class XRGraphicsConfig extends X11GraphicsConfig implements
         SurfaceManager.ProxiedGraphicsConfig {
@@ -56,4 +58,14 @@ public class XRGraphicsConfig extends X11GraphicsConfig implements
     public Object getProxyKey() {
         return this;
     }
+
+    public synchronized SurfaceType getSurfaceType() {
+        if (surfaceType != null) {
+            return surfaceType;
+        }
+
+        surfaceType = XRSurfaceData.getSurfaceType(this, Transparency.OPAQUE);
+        return surfaceType;
+    }
+
 }

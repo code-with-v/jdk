@@ -25,7 +25,7 @@
  * @bug 6431343
  * @summary Test that DatagramChannel.getLocalAddress returns the right local
  *    address after connect/disconnect.
- * @run main/othervm ChangingAddress
+ * @run main/othervm -Djdk.net.usePlainDatagramSocketImpl=false ChangingAddress
  */
 import java.net.*;
 import java.nio.channels.DatagramChannel;

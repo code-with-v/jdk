@@ -7,8 +7,6 @@
  * @compile/fail/ref=T6521805d.out T6521805d.java -XDrawDiagnostics
  */
 
-import java.util.Objects;
-
 class T6521805 {
 
     static class Inner extends T6521805.Outer {
@@ -24,11 +22,6 @@ class T6521805 {
         }
     }
 
-    class Outer {
-        {
-            // access enclosing instance so this$0 field is generated
-            Objects.requireNonNull(T6521805.this);
-        }
-    }
+    class Outer {}
 
 }

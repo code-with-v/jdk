@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,13 +25,15 @@
 
 package java.security;
 
-import javax.crypto.spec.SecretKeySpec;
-import java.io.NotSerializableException;
-import java.io.ObjectStreamException;
-import java.io.Serializable;
+import java.io.*;
+import java.util.Locale;
+
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.Locale;
+import java.security.spec.InvalidKeySpecException;
+
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.SecretKeySpec;
 
 /**
  * Standardized representation for serialized Key objects.
@@ -42,7 +44,7 @@ import java.util.Locale;
  * which should not be exposed in untrusted environments.  See the
  * <a href="{@docRoot}/../specs/serialization/security.html">
  * Security Appendix</a>
- * of the <cite>Java Object Serialization Specification</cite> for more information.
+ * of the Serialization Specification for more information.
  *
  * @see Key
  * @see KeyFactory
@@ -63,7 +65,7 @@ public class KeyRep implements Serializable {
      *
      * @since 1.5
      */
-    public enum Type {
+    public static enum Type {
 
         /** Type for secret keys. */
         SECRET,
@@ -85,28 +87,28 @@ public class KeyRep implements Serializable {
      *
      * @serial
      */
-    private final Type type;
+    private Type type;
 
     /**
      * The Key algorithm
      *
      * @serial
      */
-    private final String algorithm;
+    private String algorithm;
 
     /**
      * The Key encoding format
      *
      * @serial
      */
-    private final String format;
+    private String format;
 
     /**
      * The encoded Key bytes
      *
      * @serial
      */
-    private final byte[] encoded;
+    private byte[] encoded;
 
     /**
      * Construct the alternate Key class.

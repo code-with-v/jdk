@@ -36,6 +36,7 @@ import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.element.TypeElement;
+import javax.tools.Diagnostic.Kind;
 
 @SupportedAnnotationTypes("MethodParameterProcessor.ParameterNames")
 public class MethodParameterProcessor extends JavacTestingAbstractProcessor {
@@ -51,7 +52,7 @@ public class MethodParameterProcessor extends JavacTestingAbstractProcessor {
         for (Element element : roundEnv.getElementsAnnotatedWith(ParameterNames.class)) {
             ExecutableElement exec = (ExecutableElement)element;
             String message = printNamesAndAnnotations(exec);
-            messager.printNote(message);
+            messager.printMessage(Kind.NOTE, message);
         }
         return false;
     }

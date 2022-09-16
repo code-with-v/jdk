@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,8 +25,6 @@
 
 package sun.net.dns;
 
-import jdk.internal.misc.InnocuousThread;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -35,11 +33,11 @@ import java.util.concurrent.TimeUnit;
  * An implementation of sun.net.ResolverConfiguration for Windows.
  */
 
-public final class ResolverConfigurationImpl
+public class ResolverConfigurationImpl
     extends ResolverConfiguration
 {
     // Lock held whilst loading configuration or checking
-    private static final Object lock = new Object();
+    private static Object lock = new Object();
 
     // Resolver options
     private final Options opts;
@@ -171,8 +169,7 @@ public final class ResolverConfigurationImpl
 
     // --- Address Change Listener
 
-    static class AddressChangeListener implements Runnable {
-        @Override
+    static class AddressChangeListener extends Thread {
         public void run() {
             for (;;) {
                 // wait for configuration to change
@@ -199,11 +196,9 @@ public final class ResolverConfigurationImpl
         init0();
 
         // start the address listener thread
-        String name = "Jndi-Dns-address-change-listener";
-        Thread addrChangeListener = InnocuousThread.newSystemThread(name,
-                new AddressChangeListener());
-        addrChangeListener.setDaemon(true);
-        addrChangeListener.start();
+        AddressChangeListener thr = new AddressChangeListener();
+        thr.setDaemon(true);
+        thr.start();
     }
 }
 

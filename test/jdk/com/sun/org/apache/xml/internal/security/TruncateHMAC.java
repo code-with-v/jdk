@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2009, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -47,7 +47,6 @@ import com.sun.org.apache.xml.internal.security.signature.XMLSignature;
 import com.sun.org.apache.xml.internal.security.signature.XMLSignatureException;
 import com.sun.org.apache.xml.internal.security.utils.Constants;
 
-import static java.nio.charset.StandardCharsets.US_ASCII;
 
 public class TruncateHMAC {
 
@@ -65,11 +64,7 @@ public class TruncateHMAC {
         validate("signature-enveloping-hmac-sha1-trunclen-8-attack.xml", false);
         // this one should pass
         validate("signature-enveloping-hmac-sha1.xml", true);
-
-        // There are multiple validations regarding hmac min output length, therefore
-        // checking different values will exercise multiple code blocks
-        generate_hmac_sha1(40);
-        generate_hmac_sha1(128);
+        generate_hmac_sha1_40();
 
         if (atLeastOneFailed) {
             throw new Exception
@@ -91,7 +86,7 @@ public class TruncateHMAC {
         try {
         XMLSignature signature = new XMLSignature
             (sigElement, file.toURI().toString());
-        SecretKey sk = signature.createSecretKey("secret".getBytes(US_ASCII));
+        SecretKey sk = signature.createSecretKey("secret".getBytes("ASCII"));
             System.out.println
                 ("Validation status: " + signature.checkSignatureValue(sk));
             if (!pass) {
@@ -111,15 +106,15 @@ public class TruncateHMAC {
         }
     }
 
-    private static void generate_hmac_sha1(int hmacOutputLength) throws Exception {
-        System.out.println("Generating " + hmacOutputLength);
+    private static void generate_hmac_sha1_40() throws Exception {
+        System.out.println("Generating ");
 
         Document doc = dbf.newDocumentBuilder().newDocument();
         try {
         XMLSignature sig = new XMLSignature
-            (doc, null, XMLSignature.ALGO_ID_MAC_HMAC_SHA1, hmacOutputLength,
+            (doc, null, XMLSignature.ALGO_ID_MAC_HMAC_SHA1, 40,
              Canonicalizer.ALGO_ID_C14N_OMIT_COMMENTS);
-            sig.sign(getSecretKey("secret".getBytes(US_ASCII)));
+            sig.sign(getSecretKey("secret".getBytes("ASCII")));
             System.out.println("FAILED");
             atLeastOneFailed = true;
         } catch (XMLSignatureException xse) {

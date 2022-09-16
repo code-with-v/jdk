@@ -53,24 +53,31 @@ public class TestDieDefault {
   }
 
   public static void main(String[] args) throws Exception {
-    passWith("-Xmx64m",
+    passWith("-Xmx128m",
              "-XX:+UnlockExperimentalVMOptions",
              "-XX:+UseEpsilonGC",
              "-Dcount=1",
              TestDieDefault.Workload.class.getName());
 
-    failWith("-Xmx64m",
+    failWith("-Xmx128m",
              "-XX:+UnlockExperimentalVMOptions",
              "-XX:+UseEpsilonGC",
              TestDieDefault.Workload.class.getName());
 
-    failWith("-Xmx64m",
+    failWith("-Xmx128m",
              "-Xint",
              "-XX:+UnlockExperimentalVMOptions",
              "-XX:+UseEpsilonGC",
              TestDieDefault.Workload.class.getName());
 
-    failWith("-Xmx64m",
+    failWith("-Xmx128m",
+             "-Xbatch",
+             "-Xcomp",
+             "-XX:+UnlockExperimentalVMOptions",
+             "-XX:+UseEpsilonGC",
+             TestDieDefault.Workload.class.getName());
+
+    failWith("-Xmx128m",
              "-Xbatch",
              "-Xcomp",
              "-XX:TieredStopAtLevel=1",
@@ -78,7 +85,7 @@ public class TestDieDefault {
              "-XX:+UseEpsilonGC",
              TestDieDefault.Workload.class.getName());
 
-    failWith("-Xmx64m",
+    failWith("-Xmx128m",
              "-Xbatch",
              "-Xcomp",
              "-XX:-TieredCompilation",

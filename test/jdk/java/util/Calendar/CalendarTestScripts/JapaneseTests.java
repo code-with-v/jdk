@@ -24,7 +24,7 @@
 /*
  * @test
  * @summary tests Japanese Calendar.
- * @bug 4609228 8187649 8273924
+ * @bug 4609228 8187649
  * @modules java.base/sun.util
  *          java.base/sun.util.calendar
  * @compile

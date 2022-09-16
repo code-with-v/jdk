@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -47,6 +47,7 @@ class GrowableArray;
 class InstanceKlass;
 class RecordComponent;
 class Symbol;
+class TempNewSymbol;
 class FieldLayoutBuilder;
 
 // Utility to collect and compact oop maps during layout
@@ -153,6 +154,7 @@ class ClassFileParser {
 
   int _num_miranda_methods;
 
+  ReferenceType _rt;
   Handle _protection_domain;
   AccessFlags _access_flags;
 
@@ -460,9 +462,6 @@ class ClassFileParser {
   int  verify_legal_method_signature(const Symbol* methodname,
                                      const Symbol* signature,
                                      TRAPS) const;
-  void verify_legal_name_with_signature(const Symbol* name,
-                                        const Symbol* signature,
-                                        TRAPS) const;
 
   void verify_class_version(u2 major, u2 minor, Symbol* class_name, TRAPS);
 
@@ -559,10 +558,7 @@ class ClassFileParser {
   const Symbol* class_name() const { return _class_name; }
   const InstanceKlass* super_klass() const { return _super_klass; }
 
-  ReferenceType super_reference_type() const;
-  bool is_instance_ref_klass() const;
-  bool is_java_lang_ref_Reference_subclass() const;
-
+  ReferenceType reference_type() const { return _rt; }
   AccessFlags access_flags() const { return _access_flags; }
 
   bool is_internal() const { return INTERNAL == _pub_level; }

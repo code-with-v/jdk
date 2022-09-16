@@ -23,6 +23,6 @@
 # questions.
 #
 
-DOCLINT += -Xdoclint:all/protected \
+DOCLINT += -Xdoclint:all/protected,-reference \
     '-Xdoclint/package:java.*,javax.*'
 COPY += flavormap.properties

@@ -24,7 +24,6 @@
 /*
  * @test
  * @summary Make sure --patch-module works when a jar file is specified for a module
- * @requires vm.flagless
  * @library /test/lib
  * @modules java.base/jdk.internal.misc
  *          jdk.jartool/sun.tools.jar

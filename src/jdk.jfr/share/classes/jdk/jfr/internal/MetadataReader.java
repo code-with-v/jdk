@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -40,7 +40,7 @@ import static jdk.jfr.internal.MetadataDescriptor.ELEMENT_TYPE;
 import java.io.DataInput;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,7 +66,6 @@ final class MetadataReader {
     public MetadataReader(RecordingInput input) throws IOException {
         this.input = input;
         int size = input.readInt();
-        input.require(size, "Metadata string pool size %d exceeds available data" );
         this.pool = new ArrayList<>(size);
         StringParser p = new StringParser(null, false);
         for (int i = 0; i < size; i++) {
@@ -85,7 +84,7 @@ final class MetadataReader {
         descriptor.root = root;
         if (Logger.shouldLog(LogTag.JFR_SYSTEM_PARSER, LogLevel.TRACE)) {
              List<Type> ts = new ArrayList<>(types.values());
-             ts.sort(Comparator.comparing(Type::getName));
+             Collections.sort(ts, (x,y) -> x.getName().compareTo(y.getName()));
              for (Type t : ts) {
                  t.log("Found", LogTag.JFR_SYSTEM_PARSER, LogLevel.TRACE);
              }
@@ -181,26 +180,33 @@ final class MetadataReader {
 
     private Object objectify(String typeName, String text) throws IOException {
         try {
-            return switch (typeName) {
-                case "int" -> Integer.valueOf(text);
-                case "long" -> Long.valueOf(text);
-                case "double" ->   Double.valueOf(text);
-                case "float" -> Float.valueOf(text);
-                case "short" -> Short.valueOf(text);
-                case "char" -> {
-                    if (text.length() != 1) {
-                        throw new IOException("Unexpected size of char");
-                    }
-                    yield text.charAt(0);
+            switch (typeName) {
+            case "int":
+                return Integer.valueOf(text);
+            case "long":
+                return Long.valueOf(text);
+            case "double":
+                return Double.valueOf(text);
+            case "float":
+                return Float.valueOf(text);
+            case "short":
+                return Short.valueOf(text);
+            case "char":
+                if (text.length() != 1) {
+                    throw new IOException("Unexpected size of char");
                 }
-                case "byte" -> Byte.valueOf(text);
-                case "boolean" -> Boolean.valueOf(text);
-                case "java.lang.String" -> text;
-                default -> throw new IOException("Unsupported type for annotation " + typeName);
-            };
+                return text.charAt(0);
+            case "byte":
+                return Byte.valueOf(text);
+            case "boolean":
+                return Boolean.valueOf(text);
+            case "java.lang.String":
+                return text;
+            }
         } catch (IllegalArgumentException iae) {
             throw new IOException("Could not parse text representation of " + typeName);
         }
+        throw new IOException("Unsupported type for annotation " + typeName);
     }
 
     private Type getType(String attribute, Element element) {

@@ -25,7 +25,6 @@
 
 #include "precompiled.hpp"
 #include "asm/macroAssembler.inline.hpp"
-#include "runtime/os.hpp" // malloc
 #include "runtime/stubRoutines.hpp"
 #include "runtime/vm_version.hpp"
 
@@ -90,7 +89,7 @@ address StubRoutines::ppc::generate_crc_constants(juint reverse_poly) {
   const int vector_size = 16 * (CRC32_UNROLL_FACTOR2 + CRC32_UNROLL_FACTOR / CRC32_UNROLL_FACTOR2);
 
   const int size = use_vector ? CRC32_TABLE_SIZE + vector_size : (4 BIG_ENDIAN_ONLY(+1)) * CRC32_TABLE_SIZE;
-  const address consts = (address)os::malloc(size, mtInternal);
+  const address consts = (address)malloc(size);
   if (consts == NULL) {
     vm_exit_out_of_memory(size, OOM_MALLOC_ERROR, "CRC constants: no enough space");
   }

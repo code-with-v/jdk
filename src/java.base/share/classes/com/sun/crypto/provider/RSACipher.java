@@ -211,7 +211,10 @@ public final class RSACipher extends CipherSpi {
         } catch (InvalidAlgorithmParameterException iape) {
             // never thrown when null parameters are used;
             // but re-throw it just in case
-            throw new InvalidKeyException("Wrong parameters", iape);
+            InvalidKeyException ike =
+                new InvalidKeyException("Wrong parameters");
+            ike.initCause(iape);
+            throw ike;
         }
     }
 
@@ -234,7 +237,10 @@ public final class RSACipher extends CipherSpi {
                         params.getParameterSpec(OAEPParameterSpec.class);
                 init(opmode, key, random, spec);
             } catch (InvalidParameterSpecException ipse) {
-                throw new InvalidAlgorithmParameterException("Wrong parameter", ipse);
+                InvalidAlgorithmParameterException iape =
+                    new InvalidAlgorithmParameterException("Wrong parameter");
+                iape.initCause(ipse);
+                throw iape;
             }
         }
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,6 +25,7 @@
  * @test
  * @bug 4512200
  * @library /test/lib
+ * @modules java.base/sun.net.www
  * @run main/othervm -Dhttp.agent=foo UserAgent
  * @run main/othervm -Dhttp.agent=foo -Djava.net.preferIPv6Addresses=true UserAgent
  * @summary  HTTP header "User-Agent" format incorrect
@@ -33,9 +34,8 @@
 import java.io.*;
 import java.util.*;
 import java.net.*;
-
-import jdk.test.lib.net.HttpHeaderParser;
 import jdk.test.lib.net.URIBuilder;
+import sun.net.www.MessageHeader;
 
 class Server extends Thread {
     Server (ServerSocket server) {
@@ -46,8 +46,8 @@ class Server extends Thread {
             String version = System.getProperty ("java.version");
             String expected = "foo Java/"+version;
             Socket s = server.accept ();
-            HttpHeaderParser header = new HttpHeaderParser (s.getInputStream());
-            String v = header.getHeaderValue ("User-Agent").get(0);
+            MessageHeader header = new MessageHeader (s.getInputStream());
+            String v = header.findValue ("User-Agent");
             if (!expected.equals (v)) {
                 error ("Got unexpected User-Agent: " + v);
             } else {

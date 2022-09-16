@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,8 +26,9 @@
 package sun.security.x509;
 
 import java.io.IOException;
-import java.util.Objects;
+import java.util.*;
 
+import sun.security.util.BitArray;
 import sun.security.util.DerOutputStream;
 import sun.security.util.DerValue;
 
@@ -195,9 +196,10 @@ public class DistributionPointName {
         if (this == obj) {
             return true;
         }
-        if (!(obj instanceof DistributionPointName other)) {
+        if (obj instanceof DistributionPointName == false) {
             return false;
         }
+        DistributionPointName other = (DistributionPointName)obj;
 
         return Objects.equals(this.fullName, other.fullName) &&
                Objects.equals(this.relativeName, other.relativeName);

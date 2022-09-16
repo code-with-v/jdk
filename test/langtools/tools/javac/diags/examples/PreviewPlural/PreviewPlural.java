@@ -30,6 +30,6 @@ import java.util.ArrayList;
 class PreviewPlural {
     void test() {
         new PreviewPluralBar();
-        record R() {}
+        new ArrayList<>();
     }
 }

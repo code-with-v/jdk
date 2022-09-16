@@ -56,7 +56,7 @@ abstract class PBEKeyFactory extends SecretKeyFactorySpi {
     }
 
     static {
-        validTypes = HashSet.newHashSet(17);
+        validTypes = new HashSet<>(17);
         validTypes.add("PBEWithMD5AndDES".toUpperCase(Locale.ENGLISH));
         validTypes.add("PBEWithSHA1AndDESede".toUpperCase(Locale.ENGLISH));
         validTypes.add("PBEWithSHA1AndRC2_40".toUpperCase(Locale.ENGLISH));
@@ -243,7 +243,7 @@ abstract class PBEKeyFactory extends SecretKeyFactorySpi {
 
             // Check if requested key spec is amongst the valid ones
             if ((keySpecCl != null)
-                    && keySpecCl.isAssignableFrom(PBEKeySpec.class)) {
+                && PBEKeySpec.class.isAssignableFrom(keySpecCl)) {
                 byte[] passwdBytes = key.getEncoded();
                 char[] passwdChars = new char[passwdBytes.length];
                 for (int i=0; i<passwdChars.length; i++)

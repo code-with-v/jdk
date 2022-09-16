@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -37,7 +37,6 @@ import jdk.test.lib.process.ProcessTools;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * This class prepares, creates, and runs the "test" VM with verification of proper termination. The class also stores
@@ -70,7 +69,7 @@ public class TestVMProcess {
             prepareTestVMFlags(additionalFlags, socket, testClass, helperClasses, defaultWarmup);
             start();
         }
-        processSocketOutput(socket);
+        processSocketOutput(socket.getOutput());
         checkTestVMExitCode();
     }
 
@@ -98,10 +97,9 @@ public class TestVMProcess {
         cmds.add("-Xbootclasspath/a:.");
         cmds.add("-XX:+UnlockDiagnosticVMOptions");
         cmds.add("-XX:+WhiteBoxAPI");
-        // Ignore CompileCommand flags which have an impact on the profiling information.
-        List<String> jtregVMFlags = Arrays.stream(Utils.getTestJavaOpts()).filter(s -> !s.contains("CompileThreshold")).collect(Collectors.toList());
+        String[] jtregVMFlags = Utils.getTestJavaOpts();
         if (!PREFER_COMMAND_LINE_FLAGS) {
-            cmds.addAll(jtregVMFlags);
+            cmds.addAll(Arrays.asList(jtregVMFlags));
         }
         // Add server property flag that enables test VM to print encoding for IR verification last and debug messages.
         cmds.add(socket.getPortPropertyFlag());
@@ -113,7 +111,7 @@ public class TestVMProcess {
 
         if (PREFER_COMMAND_LINE_FLAGS) {
             // Prefer flags set via the command line over the ones set by scenarios.
-            cmds.addAll(jtregVMFlags);
+            cmds.addAll(Arrays.asList(jtregVMFlags));
         }
 
         if (WARMUP_ITERATIONS < 0 && defaultWarmup != -1) {
@@ -155,8 +153,6 @@ public class TestVMProcess {
         } catch (Exception e) {
             throw new TestFrameworkException("Error while executing Test VM", e);
         }
-
-        process.command().add(1, "-DReproduce=true"); // Add after "/path/to/bin/java" in order to rerun the test VM directly
         commandLine = "Command Line:" + System.lineSeparator() + String.join(" ", process.command())
                       + System.lineSeparator();
         hotspotPidFileName = String.format("hotspot_pid%d.log", oa.pid());
@@ -167,42 +163,23 @@ public class TestVMProcess {
      * Process the socket output: All prefixed lines are dumped to the standard output while the remaining lines
      * represent the IR encoding used for IR matching later.
      */
-    private void processSocketOutput(TestFrameworkSocket socket) {
-        String output = socket.getOutput();
-        if (socket.hasStdOut()) {
-            StringBuilder testListBuilder = new StringBuilder();
-            StringBuilder messagesBuilder = new StringBuilder();
-            StringBuilder nonStdOutBuilder = new StringBuilder();
+    private void processSocketOutput(String output) {
+        if (TestFramework.TESTLIST || TestFramework.EXCLUDELIST) {
+            StringBuilder builder = new StringBuilder();
             Scanner scanner = new Scanner(output);
+            System.out.println(System.lineSeparator() + "Run flag defined test list");
+            System.out.println("--------------------------");
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
                 if (line.startsWith(TestFrameworkSocket.STDOUT_PREFIX)) {
-                    // Exclude [STDOUT] from message.
-                    line = line.substring(TestFrameworkSocket.STDOUT_PREFIX.length());
-                    if (line.startsWith(TestFrameworkSocket.TESTLIST_TAG)) {
-                        // Exclude [TESTLIST] from message for better formatting.
-                        line = "> " + line.substring(TestFrameworkSocket.TESTLIST_TAG.length() + 1);
-                        testListBuilder.append(line).append(System.lineSeparator());
-                    } else {
-                        messagesBuilder.append(line).append(System.lineSeparator());
-                    }
+                    line = "> " + line.substring(TestFrameworkSocket.STDOUT_PREFIX.length());
+                    System.out.println(line);
                 } else {
-                    nonStdOutBuilder.append(line).append(System.lineSeparator());
+                    builder.append(line).append(System.lineSeparator());
                 }
             }
             System.out.println();
-            if (!testListBuilder.isEmpty()) {
-                System.out.println("Run flag defined test list");
-                System.out.println("--------------------------");
-                System.out.println(testListBuilder);
-                System.out.println();
-            }
-            if (!messagesBuilder.isEmpty()) {
-                System.out.println("Messages from Test VM");
-                System.out.println("---------------------");
-                System.out.println(messagesBuilder);
-            }
-            irEncoding = nonStdOutBuilder.toString();
+            irEncoding = builder.toString();
         } else {
             irEncoding = output;
         }
@@ -226,7 +203,7 @@ public class TestVMProcess {
      */
     private void throwTestVMException() {
         String stdErr = oa.getStderr();
-        if (stdErr.contains("TestFormat.throwIfAnyFailures")) {
+        if (stdErr.contains("TestFormat.reportIfAnyFailures")) {
             Pattern pattern = Pattern.compile("Violations \\(\\d+\\)[\\s\\S]*(?=/============/)");
             Matcher matcher = pattern.matcher(stdErr);
             TestFramework.check(matcher.find(), "Must find violation matches");

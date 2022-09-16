@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,6 +31,11 @@ import jdk.javadoc.internal.doclets.toolkit.util.DocPath;
 
 /**
  * Factory for HTML A elements: links (with a {@code href} attribute).
+ *
+ *  <p><b>This is NOT part of any supported API.
+ *  If you write code that depends on this, you do so at your own risk.
+ *  This code and its internal interfaces are subject to change or
+ *  deletion without notice.</b>
  */
 public class Links {
 
@@ -51,7 +56,7 @@ public class Links {
      *
      * @param id    the position of the link in the file
      * @param label the content for the link
-     * @return the link
+     * @return a content tree for the link
      */
     public Content createLink(HtmlId id, Content label) {
         DocLink l = DocLink.fragment(id.name());
@@ -65,7 +70,7 @@ public class Links {
      * @param id    the position of the link in the file
      * @param label the content for the link
      * @param link  whether to create a link or just return the label
-     * @return the link or just the label
+     * @return a content tree for the link or just the label
      */
     public Content createLink(HtmlId id, Content label, boolean link) {
         return link ? createLink(id, label) : label;
@@ -78,7 +83,7 @@ public class Links {
      * @param label  the content for the link
      * @param title  the title for the link
      *
-     * @return the link
+     * @return a content tree for the link
      */
     public Content createLink(HtmlId id, Content label, String title) {
         DocLink l = DocLink.fragment(id.name());
@@ -90,7 +95,7 @@ public class Links {
      *
      * @param path   the path for the link
      * @param label  the content for the link
-     * @return the link
+     * @return a content tree for the link
      */
     public Content createLink(DocPath path, String label) {
         return createLink(path, Text.of(label), null, "");
@@ -101,7 +106,7 @@ public class Links {
      *
      * @param path   the path for the link
      * @param label  the content for the link
-     * @return the link
+     * @return a content tree for the link
      */
     public Content createLink(DocPath path, Content label) {
         return createLink(path, label, "");
@@ -115,7 +120,7 @@ public class Links {
      * @param label     the content for the link
      * @param style     the style for the link, or null
      * @param title     the title for the link
-     * @return the link
+     * @return a content tree for the link
      */
     public Content createLink(DocPath path, Content label, HtmlStyle style, String title) {
         return createLink(new DocLink(path), label, style, title);
@@ -127,7 +132,7 @@ public class Links {
      * @param path      the path for the link
      * @param label     the content for the link
      * @param title     the title for the link
-     * @return the link
+     * @return a content tree for the link
      */
     public Content createLink(DocPath path, Content label, String title) {
         return createLink(new DocLink(path), label, title);
@@ -138,7 +143,7 @@ public class Links {
      *
      * @param link      the details for the link
      * @param label     the content for the link
-     * @return the link
+     * @return a content tree for the link
      */
     public Content createLink(DocLink link, Content label) {
         return createLink(link, label, "");
@@ -150,10 +155,10 @@ public class Links {
      * @param link      the details for the link
      * @param label     the content for the link
      * @param title     the title for the link
-     * @return the link
+     * @return a content tree for the link
      */
     public Content createLink(DocLink link, Content label, String title) {
-        var anchor = HtmlTree.A(link.relativizeAgainst(file).toString(), label);
+        HtmlTree anchor = HtmlTree.A(link.relativizeAgainst(file).toString(), label);
         if (title != null && title.length() != 0) {
             anchor.put(HtmlAttr.TITLE, title);
         }
@@ -168,7 +173,7 @@ public class Links {
      * @param label     the content for the link
      * @param style     the style for the link, or null
      * @param title     the title for the link
-     * @return the link
+     * @return a content tree for the link
      */
     public Content createLink(DocLink link, Content label, HtmlStyle style,
                               String title) {
@@ -184,11 +189,11 @@ public class Links {
      * @param style      the style for the link, or null
      * @param title      the title for the link
      * @param isExternal is the link external to the generated documentation
-     * @return the link
+     * @return a content tree for the link
      */
     public Content createLink(DocLink link, Content label, HtmlStyle style,
                               String title, boolean isExternal) {
-        var l = HtmlTree.A(link.relativizeAgainst(file).toString(), label);
+        HtmlTree l = HtmlTree.A(link.relativizeAgainst(file).toString(), label);
         if (style != null) {
             l.setStyle(style);
         }
@@ -207,7 +212,7 @@ public class Links {
      *
      * @param link       the details for the link
      * @param label      the content for the link
-     * @return the link
+     * @return a content tree for the link
      */
     public Content createExternalLink(DocLink link, Content label) {
         return HtmlTree.A(link.relativizeAgainst(file).toString(), label)

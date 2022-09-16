@@ -54,7 +54,7 @@ public class TestDockerCpuMetrics {
         // container include the Java test class to be run along with the
         // resource to be examined and expected result.
 
-        DockerTestUtils.buildJdkContainerImage(imageName);
+        DockerTestUtils.buildJdkDockerImage(imageName, "Dockerfile-BasicTest", "jdk-docker");
 
         try {
             int numCpus = CPUSetsReader.getNumCpus();

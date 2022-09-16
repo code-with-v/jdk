@@ -25,19 +25,18 @@ package ir_framework.tests;
 
 import compiler.lib.ir_framework.*;
 import compiler.lib.ir_framework.test.TestVM;
-import jdk.test.lib.Platform;
 
 import java.lang.reflect.Method;
 
 /*
  * @test
- * @requires vm.flagless & vm.compiler1.enabled
+ * @requires vm.flagless
  * @summary Test if compilation levels are used correctly in the framework.
  *          This test partly runs directly the test VM which normally does and should not happen in user tests.
  * @library /test/lib /
- * @build jdk.test.whitebox.WhiteBox
- * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
- * @run main/othervm -Xbootclasspath/a:. -XX:+IgnoreUnrecognizedVMOptions -XX:+UnlockDiagnosticVMOptions
+ * @build sun.hotspot.WhiteBox
+ * @run driver jdk.test.lib.helpers.ClassFileInstaller sun.hotspot.WhiteBox
+ * @run main/othervm -Xbootclasspath/a:. -DSkipWhiteBoxInstall=true -XX:+IgnoreUnrecognizedVMOptions -XX:+UnlockDiagnosticVMOptions
  *                   -Xbatch -XX:+WhiteBoxAPI ir_framework.tests.TestCompLevels
  */
 
@@ -58,12 +57,10 @@ public class TestCompLevels {
             }
         }
         TestFramework framework = new TestFramework(TestNoTiered.class);
-        if (!Platform.isClient()) {
-            framework.setDefaultWarmup(10).addFlags("-XX:-TieredCompilation").start();
-            framework = new TestFramework(TestNoTiered.class);
-            framework.setDefaultWarmup(10).addScenarios(new Scenario(0, "-XX:-TieredCompilation")).start();
-            framework = new TestFramework(TestStopAtLevel1.class);
-        }
+        framework.setDefaultWarmup(10).addFlags("-XX:-TieredCompilation").start();
+        framework = new TestFramework(TestNoTiered.class);
+        framework.setDefaultWarmup(10).addScenarios(new Scenario(0, "-XX:-TieredCompilation")).start();
+        framework = new TestFramework(TestStopAtLevel1.class);
         framework.setDefaultWarmup(10).addFlags("-XX:TieredStopAtLevel=1").start();
         framework = new TestFramework(TestStopAtLevel1.class);
         framework.setDefaultWarmup(10).addScenarios(new Scenario(0, "-XX:TieredStopAtLevel=1")).start();
@@ -122,9 +119,7 @@ class TestNoTiered {
 
     @Check(test = "level1")
     public void check1(TestInfo info) {
-        if (!Platform.isClient()) {
-            TestFramework.assertNotCompiled(info.getTest()); // Never compiled without C1
-        }
+        TestFramework.assertNotCompiled(info.getTest()); // Never compiled without C1
     }
 
     @Test(compLevel = CompLevel.C1_LIMITED_PROFILE)

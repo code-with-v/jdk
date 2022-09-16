@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,7 +24,6 @@
  */
 
 package sun.awt.image;
-
 import java.awt.image.Raster;
 import java.awt.image.WritableRaster;
 import java.awt.image.RasterFormatException;
@@ -634,7 +633,7 @@ public class ByteBandedRaster extends SunWritableRaster {
      * @param x0              Translated X origin of the subraster.
      * @param y0              Translated Y origin of the subraster.
      * @param bandList        Array of band indices.
-     * @throws RasterFormatException
+     * @exception RasterFormatException
      *            if the specified bounding box is outside of the parent raster.
      */
     public WritableRaster createWritableChild (int x, int y,
@@ -689,7 +688,7 @@ public class ByteBandedRaster extends SunWritableRaster {
      * @param x0              Translated X origin of the subraster.
      * @param y0              Translated Y origin of the subraster.
      * @param bandList        Array of band indices.
-     * @throws RasterFormatException
+     * @exception RasterFormatException
      *            if the specified bounding box is outside of the parent raster.
      */
     public Raster createChild (int x, int y,
@@ -819,11 +818,10 @@ public class ByteBandedRaster extends SunWritableRaster {
     }
 
     public String toString() {
-        return "ByteBandedRaster: width = " + width
-                + " height = " + height
-                + " #bands " + numDataElements
-                + " minX = " + minX
-                + " minY = " + minY;
+        return new String ("ByteBandedRaster: width = "+width+" height = "
+                           + height
+                           +" #bands "+numDataElements
+                           +" minX = "+minX+" minY = "+minY);
     }
 
 }

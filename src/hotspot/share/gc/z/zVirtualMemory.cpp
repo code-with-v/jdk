@@ -33,7 +33,6 @@
 
 ZVirtualMemoryManager::ZVirtualMemoryManager(size_t max_capacity) :
     _manager(),
-    _reserved(0),
     _initialized(false) {
 
   // Check max supported heap size
@@ -174,9 +173,6 @@ bool ZVirtualMemoryManager::reserve(size_t max_capacity) {
   log_info_p(gc, init)("Address Space Size: " SIZE_FORMAT "M x " SIZE_FORMAT " = " SIZE_FORMAT "M",
                        reserved / M, ZHeapViews, (reserved * ZHeapViews) / M);
 
-  // Record reserved
-  _reserved = reserved;
-
   return reserved >= max_capacity;
 }
 
@@ -195,9 +191,9 @@ ZVirtualMemory ZVirtualMemoryManager::alloc(size_t size, bool force_low_address)
   // Small pages are allocated at low addresses, while medium/large pages
   // are allocated at high addresses (unless forced to be at a low address).
   if (force_low_address || size <= ZPageSizeSmall) {
-    start = _manager.alloc_low_address(size);
+    start = _manager.alloc_from_front(size);
   } else {
-    start = _manager.alloc_high_address(size);
+    start = _manager.alloc_from_back(size);
   }
 
   return ZVirtualMemory(start, size);

@@ -1251,7 +1251,7 @@ public class JTree extends JComponent implements Scrollable, Accessible
      * tree's {@code TransferHandler}.
      *
      * @param b whether or not to enable automatic drag handling
-     * @throws HeadlessException if
+     * @exception HeadlessException if
      *            <code>b</code> is <code>true</code> and
      *            <code>GraphicsEnvironment.isHeadless()</code>
      *            returns <code>true</code>
@@ -2033,7 +2033,7 @@ public class JTree extends JComponent implements Scrollable, Accessible
         Enumeration<TreePath> toggledPaths = expandedState.keys();
         Vector<TreePath> elements = null;
         TreePath          path;
-        Boolean           value;
+        Object            value;
 
         if(toggledPaths != null) {
             while(toggledPaths.hasMoreElements()) {
@@ -2042,7 +2042,8 @@ public class JTree extends JComponent implements Scrollable, Accessible
                 // Add the path if it is expanded, a descendant of parent,
                 // and it is visible (all parents expanded). This is rather
                 // expensive!
-                if (path != parent && value != null && value &&
+                if(path != parent && value != null &&
+                   ((Boolean)value).booleanValue() &&
                    parent.isDescendant(path) && isVisible(path)) {
                     if (elements == null) {
                         elements = new Vector<TreePath>();
@@ -2080,11 +2081,11 @@ public class JTree extends JComponent implements Scrollable, Accessible
 
         if(path == null)
             return false;
-        Boolean value;
+        Object  value;
 
         do{
             value = expandedState.get(path);
-            if (value == null || !value)
+            if(value == null || !((Boolean)value).booleanValue())
                 return false;
         } while( (path=path.getParentPath())!=null );
 
@@ -2108,7 +2109,7 @@ public class JTree extends JComponent implements Scrollable, Accessible
             if(path != null) {
                 Boolean value = expandedState.get(path);
 
-                return (value != null && value);
+                return (value != null && value.booleanValue());
             }
         }
         return false;
@@ -3087,7 +3088,7 @@ public class JTree extends JComponent implements Scrollable, Accessible
      * Position.Bias.Forward or Position.Bias.Backward.
      * @return the TreePath of the next tree element that
      * starts with the prefix; otherwise null
-     * @throws IllegalArgumentException if prefix is null
+     * @exception IllegalArgumentException if prefix is null
      * or startingRow is out of bounds
      * @since 1.4
      */
@@ -3127,23 +3128,23 @@ public class JTree extends JComponent implements Scrollable, Accessible
         Vector<Object> values = new Vector<Object>();
 
         s.defaultWriteObject();
-        // Save the cellRenderer, if it's Serializable.
-        if (cellRenderer instanceof Serializable) {
+        // Save the cellRenderer, if its Serializable.
+        if(cellRenderer != null && cellRenderer instanceof Serializable) {
             values.addElement("cellRenderer");
             values.addElement(cellRenderer);
         }
-        // Save the cellEditor, if it's Serializable.
-        if (cellEditor instanceof Serializable) {
+        // Save the cellEditor, if its Serializable.
+        if(cellEditor != null && cellEditor instanceof Serializable) {
             values.addElement("cellEditor");
             values.addElement(cellEditor);
         }
-        // Save the treeModel, if it's Serializable.
-        if (treeModel instanceof Serializable) {
+        // Save the treeModel, if its Serializable.
+        if(treeModel != null && treeModel instanceof Serializable) {
             values.addElement("treeModel");
             values.addElement(treeModel);
         }
-        // Save the selectionModel, if it's Serializable.
-        if (selectionModel instanceof Serializable) {
+        // Save the selectionModel, if its Serializable.
+        if(selectionModel != null && selectionModel instanceof Serializable) {
             values.addElement("selectionModel");
             values.addElement(selectionModel);
         }
@@ -3675,7 +3676,7 @@ public class JTree extends JComponent implements Scrollable, Accessible
      * This will fail if a <code>TreeWillExpandListener</code> vetos it.
      *
      * @param path a {@code TreePath} identifying a node
-     * @param state if {@code true}, all parents of {@code path} and path are marked as expanded.
+     * @param state if {@code true}, all parents of @{code path} and path are marked as expanded.
      *              Otherwise, all parents of {@code path} are marked EXPANDED,
      *              but {@code path} itself is marked collapsed.
      */
@@ -3728,9 +3729,9 @@ public class JTree extends JComponent implements Scrollable, Accessible
             }
             if(!state) {
                 // collapse last path.
-                Boolean cValue = expandedState.get(path);
+                Object          cValue = expandedState.get(path);
 
-                if (cValue != null && cValue) {
+                if(cValue != null && ((Boolean)cValue).booleanValue()) {
                     try {
                         fireTreeWillCollapse(path);
                     }
@@ -3752,9 +3753,9 @@ public class JTree extends JComponent implements Scrollable, Accessible
             }
             else {
                 // Expand last path.
-                Boolean cValue = expandedState.get(path);
+                Object          cValue = expandedState.get(path);
 
-                if (cValue == null || !cValue) {
+                if(cValue == null || !((Boolean)cValue).booleanValue()) {
                     try {
                         fireTreeWillExpand(path);
                     }
@@ -5053,7 +5054,7 @@ public class JTree extends JComponent implements Scrollable, Accessible
              *
              * @return This component's locale. If this component does not have
              * a locale, the locale of its parent is returned.
-             * @throws IllegalComponentStateException
+             * @exception IllegalComponentStateException
              * If the Component does not have its own locale and has not yet
              * been added to a containment hierarchy such that the locale can be
              * determined from the containing parent.
@@ -5414,12 +5415,14 @@ public class JTree extends JComponent implements Scrollable, Accessible
             public Rectangle getBounds() {
                 Rectangle r = tree.getPathBounds(path);
                 Accessible parent = getAccessibleParent();
-                if (parent instanceof AccessibleJTreeNode treeNode) {
-                    Point parentLoc = treeNode.getLocationInJTree();
-                    if (parentLoc != null && r != null) {
-                        r.translate(-parentLoc.x, -parentLoc.y);
-                    } else {
-                        return null;        // not visible!
+                if (parent != null) {
+                    if (parent instanceof AccessibleJTreeNode) {
+                        Point parentLoc = ((AccessibleJTreeNode) parent).getLocationInJTree();
+                        if (parentLoc != null && r != null) {
+                            r.translate(-parentLoc.x, -parentLoc.y);
+                        } else {
+                            return null;        // not visible!
+                        }
                     }
                 }
                 return r;

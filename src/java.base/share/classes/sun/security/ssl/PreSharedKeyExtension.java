@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,7 +28,11 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.security.*;
 import java.text.MessageFormat;
-import java.util.*;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Locale;
+import java.util.Arrays;
+import java.util.Collection;
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.net.ssl.SSLPeerUnverifiedException;
@@ -214,12 +218,12 @@ final class PreSharedKeyExtension {
         @Override
         public String toString() {
             MessageFormat messageFormat = new MessageFormat(
-                    """
-                            "PreSharedKey": '{'
-                              "identities": '{'
-                            {0}
-                              '}'  "binders": "{1}",
-                            '}'""",
+                "\"PreSharedKey\": '{'\n" +
+                "  \"identities\": '{'\n" +
+                "{0}\n" +
+                "  '}'" +
+                "  \"binders\": \"{1}\",\n" +
+                "'}'",
                 Locale.ENGLISH);
 
             Object[] messageFields = {
@@ -296,10 +300,9 @@ final class PreSharedKeyExtension {
         @Override
         public String toString() {
             MessageFormat messageFormat = new MessageFormat(
-                    """
-                            "PreSharedKey": '{'
-                              "selected_identity"      : "{0}",
-                            '}'""",
+                "\"PreSharedKey\": '{'\n" +
+                "  \"selected_identity\"      : \"{0}\",\n" +
+                "'}'",
                 Locale.ENGLISH);
 
             Object[] messageFields = {
@@ -442,7 +445,7 @@ final class PreSharedKeyExtension {
 
         // Make sure that the server handshake context's localSupportedSignAlgs
         // field is populated.  This is particularly important when
-        // client authentication was used in an initial session, and it is
+        // client authentication was used in an initial session and it is
         // now being resumed.
         if (shc.localSupportedSignAlgs == null) {
             shc.localSupportedSignAlgs =
@@ -566,9 +569,9 @@ final class PreSharedKeyExtension {
         SecretKey binderKey = deriveBinderKey(shc, psk, session);
         byte[] computedBinder =
                 computeBinder(shc, binderKey, session, pskBinderHash);
-        if (!MessageDigest.isEqual(binder, computedBinder)) {
+        if (!Arrays.equals(binder, computedBinder)) {
             throw shc.conContext.fatal(Alert.ILLEGAL_PARAMETER,
-                    "Incorrect PSK binder value");
+                    "Incorect PSK binder value");
         }
     }
 
@@ -681,7 +684,7 @@ final class PreSharedKeyExtension {
                 return null;
             }
 
-            // The PSK ID can only be used in one connection, but this method
+            // The PSK ID can only be used in one connections, but this method
             // may be called twice in a connection if the server sends HRR.
             // ID is saved in the context so it can be used in the second call.
             if (chc.pskIdentity == null) {

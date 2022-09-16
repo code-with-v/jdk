@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2015, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -92,8 +92,6 @@ import java.lang.reflect.Array;
  * ArrayType<String[][][]> a19 = new ArrayType<String[][][]>(1, a18);
  * }</pre>
  *
- * @param <T> the Java component type that arrays described by this ArrayType must
- * have.
  *
  * @since 1.5
  */
@@ -141,7 +139,7 @@ public class ArrayType<T> extends OpenType<T> {
     private transient Integer  myHashCode = null;       // As this instance is immutable, these two values
     private transient String   myToString = null;       // need only be calculated once.
 
-    // indexes referring to columns in the PRIMITIVE_ARRAY_TYPES table.
+    // indexes refering to columns in the PRIMITIVE_ARRAY_TYPES table.
     private static final int PRIMITIVE_WRAPPER_NAME_INDEX = 0;
     private static final int PRIMITIVE_TYPE_NAME_INDEX = 1;
     private static final int PRIMITIVE_TYPE_KEY_INDEX  = 2;
@@ -666,7 +664,7 @@ public class ArrayType<T> extends OpenType<T> {
     }
 
 
-    /* *** Methods overridden from class Object *** */
+    /* *** Methods overriden from class Object *** */
 
     /**
      * Compares the specified {@code obj} parameter with this
@@ -745,7 +743,7 @@ public class ArrayType<T> extends OpenType<T> {
             int value = 0;
             value += dimension;
             value += elementType.hashCode();
-            value += Boolean.hashCode(primitiveArray);
+            value += Boolean.valueOf(primitiveArray).hashCode();
             myHashCode = Integer.valueOf(value);
         }
 
@@ -830,7 +828,7 @@ public class ArrayType<T> extends OpenType<T> {
      */
     public static <E> ArrayType<E[]> getArrayType(OpenType<E> elementType)
         throws OpenDataException {
-        return new ArrayType<>(1, elementType);
+        return new ArrayType<E[]>(1, elementType);
     }
 
     /**
@@ -976,7 +974,7 @@ public class ArrayType<T> extends OpenType<T> {
                 break;
             }
         }
-        return new ArrayType<>(cn, tn, d,
+        return new ArrayType<T>(cn, tn, d,
                                 dimension, elementType, primitiveArray);
     }
 
@@ -1044,7 +1042,7 @@ public class ArrayType<T> extends OpenType<T> {
                 break;
             }
         }
-        return new ArrayType<>(cn, tn, d,
+        return new ArrayType<T>(cn, tn, d,
                                 dimension, elementType, primitiveArray);
     }
 }

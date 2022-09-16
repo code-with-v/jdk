@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -140,7 +140,7 @@ class WindowsUserPrincipals {
         }
 
         // invoke LookupAccountName to get buffer size needed for SID
-        int size;
+        int size = 0;
         try {
             size = LookupAccountName(name, 0L, 0);
         } catch (WindowsException x) {
@@ -151,7 +151,8 @@ class WindowsUserPrincipals {
         assert size > 0;
 
         // allocate buffer and re-invoke LookupAccountName get SID
-        try (NativeBuffer sidBuffer = NativeBuffers.getNativeBuffer(size)) {
+        NativeBuffer sidBuffer = NativeBuffers.getNativeBuffer(size);
+        try {
             int newSize = LookupAccountName(name, sidBuffer.address(), size);
             if (newSize != size) {
                 // can this happen?
@@ -162,6 +163,8 @@ class WindowsUserPrincipals {
             return fromSid(sidBuffer.address());
         } catch (WindowsException x) {
             throw new IOException(name + ": " + x.errorString());
+        } finally {
+            sidBuffer.release();
         }
     }
 }

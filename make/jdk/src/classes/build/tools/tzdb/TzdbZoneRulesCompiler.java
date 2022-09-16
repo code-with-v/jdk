@@ -298,7 +298,7 @@ public final class TzdbZoneRulesCompiler {
     private boolean verbose;
 
     /**
-     * private constructor
+     * private contructor
      */
     private TzdbZoneRulesCompiler() {}
 

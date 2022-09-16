@@ -39,7 +39,6 @@ private:
   void send_stat_counter(const ZStatCounter& counter, uint64_t increment, uint64_t value);
   void send_stat_sampler(const ZStatSampler& sampler, uint64_t value);
   void send_thread_phase(const char* name, const Ticks& start, const Ticks& end);
-  void send_thread_debug(const char* name, const Ticks& start, const Ticks& end);
 
 public:
   static ZTracer* tracer();
@@ -48,18 +47,16 @@ public:
   void report_stat_counter(const ZStatCounter& counter, uint64_t increment, uint64_t value);
   void report_stat_sampler(const ZStatSampler& sampler, uint64_t value);
   void report_thread_phase(const char* name, const Ticks& start, const Ticks& end);
-  void report_thread_debug(const char* name, const Ticks& start, const Ticks& end);
 };
 
-// For temporary latency measurements during development and debugging
-class ZTraceThreadDebug : public StackObj {
+class ZTraceThreadPhase : public StackObj {
 private:
   const Ticks       _start;
   const char* const _name;
 
 public:
-  ZTraceThreadDebug(const char* name);
-  ~ZTraceThreadDebug();
+  ZTraceThreadPhase(const char* name);
+  ~ZTraceThreadPhase();
 };
 
 #endif // SHARE_GC_Z_ZTRACER_HPP

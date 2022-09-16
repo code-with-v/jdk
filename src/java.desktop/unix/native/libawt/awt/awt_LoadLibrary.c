@@ -109,6 +109,8 @@ AWT_OnLoad(JavaVM *vm, void *reserved)
     struct utsname name;
     JNIEnv *env = (JNIEnv *)JNU_GetEnv(vm, JNI_VERSION_1_2);
     void *v;
+    jstring fmanager = NULL;
+    jstring fmProp = NULL;
 
     if (awtHandle != NULL) {
         /* Avoid several loading attempts */
@@ -124,15 +126,29 @@ AWT_OnLoad(JavaVM *vm, void *reserved)
     p = strrchr(buf, '/');
 #endif
     /*
-     * The code below is responsible for
-     * loading appropriate awt library, i.e. libawt_xawt or libawt_headless
+     * The code below is responsible for:
+     * 1. Loading appropriate awt library, i.e. libawt_xawt or libawt_headless
+     * 2. Set the "sun.font.fontmanager" system property.
      */
 
+    fmProp = (*env)->NewStringUTF(env, "sun.font.fontmanager");
+    CHECK_EXCEPTION_FATAL(env, "Could not allocate font manager property");
+
 #ifdef MACOSX
+        fmanager = (*env)->NewStringUTF(env, "sun.font.CFontManager");
         tk = LWAWT_PATH;
 #else
+        fmanager = (*env)->NewStringUTF(env, "sun.awt.X11FontManager");
         tk = XAWT_PATH;
 #endif
+    CHECK_EXCEPTION_FATAL(env, "Could not allocate font manager name");
+
+    if (fmanager && fmProp) {
+        JNU_CallStaticMethodByName(env, NULL, "java/lang/System", "setProperty",
+                                   "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;",
+                                   fmProp, fmanager);
+        CHECK_EXCEPTION_FATAL(env, "Could not allocate set properties");
+    }
 
 #ifndef MACOSX
     if (AWTIsHeadless()) {
@@ -144,6 +160,14 @@ AWT_OnLoad(JavaVM *vm, void *reserved)
     /* Calculate library name to load */
     strncpy(p, tk, MAXPATHLEN-len-1);
 #endif
+
+    if (fmProp) {
+        (*env)->DeleteLocalRef(env, fmProp);
+    }
+    if (fmanager) {
+        (*env)->DeleteLocalRef(env, fmanager);
+    }
+
 
 #ifndef STATIC_BUILD
     jstring jbuf = JNU_NewStringPlatform(env, buf);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,23 +23,21 @@
 
 /*
  * @test
- * @bug 4644775 6230836 8133686
- * @summary Test URLConnection Request Properties
- * @run main RequestPropertyValues
+ * @bug 4644775 6230836
+ * @summary Test URLConnection Request Proterties
  */
 
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Part1:
  *   bug 4644775: Unexpected NPE in setRequestProperty(key, null) call
  * Part2:
  *   bug 6230836: A few methods of class URLConnection implemented incorrectly
- * Part3:
- *   bug 8133686: Preserving the insertion-order of getRequestProperties
  */
 
 public class RequestPropertyValues {
@@ -47,7 +45,6 @@ public class RequestPropertyValues {
     public static void main(String[] args) throws Exception {
         part1();
         part2();
-        part3();
     }
 
     public static void part1() throws Exception {
@@ -102,50 +99,16 @@ public class RequestPropertyValues {
         }
     }
 
-     private static void part3() throws Exception{
-        List<URL> urls = new ArrayList<>();
-
-        urls.add(new URL("http://localhost:8088"));
-        urls.add(new URL("jar:http://foo.com/bar.html!/foo/bar"));
-
-        for(URL url : urls) {
-            System.out.println("Testing " + url.toString().split(":")[0]);
-            URLConnection urlConnection = url.openConnection();
-            addCustomRequestProperties(urlConnection);
-            testRequestPropertiesOrder(urlConnection);
-        }
-    }
-
-    private static void addCustomRequestProperties(URLConnection urlConnection) {
-        urlConnection.addRequestProperty("Testprop", "val1");
-        urlConnection.addRequestProperty("Testprop", "val2");
-        urlConnection.addRequestProperty("Testprop", "val3");
-    }
-
-    private static void testRequestPropertiesOrder(URLConnection con) {
-        List<String> expectedTestRequestProperties = Arrays.asList("val1", "val2", "val3");
-
-        Map<String, List<String>> requestProperties = con.getRequestProperties();
-
-        List<String> actualTestRequestProperties = requestProperties.get("Testprop");
-        Objects.requireNonNull(actualTestRequestProperties);
-
-        if (!actualTestRequestProperties.equals(expectedTestRequestProperties)) {
-            System.out.println("expectedTestRequestHeaders = " + expectedTestRequestProperties.toString());
-            System.out.println("actualTestRequestHeaders = " + actualTestRequestProperties.toString());
-            String errorMessageTemplate = "expectedTestRequestProperties = %s, actualTestRequestProperties = %s";
-            throw new RuntimeException("expectedTestRequestProperties != actualTestRequestProperties for URL = " + con.getURL().toString() + String.format(errorMessageTemplate, expectedTestRequestProperties.toString(), actualTestRequestProperties.toString()));
-        }
-    }
-
     static URLConnection getConnection(URL url) {
         return new DummyURLConnection(url);
     }
+
     static class DummyURLConnection extends URLConnection {
 
         DummyURLConnection(URL url) {
             super(url);
         }
+
         public void connect() {
             connected = true;
         }

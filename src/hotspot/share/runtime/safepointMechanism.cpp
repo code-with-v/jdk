@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +25,6 @@
 #include "precompiled.hpp"
 #include "logging/log.hpp"
 #include "runtime/globals.hpp"
-#include "runtime/javaThread.inline.hpp"
 #include "runtime/orderAccess.hpp"
 #include "runtime/os.hpp"
 #include "runtime/osThread.hpp"
@@ -112,16 +111,13 @@ void SafepointMechanism::update_poll_values(JavaThread* thread) {
   }
 }
 
-void SafepointMechanism::process(JavaThread *thread, bool allow_suspend, bool check_async_exception) {
-  DEBUG_ONLY(intptr_t* sp_before = thread->last_Java_sp();)
+void SafepointMechanism::process(JavaThread *thread, bool allow_suspend) {
   // Read global poll and has_handshake after local poll
   OrderAccess::loadload();
 
   // local poll already checked, if used.
   bool need_rechecking;
   do {
-    JavaThreadState state = thread->thread_state();
-    guarantee(state == _thread_in_vm, "Illegal threadstate encountered: %d", state);
     if (global_poll()) {
       // Any load in ::block() must not pass the global poll load.
       // Otherwise we might load an old safepoint counter (for example).
@@ -137,12 +133,11 @@ void SafepointMechanism::process(JavaThread *thread, bool allow_suspend, bool ch
     // 3) Before the handshake code is run
     StackWatermarkSet::on_safepoint(thread);
 
-    need_rechecking = thread->handshake_state()->has_operation() && thread->handshake_state()->process_by_self(allow_suspend, check_async_exception);
+    need_rechecking = thread->handshake_state()->has_operation() && thread->handshake_state()->process_by_self(allow_suspend);
   } while (need_rechecking);
 
   update_poll_values(thread);
   OrderAccess::cross_modify_fence();
-  assert(sp_before == thread->last_Java_sp(), "Anchor has changed");
 }
 
 void SafepointMechanism::initialize_header(JavaThread* thread) {

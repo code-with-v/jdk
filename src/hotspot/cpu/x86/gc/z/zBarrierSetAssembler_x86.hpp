@@ -34,7 +34,8 @@ class MacroAssembler;
 
 #ifdef COMPILER1
 class LIR_Assembler;
-class LIR_Opr;
+class LIR_OprDesc;
+typedef LIR_OprDesc* LIR_Opr;
 class StubAssembler;
 class ZLoadBarrierStubC1;
 #endif // COMPILER1
@@ -61,8 +62,7 @@ public:
                         Address dst,
                         Register src,
                         Register tmp1,
-                        Register tmp2,
-                        Register tmp3);
+                        Register tmp2);
 #endif // ASSERT
 
   virtual void arraycopy_prologue(MacroAssembler* masm,

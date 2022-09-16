@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,7 @@
 package nsk.jdi.StepRequest.addClassFilter_rt;
 
 import nsk.share.*;
+import nsk.share.jpda.*;
 import nsk.share.jdi.*;
 import nsk.share.jdi.ThreadState;
 
@@ -58,13 +59,11 @@ public class filter_rt001a {
     }
 
     //====================================================== test program
-    static Thread1filter_rt001a thread1filter_rt001a = new Thread1filter_rt001a(
-            "thread1", new ThreadState(STATE_INIT, THREAD_STATE_TIMEOUT_MS));
-    static Thread2filter_rt001a thread2filter_rt001a = new Thread2filter_rt001a(
-            "thread2", new ThreadState(STATE_INIT, THREAD_STATE_TIMEOUT_MS));
 
-    static Thread thread1 = JDIThreadFactory.newThread(thread1filter_rt001a);
-    static Thread thread2 = JDIThreadFactory.newThread(thread2filter_rt001a);
+    static Thread1filter_rt001a thread1 = new Thread1filter_rt001a(
+            "thread1", new ThreadState(STATE_INIT, THREAD_STATE_TIMEOUT_MS));
+    static Thread2filter_rt001a thread2 = new Thread2filter_rt001a(
+            "thread2", new ThreadState(STATE_INIT, THREAD_STATE_TIMEOUT_MS));
 
     static TestClass11 obj = new TestClass11();
     //------------------------------------------------------ common section
@@ -93,8 +92,8 @@ public class filter_rt001a {
 
         thread1.start();
         thread2.start();
-        thread1filter_rt001a.getThreadState().waitForState(STATE_THREAD_STARTED);
-        thread2filter_rt001a.getThreadState().waitForState(STATE_THREAD_STARTED);
+        thread1.getThreadState().waitForState(STATE_THREAD_STARTED);
+        thread2.getThreadState().waitForState(STATE_THREAD_STARTED);
 
         log1("debuggee started!");
 
@@ -116,8 +115,8 @@ public class filter_rt001a {
 //------------------------------------------------------  section tested
 
                 case 0:
-                thread1filter_rt001a.getThreadState().setState(STATE_JDI_INITED);
-                thread2filter_rt001a.getThreadState().setState(STATE_JDI_INITED);
+                thread1.getThreadState().setState(STATE_JDI_INITED);
+                thread2.getThreadState().setState(STATE_JDI_INITED);
                 waitForThreadJoin ( thread1, "thread1" );
                 waitForThreadJoin ( thread2, "thread2" );
 
@@ -163,12 +162,14 @@ class TestClass11 extends TestClass10{
     }
 }
 
-class Thread1filter_rt001a extends NamedTask {
+class Thread1filter_rt001a extends Thread {
 
+    private String tName = null;
     private ThreadState threadState = null;
 
     public Thread1filter_rt001a(String threadName, ThreadState threadState) {
         super(threadName);
+        tName = threadName;
         this.threadState = threadState;
     }
 
@@ -177,10 +178,10 @@ class Thread1filter_rt001a extends NamedTask {
     }
 
     public void run() {
-        filter_rt001a.log1("  'run': enter  :: threadName == " + getName());
+        filter_rt001a.log1("  'run': enter  :: threadName == " + tName);
         threadState.setAndWait(filter_rt001a.STATE_THREAD_STARTED, filter_rt001a.STATE_JDI_INITED);
         TestClass11.m11();
-        filter_rt001a.log1("  'run': exit   :: threadName == " + getName());
+        filter_rt001a.log1("  'run': exit   :: threadName == " + tName);
         return;
     }
 }
@@ -197,12 +198,14 @@ class TestClass21 extends TestClass20{
     }
 }
 
-class Thread2filter_rt001a extends NamedTask {
-;
+class Thread2filter_rt001a extends Thread {
+
+    private String tName = null;
     private ThreadState threadState = null;
 
     public Thread2filter_rt001a(String threadName, ThreadState threadState) {
         super(threadName);
+        tName = threadName;
         this.threadState = threadState;
     }
 
@@ -211,10 +214,10 @@ class Thread2filter_rt001a extends NamedTask {
     }
 
     public void run() {
-        filter_rt001a.log1("  'run': enter  :: threadName == " + getName());
+        filter_rt001a.log1("  'run': enter  :: threadName == " + tName);
         threadState.setAndWait(filter_rt001a.STATE_THREAD_STARTED, filter_rt001a.STATE_JDI_INITED);
         TestClass21.m21();
-        filter_rt001a.log1("  'run': exit   :: threadName == " + getName());
+        filter_rt001a.log1("  'run': exit   :: threadName == " + tName);
         return;
     }
 }

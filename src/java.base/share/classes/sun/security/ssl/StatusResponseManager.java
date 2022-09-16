@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,8 +30,21 @@ import java.net.URISyntaxException;
 import java.security.AccessController;
 import java.security.cert.Extension;
 import java.security.cert.X509Certificate;
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import sun.security.action.GetBooleanAction;
 import sun.security.action.GetIntegerAction;
 import sun.security.action.GetPropertyAction;
@@ -39,10 +52,10 @@ import sun.security.provider.certpath.CertId;
 import sun.security.provider.certpath.OCSP;
 import sun.security.provider.certpath.OCSPResponse;
 import sun.security.provider.certpath.ResponderId;
-import sun.security.ssl.X509Authentication.X509Possession;
 import sun.security.util.Cache;
 import sun.security.x509.PKIXExtensions;
 import sun.security.x509.SerialNumber;
+import sun.security.ssl.X509Authentication.X509Possession;
 import static sun.security.ssl.CertStatusExtension.*;
 
 final class StatusResponseManager {
@@ -91,11 +104,14 @@ final class StatusResponseManager {
                 .privilegedGetProperty("jdk.tls.stapling.ignoreExtensions");
 
         threadMgr = new ScheduledThreadPoolExecutor(DEFAULT_CORE_THREADS,
-                r -> {
-                    Thread t = Executors.defaultThreadFactory().newThread(r);
-                    t.setDaemon(true);
-                    return t;
-                }, new ThreadPoolExecutor.DiscardPolicy());
+                new ThreadFactory() {
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread t = Executors.defaultThreadFactory().newThread(r);
+                t.setDaemon(true);
+                return t;
+            }
+        }, new ThreadPoolExecutor.DiscardPolicy());
         threadMgr.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
         threadMgr.setContinueExistingPeriodicTasksAfterShutdownPolicy(
                 false);
@@ -389,7 +405,7 @@ final class StatusResponseManager {
 
         ResponseCacheEntry respEntry = responseCache.get(cid);
 
-        // If the response entry has a nextUpdate, and it has expired
+        // If the response entry has a nextUpdate and it has expired
         // before the cache expiration, purge it from the cache
         // and do not return it as a cache hit.
         if (respEntry != null && respEntry.nextUpdate != null &&
@@ -477,7 +493,7 @@ final class StatusResponseManager {
 
         /**
          * Copy constructor (used primarily for rescheduling).
-         * This will do a member-wise copy except for the
+         * This will do a member-wise copy with the exception of the
          * responseData and extensions fields, which should not persist
          * in a rescheduled fetch.
          *
@@ -497,14 +513,16 @@ final class StatusResponseManager {
          */
         @Override
         public String toString() {
-            return "StatusInfo:" + "\n\tCert: " +
-                   this.cert.getSubjectX500Principal() +
-                   "\n\tSerial: " + this.cert.getSerialNumber() +
-                   "\n\tResponder: " + this.responder +
-                   "\n\tResponse data: " +
-                   (this.responseData != null ?
-                                (this.responseData.ocspBytes.length + " bytes") :
-                                "<NULL>");
+            StringBuilder sb = new StringBuilder("StatusInfo:");
+            sb.append("\n\tCert: ").append(
+                    this.cert.getSubjectX500Principal());
+            sb.append("\n\tSerial: ").append(this.cert.getSerialNumber());
+            sb.append("\n\tResponder: ").append(this.responder);
+            sb.append("\n\tResponse data: ").append(
+                    this.responseData != null ?
+                        (this.responseData.ocspBytes.length + " bytes") :
+                        "<NULL>");
+            return sb.toString();
         }
     }
 
@@ -636,22 +654,29 @@ final class StatusResponseManager {
                         Collections.singletonList(statInfo.cid),
                         statInfo.responder, extsToSend);
 
-                // Place the data into the response cache
-                cacheEntry = new ResponseCacheEntry(respBytes,
-                        statInfo.cid);
+                if (respBytes != null) {
+                    // Place the data into the response cache
+                    cacheEntry = new ResponseCacheEntry(respBytes,
+                            statInfo.cid);
 
-                // Get the response status and act on it appropriately
-                if (SSLLogger.isOn && SSLLogger.isOn("respmgr")) {
-                    SSLLogger.fine("OCSP Status: " + cacheEntry.status +
-                        " (" + respBytes.length + " bytes)");
-                }
-                if (cacheEntry.status ==
-                        OCSPResponse.ResponseStatus.SUCCESSFUL) {
-                    // Set the response in the returned StatusInfo
-                    statInfo.responseData = cacheEntry;
+                    // Get the response status and act on it appropriately
+                    if (SSLLogger.isOn && SSLLogger.isOn("respmgr")) {
+                        SSLLogger.fine("OCSP Status: " + cacheEntry.status +
+                            " (" + respBytes.length + " bytes)");
+                    }
+                    if (cacheEntry.status ==
+                            OCSPResponse.ResponseStatus.SUCCESSFUL) {
+                        // Set the response in the returned StatusInfo
+                        statInfo.responseData = cacheEntry;
 
-                    // Add the response to the cache (if applicable)
-                    addToCache(statInfo.cid, cacheEntry);
+                        // Add the response to the cache (if applicable)
+                        addToCache(statInfo.cid, cacheEntry);
+                    }
+                } else {
+                    if (SSLLogger.isOn && SSLLogger.isOn("respmgr")) {
+                        SSLLogger.fine(
+                            "No data returned from OCSP Responder");
+                    }
                 }
             } catch (IOException ioe) {
                 if (SSLLogger.isOn && SSLLogger.isOn("respmgr")) {
@@ -730,7 +755,7 @@ final class StatusResponseManager {
         Map<X509Certificate, byte[]> responses;
 
         // If this feature has not been enabled, then no more processing
-        // is necessary.  Also, we will only staple if we're doing a full
+        // is necessary.  Also we will only staple if we're doing a full
         // handshake.
         if (!shc.sslContext.isStaplingEnabled(false) || shc.isResumption) {
             if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {

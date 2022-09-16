@@ -1229,6 +1229,8 @@ public class MotifLookAndFeel extends BasicLookAndFeel
             // selected.
             "PopupMenu.selectedWindowInputMapBindings", new Object[] {
                   "ESCAPE", "cancel",
+                     "TAB", "cancel",
+               "shift TAB", "cancel",
                     "DOWN", "selectNext",
                  "KP_DOWN", "selectNext",
                       "UP", "selectPrevious",

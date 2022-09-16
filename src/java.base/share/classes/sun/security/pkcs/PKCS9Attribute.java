@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.security.cert.CertificateException;
 import java.util.Date;
-
 import sun.security.x509.CertificateExtensions;
 import sun.security.util.*;
 
@@ -482,12 +481,12 @@ public class PKCS9Attribute implements DerEncoder {
                                   "attribute not supported.");
             // break unnecessary
         case 10:    // issuerAndserialNumber attribute -- not supported
-            throw new IOException("PKCS9 IssuerAndSerialNumber " +
+            throw new IOException("PKCS9 IssuerAndSerialNumber" +
                                   "attribute not supported.");
             // break unnecessary
         case 11:    // RSA DSI proprietary
         case 12:    // RSA DSI proprietary
-            throw new IOException("PKCS9 RSA DSI attributes " +
+            throw new IOException("PKCS9 RSA DSI attributes" +
                                   "11 and 12, not supported.");
             // break unnecessary
         case 13:    // S/MIME unused attribute
@@ -508,7 +507,10 @@ public class PKCS9Attribute implements DerEncoder {
             break;
 
         case 17:     // SignatureTimestampToken attribute
-        case 18:     // CMSAlgorithmProtection
+            value = elems[0].toByteArray();
+            break;
+
+        case 18:    // CMSAlgorithmProtection
             value = elems[0].toByteArray();
             break;
 
@@ -602,12 +604,12 @@ public class PKCS9Attribute implements DerEncoder {
                                   "attribute not supported.");
             // break unnecessary
         case 10:    // issuerAndserialNumber attribute -- not supported
-            throw new IOException("PKCS9 IssuerAndSerialNumber " +
+            throw new IOException("PKCS9 IssuerAndSerialNumber" +
                                   "attribute not supported.");
             // break unnecessary
         case 11:    // RSA DSI proprietary
         case 12:    // RSA DSI proprietary
-            throw new IOException("PKCS9 RSA DSI attributes " +
+            throw new IOException("PKCS9 RSA DSI attributes" +
                                   "11 and 12, not supported.");
             // break unnecessary
         case 13:    // S/MIME unused attribute
@@ -636,6 +638,9 @@ public class PKCS9Attribute implements DerEncoder {
             // break unnecessary
 
         case 17:    // SignatureTimestampToken
+            temp.write(DerValue.tag_Set, (byte[])value);
+            break;
+
         case 18:    // CMSAlgorithmProtection
             temp.write(DerValue.tag_Set, (byte[])value);
             break;
@@ -740,6 +745,7 @@ public class PKCS9Attribute implements DerEncoder {
                 sb.append(value.toString());
             }
             sb.append("]");
+            return sb.toString();
         } else { // multi-valued
             boolean first = true;
             Object[] values = (Object[]) value;
@@ -751,8 +757,8 @@ public class PKCS9Attribute implements DerEncoder {
                     sb.append(", ");
                 sb.append(curVal.toString());
             }
+            return sb.toString();
         }
-        return sb.toString();
     }
 
     /**

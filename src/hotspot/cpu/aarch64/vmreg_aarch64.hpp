@@ -41,27 +41,27 @@ inline bool is_PRegister() {
 inline Register as_Register() {
   assert( is_Register(), "must be");
   // Yuk
-  return ::as_Register(value() / Register::max_slots_per_register);
+  return ::as_Register(value() / RegisterImpl::max_slots_per_register);
 }
 
 inline FloatRegister as_FloatRegister() {
   assert( is_FloatRegister() && is_even(value()), "must be" );
   // Yuk
   return ::as_FloatRegister((value() - ConcreteRegisterImpl::max_gpr) /
-                            FloatRegister::max_slots_per_register);
+                            FloatRegisterImpl::max_slots_per_register);
 }
 
 inline PRegister as_PRegister() {
   assert( is_PRegister(), "must be" );
   return ::as_PRegister((value() - ConcreteRegisterImpl::max_fpr) /
-                        PRegister::max_slots_per_register);
+                        PRegisterImpl::max_slots_per_register);
 }
 
 inline bool is_concrete() {
   assert(is_reg(), "must be");
   if (is_FloatRegister()) {
     int base = value() - ConcreteRegisterImpl::max_gpr;
-    return (base % FloatRegister::max_slots_per_register) == 0;
+    return base % FloatRegisterImpl::max_slots_per_register == 0;
   } else if (is_PRegister()) {
     return true;   // Single slot
   } else {

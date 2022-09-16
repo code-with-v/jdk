@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +25,7 @@
 
 package jdk.jfr.internal.dcmd;
 
-import java.io.IOException;
+
 
 import jdk.jfr.FlightRecorder;
 import jdk.jfr.internal.LogLevel;
@@ -69,7 +69,8 @@ final class DCmdConfigure extends AbstractDCmd {
             Long globalBufferSize,
             Long threadBufferSize,
             Long memorySize,
-            Long maxChunkSize
+            Long maxChunkSize,
+            Boolean sampleThreads
 
     ) throws DCmdException {
         if (Logger.shouldLog(LogTag.JFR_DCMD, LogLevel.DEBUG)) {
@@ -80,7 +81,8 @@ final class DCmdConfigure extends AbstractDCmd {
                     ", globalbuffersize=" + globalBufferSize +
                     ", thread_buffer_size=" + threadBufferSize +
                     ", memorysize=" + memorySize +
-                    ", maxchunksize=" + maxChunkSize);
+                    ", maxchunksize=" + maxChunkSize +
+                    ", samplethreads=" + sampleThreads);
         }
 
 
@@ -104,11 +106,7 @@ final class DCmdConfigure extends AbstractDCmd {
         }
 
         if (dumpPath != null)  {
-            try {
-                Options.setDumpPath(new SafePath(dumpPath));
-            } catch (IOException e) {
-                throw new DCmdException("Could not set " + dumpPath + " to emergency dump path. " + e.getMessage(), e);
-            }
+            Options.setDumpPath(new SafePath(dumpPath));
             Logger.log(LogTag.JFR, LogLevel.INFO, "Emergency dump path set to " + dumpPath);
            if (verbose) {
                printDumpPath();
@@ -170,6 +168,14 @@ final class DCmdConfigure extends AbstractDCmd {
             updated = true;
         }
 
+        if (sampleThreads != null)  {
+            Options.setSampleThreads(sampleThreads);
+            Logger.log(LogTag.JFR, LogLevel.INFO, "Sample threads set to " + sampleThreads);
+            if (verbose) {
+                printSampleThreads();
+            }
+            updated = true;
+        }
         if (!verbose) {
             return new String[0];
         }
@@ -177,13 +183,13 @@ final class DCmdConfigure extends AbstractDCmd {
             println("Current configuration:");
             println();
             printRepositoryPath();
-            printDumpPath();
             printStackDepth();
             printGlobalBufferCount();
             printGlobalBufferSize();
             printThreadBufferSize();
             printMemorySize();
             printMaxChunkSize();
+            printSampleThreads();
         }
         return getResult();
     }
@@ -198,6 +204,10 @@ final class DCmdConfigure extends AbstractDCmd {
         print("Dump path: ");
         printPath(Options.getDumpPath());
         println();
+    }
+
+    private void printSampleThreads() {
+        println("Sample threads: " + Options.getSampleThreads());
     }
 
     private void printStackDepth() {

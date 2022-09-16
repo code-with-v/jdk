@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2015, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -46,6 +46,7 @@ import javax.annotation.processing.SupportedOptions;
 import javax.annotation.processing.SupportedSourceVersion;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.TypeElement;
+import javax.tools.Diagnostic.Kind;
 import javax.tools.JavaCompiler;
 import javax.tools.JavaCompiler.CompilationTask;
 import javax.tools.StandardLocation;
@@ -103,28 +104,28 @@ public class T7068437 {
 
             boolean found;
             try {
-                messager.printNote("found previous content of length " +
+                messager.printMessage(Kind.NOTE, "found previous content of length " +
                         filer.getResource(StandardLocation.SOURCE_OUTPUT, "p", "C.java").getCharContent(false).length());
                 found = true;
             } catch (FileNotFoundException | NoSuchFileException x) {
-                messager.printNote("not previously there");
+                messager.printMessage(Kind.NOTE, "not previously there");
                 found = false;
             } catch (IOException x) {
-                messager.printError("while reading: " + x);
+                messager.printMessage(Kind.ERROR, "while reading: " + x);
                 found = false;
             }
 
             if (expectFile && !found) {
-                messager.printError("expected file but file not found");
+                messager.printMessage(Kind.ERROR, "expected file but file not found");
             }
 
             try {
                 Writer w = filer.createSourceFile("p.C").openWriter();
                 w.write("/* hello! */ package p; class C {}");
                 w.close();
-                messager.printNote("wrote new content");
+                messager.printMessage(Kind.NOTE, "wrote new content");
             } catch (IOException x) {
-                messager.printError("while writing: " + x);
+                messager.printMessage(Kind.ERROR, "while writing: " + x);
             }
 
             return true;

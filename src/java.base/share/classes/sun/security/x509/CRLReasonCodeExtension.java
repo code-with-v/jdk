@@ -49,9 +49,9 @@ public class CRLReasonCodeExtension extends Extension
     public static final String NAME = "CRLReasonCode";
     public static final String REASON = "reason";
 
-    private static final CRLReason[] values = CRLReason.values();
+    private static CRLReason[] values = CRLReason.values();
 
-    private int reasonCode;
+    private int reasonCode = 0;
 
     private void encodeThis() throws IOException {
         if (reasonCode == 0) {

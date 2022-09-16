@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -293,39 +293,43 @@ public class AutoRequestFocusSetVisibleTest {
         // 6. Show unblocking modal Dialog.
         ///////////////////////////////////
 
-        System.out.println("Stage 6 in progress...");
+        if ("sun.awt.motif.MToolkit".equals(toolkitClassName)) {
+            System.out.println("Stage 6 - Skiping.");
+        } else {
+            System.out.println("Stage 6 in progress...");
 
-        // ---
-        // Testing the bug of activating invisible modal Dialog (awt_Window::SetAndActivateModalBlocker).
-        // Having some window not excluded from modality, so that it would be blocked.
-        Frame f = new Frame("Aux. Frame");
-        f.setSize(100, 100);
-        setVisible(f, true);
-        // ---
+            // ---
+            // Testing the bug of activating invisible modal Dialog (awt_Window::SetAndActivateModalBlocker).
+            // Having some window not excluded from modality, so that it would be blocked.
+            Frame f = new Frame("Aux. Frame");
+            f.setSize(100, 100);
+            setVisible(f, true);
+            // ---
 
-        setVisible(focusedFrame, true);
-        if (!focusOwner.hasFocus()) {
-            Util.clickOnComp(focusOwner, robot);
-            Util.waitForIdle(robot);
+            setVisible(focusedFrame, true);
             if (!focusOwner.hasFocus()) {
-                throw new Error("Test error: the frame couldn't be focused.");
-            }
-        }
-
-        dialog.setModal(true);
-        dialog.setAutoRequestFocus(false);
-        focusedFrame.setModalExclusionType(Dialog.ModalExclusionType.APPLICATION_EXCLUDE);
-
-        TestHelper.invokeLaterAndWait(new Runnable() {
-                public void run() {
-                    dialog.setVisible(true);
+                Util.clickOnComp(focusOwner, robot);
+                Util.waitForIdle(robot);
+                if (!focusOwner.hasFocus()) {
+                    throw new Error("Test error: the frame couldn't be focused.");
                 }
-            }, robot);
+            }
 
-        if (dialog.isFocused()) {
-            throw new TestFailedException("the unblocking dialog shouldn't gain focus but it did!");
+            dialog.setModal(true);
+            dialog.setAutoRequestFocus(false);
+            focusedFrame.setModalExclusionType(Dialog.ModalExclusionType.APPLICATION_EXCLUDE);
+
+            TestHelper.invokeLaterAndWait(new Runnable() {
+                    public void run() {
+                        dialog.setVisible(true);
+                    }
+                }, robot);
+
+            if (dialog.isFocused()) {
+                throw new TestFailedException("the unblocking dialog shouldn't gain focus but it did!");
+            }
+            setVisible(dialog, false);
         }
-        setVisible(dialog, false);
 
         System.out.println("Test passed.");
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,7 +23,7 @@
 
 /*
  * @test
- * @bug 8176841 8202537 8244245 8265315
+ * @bug 8176841 8202537 8244245
  * @summary Tests java.time classes deals with Unicode extensions
  *      correctly.
  * @modules jdk.localedata
@@ -345,7 +345,6 @@ public class TestUnicodeExtension {
     Object[][] shortTZID() {
         return new Object[][] {
             // LDML's short ID, Expected Zone,
-            // Based on timezone.xml from CLDR
             {"adalv", "Europe/Andorra"},
             {"aedxb", "Asia/Dubai"},
             {"afkbl", "Asia/Kabul"},
@@ -465,7 +464,6 @@ public class TestUnicodeExtension {
             {"ciabj", "Africa/Abidjan"},
             {"ckrar", "Pacific/Rarotonga"},
             {"clipc", "Pacific/Easter"},
-            {"clpuq", "America/Punta_Arenas"},
             {"clscl", "America/Santiago"},
             {"cmdla", "Africa/Douala"},
             {"cnsha", "Asia/Shanghai"},
@@ -476,7 +474,6 @@ public class TestUnicodeExtension {
             {"cuhav", "America/Havana"},
             {"cvrai", "Atlantic/Cape_Verde"},
             {"cxxch", "Indian/Christmas"},
-            {"cyfmg", "Asia/Famagusta"},
             {"cynic", "Asia/Nicosia"},
             {"czprg", "Europe/Prague"},
             {"deber", "Europe/Berlin"},
@@ -507,7 +504,7 @@ public class TestUnicodeExtension {
             {"fotho", "Atlantic/Faeroe"},
             {"frpar", "Europe/Paris"},
             {"galbv", "Africa/Libreville"},
-            {"gazastrp", "Asia/Gaza"},
+            {"gaza", "Asia/Gaza"},
             {"gblon", "Europe/London"},
             {"gdgnd", "America/Grenada"},
             {"getbs", "Asia/Tbilisi"},
@@ -520,7 +517,6 @@ public class TestUnicodeExtension {
             {"globy", "America/Scoresbysund"},
             {"glthu", "America/Thule"},
             {"gmbjl", "Africa/Banjul"},
-            {"gmt", "Etc/GMT"},
             {"gncky", "Africa/Conakry"},
             {"gpbbr", "America/Guadeloupe"},
             {"gpmsb", "America/Marigot"},
@@ -570,8 +566,6 @@ public class TestUnicodeExtension {
             {"kzaau", "Asia/Aqtau"},
             {"kzakx", "Asia/Aqtobe"},
             {"kzala", "Asia/Almaty"},
-            {"kzguw", "Asia/Atyrau"},
-            {"kzksn", "Asia/Qostanay"},
             {"kzkzo", "Asia/Qyzylorda"},
             {"kzura", "Asia/Oral"},
             {"lavte", "Asia/Vientiane"},
@@ -660,8 +654,6 @@ public class TestUnicodeExtension {
             {"rereu", "Indian/Reunion"},
             {"robuh", "Europe/Bucharest"},
             {"rsbeg", "Europe/Belgrade"},
-            {"ruasf", "Europe/Astrakhan"},
-            {"rubax", "Asia/Barnaul"},
             {"ruchita", "Asia/Chita"},
             {"rudyr", "Asia/Anadyr"},
             {"rugdx", "Asia/Magadan"},
@@ -670,16 +662,12 @@ public class TestUnicodeExtension {
             {"rukhndg", "Asia/Khandyga"},
             {"rukra", "Asia/Krasnoyarsk"},
             {"rukuf", "Europe/Samara"},
-            {"rukvx", "Europe/Kirov"},
             {"rumow", "Europe/Moscow"},
             {"runoz", "Asia/Novokuznetsk"},
             {"ruoms", "Asia/Omsk"},
             {"ruovb", "Asia/Novosibirsk"},
             {"rupkc", "Asia/Kamchatka"},
-            {"rurtw", "Europe/Saratov"},
             {"rusred", "Asia/Srednekolymsk"},
-            {"rutof", "Asia/Tomsk"},
-            {"ruuly", "Europe/Ulyanovsk"},
             {"ruunera", "Asia/Ust-Nera"},
             {"ruuus", "Asia/Sakhalin"},
             {"ruvog", "Europe/Volgograd"},
@@ -732,6 +720,7 @@ public class TestUnicodeExtension {
             {"umawk", "Pacific/Wake"},
             {"umjon", "Pacific/Johnston"},
             {"ummdy", "Pacific/Midway"},
+//            {"unk", "Etc/Unknown"},
             {"usadk", "America/Adak"},
             {"usaeg", "America/Indiana/Marengo"},
             {"usanc", "America/Anchorage"},
@@ -805,6 +794,7 @@ public class TestUnicodeExtension {
             {"zajnb", "Africa/Johannesburg"},
             {"zmlun", "Africa/Lusaka"},
             {"zwhre", "Africa/Harare"},
+
         };
     }
 

@@ -45,7 +45,7 @@ public class TestSystemMetrics {
             return;
         }
 
-        DockerTestUtils.buildJdkContainerImage(imageName);
+        DockerTestUtils.buildJdkDockerImage(imageName, "Dockerfile-BasicTest", "jdk-docker");
 
         try {
             Common.logNewTestCase("Test SystemMetrics");

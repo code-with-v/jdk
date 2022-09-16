@@ -26,13 +26,9 @@ import java.io.File;
 
 /*
  * @test
- * @bug 8047789 8273026
+ * @bug 8047789
  * @summary auth.login.LoginContext needs to be updated to work with modules
- * @comment shows that the SecondLoginModule is still needed even if it's not in the JAAS login config file
- * @build FirstLoginModule
- * @clean SecondLoginModule
- * @run main/othervm/fail Loader
- * @build SecondLoginModule
+ * @build FirstLoginModule SecondLoginModule
  * @run main/othervm Loader
  */
 public class Loader {
@@ -43,7 +39,18 @@ public class Loader {
                 new File(System.getProperty("test.src"), "sl.conf").toString());
         LoginContext lc = new LoginContext("me");
 
+        if (SecondLoginModule.isLoaded) {
+            throw new Exception();
+        }
+
         lc.login();
 
+        // Although only FirstLoginModule is specified in the JAAS login
+        // config file, LoginContext will first create all LoginModule
+        // implementations that are registered as services, which include
+        // SecondLoginModule.
+        if (!SecondLoginModule.isLoaded) {
+            throw new Exception();
+        }
     }
 }

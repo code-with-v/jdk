@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2015, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -52,15 +52,15 @@ public class RemoveSelfLoopsFilter extends AbstractFilter {
 
             for (InputSlot is : f.getInputSlots()) {
 
-                List<FigureConnection> toRemove = new ArrayList<>();
-                for (FigureConnection c : is.getConnections()) {
+                List<Connection> toRemove = new ArrayList<>();
+                for (Connection c : is.getConnections()) {
 
                     if (c.getOutputSlot().getFigure() == f) {
                         toRemove.add(c);
                     }
                 }
 
-                for (FigureConnection c : toRemove) {
+                for (Connection c : toRemove) {
 
                     c.remove();
 

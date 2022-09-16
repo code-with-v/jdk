@@ -462,11 +462,6 @@ void DCmdFactory::send_notification_internal(TRAPS) {
   if (notif) {
 
     Klass* k = Management::com_sun_management_internal_DiagnosticCommandImpl_klass(CHECK);
-    if (k == nullptr) {
-      fatal("Should have the DiagnosticCommandImpl class");
-      return; // silence the compiler
-    }
-
     InstanceKlass* dcmd_mbean_klass = InstanceKlass::cast(k);
 
     JavaValue result(T_OBJECT);

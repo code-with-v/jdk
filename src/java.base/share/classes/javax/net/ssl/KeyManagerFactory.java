@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -42,13 +42,13 @@ import sun.security.jca.GetInstance;
  */
 public class KeyManagerFactory {
     // The provider
-    private final Provider provider;
+    private Provider provider;
 
     // The provider implementation (delegate)
-    private final KeyManagerFactorySpi factorySpi;
+    private KeyManagerFactorySpi factorySpi;
 
     // The name of the key management algorithm.
-    private final String algorithm;
+    private String algorithm;
 
     /**
      * Obtains the default KeyManagerFactory algorithm name.
@@ -63,10 +63,15 @@ public class KeyManagerFactory {
      *          implementation-specific default if no such property exists.
      */
     @SuppressWarnings("removal")
-    public static String getDefaultAlgorithm() {
+    public static final String getDefaultAlgorithm() {
         String type;
-        type = AccessController.doPrivileged((PrivilegedAction<String>) () ->
-            Security.getProperty("ssl.KeyManagerFactory.algorithm"));
+        type = AccessController.doPrivileged(new PrivilegedAction<>() {
+            @Override
+            public String run() {
+                return Security.getProperty(
+                    "ssl.KeyManagerFactory.algorithm");
+            }
+        });
         if (type == null) {
             type = "SunX509";
         }
@@ -118,7 +123,7 @@ public class KeyManagerFactory {
      * {@code jdk.security.provider.preferred}
      * {@link Security#getProperty(String) Security} property to determine
      * the preferred provider order for the specified algorithm. This
-     * may be different from the order of providers returned by
+     * may be different than the order of providers returned by
      * {@link Security#getProviders() Security.getProviders()}.
      *
      * @param algorithm the standard name of the requested algorithm.

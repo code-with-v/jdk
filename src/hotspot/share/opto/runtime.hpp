@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,6 +29,7 @@
 #include "opto/machnode.hpp"
 #include "opto/optoreg.hpp"
 #include "opto/type.hpp"
+#include "runtime/biasedLocking.hpp"
 #include "runtime/rtmLocking.hpp"
 #include "runtime/deoptimization.hpp"
 #include "runtime/vframe.hpp"
@@ -62,6 +63,7 @@ public:
     NoTag,
     LockCounter,
     EliminatedLockCounter,
+    BiasedLockingCounter,
     RTMLockingCounter
   };
 
@@ -97,6 +99,18 @@ private:
   }
 
 };
+
+class BiasedLockingNamedCounter : public NamedCounter {
+ private:
+  BiasedLockingCounters _counters;
+
+ public:
+  BiasedLockingNamedCounter(const char *n) :
+    NamedCounter(n, BiasedLockingCounter), _counters() {}
+
+  BiasedLockingCounters* counters() { return &_counters; }
+};
+
 
 class RTMLockingNamedCounter : public NamedCounter {
  private:
@@ -156,6 +170,10 @@ class OptoRuntime : public AllStatic {
   static void multianewarrayN_C(Klass* klass, arrayOopDesc* dims, JavaThread* current);
 
 public:
+  // Slow-path Locking and Unlocking
+  static void complete_monitor_locking_C(oopDesc* obj, BasicLock* lock, JavaThread* thread);
+  static void complete_monitor_unlocking_C(oopDesc* obj, BasicLock* lock, JavaThread* thread);
+
   static void monitor_notify_C(oopDesc* obj, JavaThread* current);
   static void monitor_notifyAll_C(oopDesc* obj, JavaThread* current);
 
@@ -242,9 +260,6 @@ private:
   static const TypeFunc* modf_Type();
   static const TypeFunc* l2f_Type();
   static const TypeFunc* void_long_Type();
-  static const TypeFunc* void_void_Type();
-
-  static const TypeFunc* jfr_write_checkpoint_Type();
 
   static const TypeFunc* flush_windows_Type();
 
@@ -260,7 +275,6 @@ private:
   static const TypeFunc* cipherBlockChaining_aescrypt_Type();
   static const TypeFunc* electronicCodeBook_aescrypt_Type();
   static const TypeFunc* counterMode_aescrypt_Type();
-  static const TypeFunc* galoisCounterMode_aescrypt_Type();
 
   static const TypeFunc* digestBase_implCompress_Type(bool is_sha3);
   static const TypeFunc* digestBase_implCompressMB_Type(bool is_sha3);
@@ -291,7 +305,7 @@ private:
 
   static const TypeFunc* register_finalizer_Type();
 
-  JFR_ONLY(static const TypeFunc* class_id_load_barrier_Type();)
+  JFR_ONLY(static const TypeFunc* get_class_id_intrinsic_Type();)
 
   // Dtrace support
   static const TypeFunc* dtrace_method_entry_exit_Type();

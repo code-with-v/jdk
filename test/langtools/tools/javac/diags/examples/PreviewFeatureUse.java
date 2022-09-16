@@ -21,14 +21,17 @@
  * questions.
  */
 
+//key: compiler.warn.preview.feature.use
 //key: compiler.warn.preview.feature.use.plural
-//key: compiler.misc.feature.var.syntax.in.implicit.lambda
+//key: compiler.misc.feature.diamond
+//key: compiler.misc.feature.lambda
 //options: -Xlint:preview -XDforcePreview -source ${jdk.version} --enable-preview
 
-import java.util.function.Function;
+import java.util.ArrayList;
 
 class PreviewFeatureUse {
     void test() {
-        Function<String, String> f = (var s) -> s;
+        new ArrayList<>();
+        Runnable r = () -> {};
     }
 }

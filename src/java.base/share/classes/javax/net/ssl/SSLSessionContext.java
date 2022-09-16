@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -69,7 +69,7 @@ public interface SSLSessionContext {
      *
      * @throws NullPointerException if <code>sessionId</code> is null.
      */
-    SSLSession getSession(byte[] sessionId);
+    public SSLSession getSession(byte[] sessionId);
 
     /**
      * Returns an Enumeration of all known session id's grouped under this
@@ -79,7 +79,7 @@ public interface SSLSessionContext {
      *
      * @return an enumeration of all the Session id's
      */
-    Enumeration<byte[]> getIds();
+    public Enumeration<byte[]> getIds();
 
     /**
      * Sets the timeout limit for <code>SSLSession</code> objects grouped
@@ -106,7 +106,8 @@ public interface SSLSessionContext {
      *
      * @see #getSessionTimeout
      */
-    void setSessionTimeout(int seconds);
+    public void setSessionTimeout(int seconds)
+                 throws IllegalArgumentException;
 
     /**
      * Returns the timeout limit of <code>SSLSession</code> objects grouped
@@ -130,7 +131,7 @@ public interface SSLSessionContext {
      *
      * @see #setSessionTimeout
      */
-    int getSessionTimeout();
+    public int getSessionTimeout();
 
     /**
      * Sets the size of the cache used for storing <code>SSLSession</code>
@@ -149,7 +150,8 @@ public interface SSLSessionContext {
      *
      * @see #getSessionCacheSize
      */
-    void setSessionCacheSize(int size);
+    public void setSessionCacheSize(int size)
+                 throws IllegalArgumentException;
 
     /**
      * Returns the size of the cache used for storing <code>SSLSession</code>
@@ -165,5 +167,5 @@ public interface SSLSessionContext {
      *
      * @see #setSessionCacheSize
      */
-    int getSessionCacheSize();
+    public int getSessionCacheSize();
 }

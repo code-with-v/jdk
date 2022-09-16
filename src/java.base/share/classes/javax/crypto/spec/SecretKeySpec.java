@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,13 +25,14 @@
 
 package javax.crypto.spec;
 
+import jdk.internal.access.JavaxCryptoSpecAccess;
 import jdk.internal.access.SharedSecrets;
 
-import javax.crypto.SecretKey;
 import java.security.MessageDigest;
 import java.security.spec.KeySpec;
 import java.util.Arrays;
 import java.util.Locale;
+import javax.crypto.SecretKey;
 
 /**
  * This class specifies a secret key in a provider-independent fashion.
@@ -60,18 +61,23 @@ public class SecretKeySpec implements KeySpec, SecretKey {
      *
      * @serial
      */
-    private final byte[] key;
+    private byte[] key;
 
     /**
      * The name of the algorithm associated with this key.
      *
      * @serial
      */
-    private final String algorithm;
+    private String algorithm;
 
     static {
         SharedSecrets.setJavaxCryptoSpecAccess(
-                SecretKeySpec::clear);
+                new JavaxCryptoSpecAccess() {
+                    @Override
+                    public void clearSecretKeySpec(SecretKeySpec keySpec) {
+                        keySpec.clear();
+                    }
+                });
     }
 
     /**
@@ -151,15 +157,12 @@ public class SecretKeySpec implements KeySpec, SecretKey {
         if (key.length == 0) {
             throw new IllegalArgumentException("Empty key");
         }
-        if (offset < 0) {
-            throw new ArrayIndexOutOfBoundsException("offset is negative");
+        if (key.length-offset < len) {
+            throw new IllegalArgumentException
+                ("Invalid offset/length combination");
         }
         if (len < 0) {
             throw new ArrayIndexOutOfBoundsException("len is negative");
-        }
-        if (key.length - offset < len) {
-            throw new IllegalArgumentException
-                ("Invalid offset/length combination");
         }
         this.key = new byte[len];
         System.arraycopy(key, offset, this.key, 0, len);
@@ -204,9 +207,10 @@ public class SecretKeySpec implements KeySpec, SecretKey {
             retval += this.key[i] * i;
         }
         if (this.algorithm.equalsIgnoreCase("TripleDES"))
-            return retval ^ "desede".hashCode();
+            return (retval ^= "desede".hashCode());
         else
-            return retval ^ this.algorithm.toLowerCase(Locale.ENGLISH).hashCode();
+            return (retval ^=
+                    this.algorithm.toLowerCase(Locale.ENGLISH).hashCode());
     }
 
     /**

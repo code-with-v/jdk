@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,16 +30,15 @@
  *          /test/hotspot/jtreg/runtime/cds/appcds/dynamicArchive/test-classes
  * @compile ../../../../../../jdk/java/util/stream/CustomFJPoolTest.java
  *          test-classes/TestStreamApp.java
- * @build jdk.test.whitebox.WhiteBox
- * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
+ * @build sun.hotspot.WhiteBox
+ * @run driver jdk.test.lib.helpers.ClassFileInstaller sun.hotspot.WhiteBox
  * @run testng/othervm -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI -Xbootclasspath/a:. CDSStreamTestDriver
  */
 
 import org.testng.annotations.Test;
 import java.io.File;
-import java.nio.file.Path;
 import jtreg.SkippedException;
-import jdk.test.whitebox.gc.GC;
+import sun.hotspot.gc.GC;
 
 @Test
 public class CDSStreamTestDriver extends DynamicArchiveTestBase {
@@ -50,6 +49,7 @@ public class CDSStreamTestDriver extends DynamicArchiveTestBase {
 
     private static final String classDir = System.getProperty("test.classes");
     private static final String mainClass = "TestStreamApp";
+    private static final String javaClassPath = System.getProperty("java.class.path");
     private static final String ps = System.getProperty("path.separator");
     private static final String skippedException = "jtreg.SkippedException: Unable to map shared archive: test did not complete";
 
@@ -57,7 +57,14 @@ public class CDSStreamTestDriver extends DynamicArchiveTestBase {
         String topArchiveName = getNewArchiveName();
         String appJar = JarBuilder.build("streamapp", new File(classDir), null);
 
-        String testngJar = Path.of(Test.class.getProtectionDomain().getCodeSource().getLocation().toURI()).toString();
+        String[] classPaths = javaClassPath.split(File.pathSeparator);
+        String testngJar = null;
+        for (String path : classPaths) {
+            if (path.endsWith("testng.jar")) {
+                testngJar = path;
+                break;
+            }
+        }
 
         String[] testClassNames = { "CustomFJPoolTest" };
 

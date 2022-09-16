@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2004, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,34 +28,27 @@
  * @key headful
  * @bug     4529206
  * @summary JToolBar - setFloating does not work correctly
+ * @author  Konstantin Eremin
  * @run     main bug4529206
  */
 
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.Robot;
+import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
-import javax.swing.JToolBar;
-import javax.swing.SwingUtilities;
 
-public class bug4529206 {
+public class bug4529206 extends JFrame {
     static JFrame frame;
     static JToolBar jToolBar1;
-    static JButton jButton1;
-
-    private static void test() {
-        frame = new JFrame();
-        JPanel jPanFrame = (JPanel) frame.getContentPane();
+    public bug4529206() {
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        JPanel jPanFrame = (JPanel) this.getContentPane();
         jPanFrame.setLayout(new BorderLayout());
-        frame.setSize(new Dimension(200, 100));
-        frame.setTitle("Test Floating Toolbar");
+        this.setSize(new Dimension(200, 100));
+        this.setLocation(125, 75);
+        this.setTitle("Test Floating Toolbar");
         jToolBar1 = new JToolBar();
-        jButton1 = new JButton("Float");
+        JButton jButton1 = new JButton("Float");
         jPanFrame.add(jToolBar1, BorderLayout.NORTH);
         JTextField tf = new JTextField("click here");
         jPanFrame.add(tf);
@@ -65,13 +58,11 @@ public class bug4529206 {
                 buttonPressed(e);
             }
         });
-
-        frame.setUndecorated(true);
-        frame.setLocationRelativeTo(null);
-        frame.setVisible(true);
+        makeToolbarFloat();
+        setVisible(true);
     }
 
-    private static void makeToolbarFloat() {
+    private void makeToolbarFloat() {
         javax.swing.plaf.basic.BasicToolBarUI ui = (javax.swing.plaf.basic.BasicToolBarUI) jToolBar1.getUI();
         if (!ui.isFloating()) {
             ui.setFloatingLocation(100, 100);
@@ -79,40 +70,24 @@ public class bug4529206 {
         }
     }
 
-    private static void buttonPressed(ActionEvent e) {
+    private void buttonPressed(ActionEvent e) {
         makeToolbarFloat();
     }
 
     public static void main(String[] args) throws Exception {
-        try {
-            SwingUtilities.invokeAndWait(new Runnable() {
-                public void run() {
-                    test();
+        SwingUtilities.invokeAndWait(new Runnable() {
+            public void run() {
+                frame = new bug4529206();
+            }
+        });
+        Robot robot = new Robot();
+        robot.waitForIdle();
+        SwingUtilities.invokeAndWait(new Runnable() {
+            public void run() {
+                if (frame.isFocused()) {
+                    throw (new RuntimeException("setFloating does not work correctly"));
                 }
-            });
-            Robot robot = new Robot();
-            robot.waitForIdle();
-            robot.delay(1000);
-
-            SwingUtilities.invokeAndWait(() -> {
-                makeToolbarFloat();
-            });
-
-            robot.waitForIdle();
-            SwingUtilities.invokeAndWait(new Runnable() {
-                public void run() {
-                    if (frame.isFocused()) {
-                        throw
-                          new RuntimeException("setFloating does not work correctly");
-                    }
-                }
-            });
-        } finally {
-            SwingUtilities.invokeAndWait(() -> {
-                if (frame != null) {
-                    frame.dispose();
-                }
-            });
-        }
+            }
+        });
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2016, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,7 +35,6 @@ public class InputBlock {
     private String name;
     private InputGraph graph;
     private Set<InputBlock> successors;
-    private boolean artificial;
 
     @Override
     public int hashCode() {
@@ -78,7 +77,6 @@ public class InputBlock {
         this.name = name;
         nodes = new ArrayList<>();
         successors = new LinkedHashSet<>(2);
-        artificial = false;
     }
 
     public String getName() {
@@ -103,10 +101,6 @@ public class InputBlock {
         return Collections.unmodifiableSet(successors);
     }
 
-    public void setNodes(List<InputNode> nodes) {
-        this.nodes = nodes;
-    }
-
     @Override
     public String toString() {
         return "Block " + this.getName();
@@ -116,13 +110,5 @@ public class InputBlock {
         if (!successors.contains(b)) {
             successors.add(b);
         }
-    }
-
-    void setArtificial(boolean artificial) {
-        this.artificial = artificial;
-    }
-
-    public boolean isArtificial() {
-        return artificial;
     }
 }

@@ -331,7 +331,7 @@ public abstract class AbstractTableModel implements TableModel, Serializable
      *          <code><em>Foo</em>Listener</code>s on this component,
      *          or an empty array if no such
      *          listeners have been added
-     * @throws ClassCastException if <code>listenerType</code>
+     * @exception ClassCastException if <code>listenerType</code>
      *          doesn't specify a class or interface that implements
      *          <code>java.util.EventListener</code>
      *

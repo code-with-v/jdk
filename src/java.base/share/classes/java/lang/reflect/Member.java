@@ -25,8 +25,6 @@
 
 package java.lang.reflect;
 
-import java.util.Set;
-
 /**
  * Member is an interface that reflects identifying information about
  * a single member (a field or a method) or a constructor.
@@ -78,24 +76,8 @@ public interface Member {
      *
      * @return the Java language modifiers for the underlying member
      * @see Modifier
-     * @see #accessFlags()
      */
     public int getModifiers();
-
-
-    /**
-     * {@return an unmodifiable set of the {@linkplain AccessFlag
-     * access flags} for this member, possibly empty}
-     *
-     * @implSpec
-     * The default implementation throws {@link
-     * UnsupportedOperationException}.
-     * @see #getModifiers()
-     * @since 20
-     */
-    public default Set<AccessFlag> accessFlags() {
-        throw new UnsupportedOperationException();
-    }
 
     /**
      * Returns {@code true} if this member was introduced by

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2015, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,10 +25,11 @@
 
 package javax.security.auth.spi;
 
-import java.util.Map;
 import javax.security.auth.Subject;
-import javax.security.auth.callback.CallbackHandler;
-import javax.security.auth.login.LoginException;
+import javax.security.auth.AuthPermission;
+import javax.security.auth.callback.*;
+import javax.security.auth.login.*;
+import java.util.Map;
 
 /**
  * <p> Service-provider interface for authentication technology providers.
@@ -39,7 +40,7 @@ import javax.security.auth.login.LoginException;
  * authentication technology providers implement the
  * {@code LoginModule} interface.
  * A {@code Configuration} specifies the LoginModule(s)
- * to be used with a particular login application.  Therefore, different
+ * to be used with a particular login application.  Therefore different
  * LoginModules can be plugged in under the application without
  * requiring any modifications to the application itself.
  *
@@ -49,13 +50,13 @@ import javax.security.auth.login.LoginException;
  * a {@code Subject}, a {@code CallbackHandler}, shared
  * {@code LoginModule} state, and LoginModule-specific options.
  *
- * <p> The {@code Subject} represents the
+ * The {@code Subject} represents the
  * {@code Subject} currently being authenticated and is updated
  * with relevant Credentials if authentication succeeds.
  * LoginModules use the {@code CallbackHandler} to
  * communicate with users.  The {@code CallbackHandler} may be
  * used to prompt for usernames and passwords, for example.
- * Note that the {@code CallbackHandler} may be {@code null}.  LoginModules
+ * Note that the {@code CallbackHandler} may be null.  LoginModules
  * which absolutely require a {@code CallbackHandler} to authenticate
  * the {@code Subject} may throw a {@code LoginException}.
  * LoginModules optionally use the shared state to share information
@@ -128,7 +129,7 @@ import javax.security.auth.login.LoginException;
 public interface LoginModule {
 
     /**
-     * Initialize this {@code LoginModule}.
+     * Initialize this LoginModule.
      *
      * <p> This method is called by the {@code LoginContext}
      * after this {@code LoginModule} has been instantiated.
@@ -162,12 +163,12 @@ public interface LoginModule {
      * {@code Subject} information such
      * as a username and password and then attempt to verify the password.
      * This method saves the result of the authentication attempt
-     * as private state within the {@code LoginModule}.
+     * as private state within the LoginModule.
      *
      * @exception LoginException if the authentication fails
      *
-     * @return {@code true} if the authentication succeeded, or {@code false}
-     *                  if this {@code LoginModule} should be ignored.
+     * @return true if the authentication succeeded, or false if this
+     *                  {@code LoginModule} should be ignored.
      */
     boolean login() throws LoginException;
 
@@ -189,8 +190,8 @@ public interface LoginModule {
      *
      * @exception LoginException if the commit fails
      *
-     * @return {@code true} if this method succeeded, or {@code false}
-     *                  if this {@code LoginModule} should be ignored.
+     * @return true if this method succeeded, or false if this
+     *                  {@code LoginModule} should be ignored.
      */
     boolean commit() throws LoginException;
 
@@ -209,8 +210,8 @@ public interface LoginModule {
      *
      * @exception LoginException if the abort fails
      *
-     * @return {@code true} if this method succeeded, or {@code false}
-     *                  if this {@code LoginModule} should be ignored.
+     * @return true if this method succeeded, or false if this
+     *                  {@code LoginModule} should be ignored.
      */
     boolean abort() throws LoginException;
 
@@ -222,15 +223,8 @@ public interface LoginModule {
      *
      * @exception LoginException if the logout fails
      *
-     * @return {@code true} if this method succeeded, or {@code false}
-     *                  if this {@code LoginModule} should be ignored.
-     *
-     * @implNote Implementations should check if a variable is {@code null}
-     *      before removing it from the Principals or Credentials set
-     *      of a {@code Subject}, otherwise a {@code NullPointerException}
-     *      will be thrown as these sets {@linkplain Subject#Subject()
-     *      prohibit null elements}. This is especially important if
-     *      this method is called after a login failure.
+     * @return true if this method succeeded, or false if this
+     *                  {@code LoginModule} should be ignored.
      */
     boolean logout() throws LoginException;
 }

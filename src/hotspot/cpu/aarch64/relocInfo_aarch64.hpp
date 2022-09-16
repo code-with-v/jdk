@@ -29,9 +29,8 @@
   // machine-dependent parts of class relocInfo
  private:
   enum {
-    // AArch64 instructions are always 4 bytes long and 4-aligned, so
-    // the two lowest offset bits can always be discarded.
-    offset_unit        =  4,
+    // Relocations are byte-aligned.
+    offset_unit        =  1,
     // Must be at least 1 for RelocInfo::narrow_oop_in_const.
     format_width       =  1
   };

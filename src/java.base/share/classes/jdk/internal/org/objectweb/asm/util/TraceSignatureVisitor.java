@@ -56,7 +56,6 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package jdk.internal.org.objectweb.asm.util;
 
 import java.util.Collections;
@@ -141,13 +140,13 @@ public final class TraceSignatureVisitor extends SignatureVisitor {
       * @param accessFlags for class type signatures, the access flags of the class.
       */
     public TraceSignatureVisitor(final int accessFlags) {
-        super(/* latest api = */ Opcodes.ASM9);
+        super(/* latest api = */ Opcodes.ASM8);
         this.isInterface = (accessFlags & Opcodes.ACC_INTERFACE) != 0;
         this.declaration = new StringBuilder();
     }
 
     private TraceSignatureVisitor(final StringBuilder stringBuilder) {
-        super(/* latest api = */ Opcodes.ASM9);
+        super(/* latest api = */ Opcodes.ASM8);
         this.isInterface = false;
         this.declaration = stringBuilder;
     }
@@ -257,7 +256,7 @@ public final class TraceSignatureVisitor extends SignatureVisitor {
     @Override
     public void visitClassType(final String name) {
         if ("java/lang/Object".equals(name)) {
-            // 'Map<java.lang.Object,java.util.List>' or 'abstract public V get(Object key);' should have
+            // 'Map<java.lang.Object,java.util.List>' or 'public abstract V get(Object key);' should have
             // Object 'but java.lang.String extends java.lang.Object' is unnecessary.
             boolean needObjectClass = argumentStack % 2 != 0 || parameterTypeVisited;
             if (needObjectClass) {
@@ -374,4 +373,3 @@ public final class TraceSignatureVisitor extends SignatureVisitor {
         }
     }
 }
-

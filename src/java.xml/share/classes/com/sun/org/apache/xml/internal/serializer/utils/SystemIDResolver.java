@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
+ * reserved comment block
+ * DO NOT REMOVE OR ALTER!
  */
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -41,8 +42,6 @@ import com.sun.org.apache.xml.internal.serializer.utils.URI.MalformedURIExceptio
  * used in com.sun.org.apache.xml.internal.serializer.
  *
  * @xsl.usage internal
- *
- * @LastModified: Jan 2022
  */
 public final class SystemIDResolver
 {
@@ -283,7 +282,7 @@ public final class SystemIDResolver
   public static String getAbsoluteURI(String urlString, String base)
           throws TransformerException
   {
-    if (base == null || base.length() == 0)
+    if (base == null)
       return getAbsoluteURI(urlString);
 
     String absoluteBase = getAbsoluteURI(base);

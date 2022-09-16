@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2017, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,8 +32,8 @@
 
 package jdk.test.lib.hprof.model;
 
+import jdk.test.lib.hprof.parser.ReadBuffer;
 import java.io.IOException;
-import java.util.Objects;
 
 /**
  * An array of values, that is, an array of ints, boolean, floats or the like.
@@ -263,7 +263,9 @@ public class JavaValueArray extends JavaLazyReadObject
     }
 
     private void checkIndex(int index) {
-        Objects.checkIndex(index, getLength());
+        if (index < 0 || index >= getLength()) {
+            throw new ArrayIndexOutOfBoundsException(index);
+        }
     }
 
     private void requireType(char type) {

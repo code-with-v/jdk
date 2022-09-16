@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,7 +27,6 @@
 
 #include "oops/arrayOop.hpp"
 #include "utilities/align.hpp"
-#include <type_traits>
 
 class Klass;
 
@@ -39,9 +38,6 @@ class objArrayOopDesc : public arrayOopDesc {
   friend class Runtime1;
   friend class psPromotionManager;
   friend class CSetMarkWordClosure;
-  friend class Continuation;
-  template <typename T>
-  friend class RawOopWriter;
 
   template <class T> T* obj_at_addr(int index) const;
 
@@ -94,15 +90,15 @@ private:
 
   // Sizing
   static int header_size()    { return arrayOopDesc::header_size(T_OBJECT); }
-  size_t object_size()        { return object_size(length()); }
+  int object_size()           { return object_size(length()); }
 
-  static size_t object_size(int length) {
+  static int object_size(int length) {
     // This returns the object size in HeapWords.
     uint asz = array_size(length);
     uint osz = align_object_size(header_size() + asz);
     assert(osz >= asz,   "no overflow");
     assert((int)osz > 0, "no overflow");
-    return (size_t)osz;
+    return (int)osz;
   }
 
   Klass* element_klass();
@@ -112,8 +108,5 @@ public:
   template <typename OopClosureType>
   void oop_iterate_range(OopClosureType* blk, int start, int end);
 };
-
-// See similar requirement for oopDesc.
-static_assert(std::is_trivially_default_constructible<objArrayOopDesc>::value, "required");
 
 #endif // SHARE_OOPS_OBJARRAYOOP_HPP

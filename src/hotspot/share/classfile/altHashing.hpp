@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,8 +26,7 @@
 #define SHARE_CLASSFILE_ALTHASHING_HPP
 
 #include "jni.h"
-#include "memory/allStatic.hpp"
-#include "utilities/globalDefinitions.hpp"
+#include "memory/allocation.hpp"
 
 /**
  * Implementation of alternate more secure hashing.
@@ -44,7 +43,7 @@ class AltHashing : AllStatic {
   static uint64_t compute_seed();
 
   // For Symbols
-  static uint32_t halfsiphash_32(uint64_t seed, const void* in, int len);
+  static uint32_t halfsiphash_32(uint64_t seed, const uint8_t* data, int len);
   // For Strings
   static uint32_t halfsiphash_32(uint64_t seed, const uint16_t* data, int len);
 };

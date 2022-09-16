@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,16 +23,16 @@
  * questions.
  */
 
-#include <assert.h>
 #include <stdlib.h>
-#include <string.h>
+#include <assert.h>
 
-#include "check_classname.h"
-#include "java_lang_ClassLoader.h"
-#include "jlong.h"
 #include "jni.h"
 #include "jni_util.h"
+#include "jlong.h"
 #include "jvm.h"
+#include "check_classname.h"
+#include "java_lang_ClassLoader.h"
+#include <string.h>
 
 static JNINativeMethod methods[] = {
     {"retrieveDirectives",  "()Ljava/lang/AssertionStatusDirectives;", (void *)&JVM_AssertionStatusDirectives}
@@ -88,7 +88,7 @@ Java_java_lang_ClassLoader_defineClass1(JNIEnv *env,
 
     if (data == NULL) {
         JNU_ThrowNullPointerException(env, 0);
-        return NULL;
+        return 0;
     }
 
     /* Work around 4153825. malloc crashes on Solaris when passed a
@@ -96,27 +96,20 @@ Java_java_lang_ClassLoader_defineClass1(JNIEnv *env,
      */
     if (length < 0) {
         JNU_ThrowArrayIndexOutOfBoundsException(env, 0);
-        return NULL;
+        return 0;
     }
 
-    // On AIX malloc(0) returns NULL which looks like an out-of-memory
-    // condition; so adjust it to malloc(1)
-    #ifdef _AIX
-        body = (jbyte *)malloc(length == 0 ? 1 : length);
-    #else
-        body = (jbyte *)malloc(length);
-    #endif
+    body = (jbyte *)malloc(length);
 
-    if (body == NULL) {
+    if (body == 0) {
         JNU_ThrowOutOfMemoryError(env, 0);
-        return NULL;
+        return 0;
     }
 
     (*env)->GetByteArrayRegion(env, data, offset, length, body);
 
-    if ((*env)->ExceptionOccurred(env)) {
+    if ((*env)->ExceptionOccurred(env))
         goto free_body;
-    }
 
     if (name != NULL) {
         utfName = getUTF(env, name, buf, sizeof(buf));
@@ -175,9 +168,9 @@ Java_java_lang_ClassLoader_defineClass2(JNIEnv *env,
 
     body = (*env)->GetDirectBufferAddress(env, data);
 
-    if (body == NULL) {
+    if (body == 0) {
         JNU_ThrowNullPointerException(env, 0);
-        return NULL;
+        return 0;
     }
 
     body += offset;
@@ -235,7 +228,7 @@ Java_java_lang_ClassLoader_defineClass0(JNIEnv *env,
 
     if (data == NULL) {
         JNU_ThrowNullPointerException(env, 0);
-        return NULL;
+        return 0;
     }
 
     /* Work around 4153825. malloc crashes on Solaris when passed a
@@ -243,20 +236,13 @@ Java_java_lang_ClassLoader_defineClass0(JNIEnv *env,
      */
     if (length < 0) {
         JNU_ThrowArrayIndexOutOfBoundsException(env, 0);
-        return NULL;
+        return 0;
     }
 
-    // On AIX malloc(0) returns NULL which looks like an out-of-memory
-    // condition; so adjust it to malloc(1)
-    #ifdef _AIX
-        body = (jbyte *)malloc(length == 0 ? 1 : length);
-    #else
-        body = (jbyte *)malloc(length);
-    #endif
-
-    if (body == NULL) {
+    body = (jbyte *)malloc(length);
+    if (body == 0) {
         JNU_ThrowOutOfMemoryError(env, 0);
-        return NULL;
+        return 0;
     }
 
     (*env)->GetByteArrayRegion(env, data, offset, length, body);
@@ -296,7 +282,7 @@ Java_java_lang_ClassLoader_findBootstrapClass(JNIEnv *env, jclass dummy,
     char buf[128];
 
     if (classname == NULL) {
-        return NULL;
+        return 0;
     }
 
     clname = getUTF(env, classname, buf, sizeof(buf));
@@ -325,7 +311,7 @@ Java_java_lang_ClassLoader_findLoadedClass0(JNIEnv *env, jobject loader,
                                            jstring name)
 {
     if (name == NULL) {
-        return NULL;
+        return 0;
     } else {
         return JVM_FindLoadedClass(env, loader, name);
     }

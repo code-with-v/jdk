@@ -59,7 +59,7 @@ public class BTreeTest extends SysDictTest {
         }
         try {
             // Load FatsInfo with URLClassLoader btree.jar & fats.jar should not
-            // be present in classpath
+            // present in classpath
             Class info;
             if (useFats) {
                 info = createJarLoader().loadClass(PACKAGE_PREFIX + "FatsInfo");
@@ -76,7 +76,7 @@ public class BTreeTest extends SysDictTest {
             }
 
             if (level >= height) {
-                throw new Failure("Incorrect level : " + level + " should be less than " + height);
+                throw new Failure("Icorrect level : " + level + " .Should be less then " + height);
             }
 
             // generate names for all nodes at the given level:

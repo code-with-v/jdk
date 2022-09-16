@@ -119,93 +119,6 @@ void ClassLoadingService::init() {
   }
 }
 
-bool ClassLoadingService::set_verbose(bool verbose) {
-  MutexLocker m(Management_lock);
-  // verbose will be set to the previous value
-  LogLevelType level = verbose ? LogLevel::Info : LogLevel::Off;
-  LogConfiguration::configure_stdout(level, false, LOG_TAGS(class, load));
-  reset_trace_class_unloading();
-  return verbose;
-}
-
-// Caller to this function must own Management_lock
-void ClassLoadingService::reset_trace_class_unloading() {
-  assert(Management_lock->owned_by_self(), "Must own the Management_lock");
-  bool value = MemoryService::get_verbose() || ClassLoadingService::get_verbose();
-  LogLevelType level = value ? LogLevel::Info : LogLevel::Off;
-  LogConfiguration::configure_stdout(level, false, LOG_TAGS(class, unload));
-}
-
-jlong ClassLoadingService::loaded_class_count() {
-  return _classes_loaded_count->get_value() + _shared_classes_loaded_count->get_value();
-}
-
-jlong ClassLoadingService::unloaded_class_count() {
-  return _classes_unloaded_count->get_value() + _shared_classes_unloaded_count->get_value();
-}
-
-jlong ClassLoadingService::loaded_class_bytes() {
-  return UsePerfData ? _classbytes_loaded->get_value() + _shared_classbytes_loaded->get_value() : -1;
-}
-
-jlong ClassLoadingService::unloaded_class_bytes() {
-  return UsePerfData ? _classbytes_unloaded->get_value() + _shared_classbytes_unloaded->get_value() : -1;
-}
-
-jlong ClassLoadingService::loaded_shared_class_count() {
-  return _shared_classes_loaded_count->get_value();
-}
-
-jlong ClassLoadingService::unloaded_shared_class_count() {
-  return _shared_classes_unloaded_count->get_value();
-}
-
-jlong ClassLoadingService::loaded_shared_class_bytes() {
-  return UsePerfData ? _shared_classbytes_loaded->get_value() : -1;
-}
-
-jlong ClassLoadingService::unloaded_shared_class_bytes() {
-  return UsePerfData ? _shared_classbytes_unloaded->get_value() : -1;
-}
-
-jlong ClassLoadingService::class_method_data_size() {
-  return UsePerfData ? _class_methods_size->get_value() : -1;
-}
-
-static size_t compute_class_size(InstanceKlass* k) {
-  // lifted from ClassStatistics.do_class(Klass* k)
-  size_t class_size = k->size();
-  if (k->is_instance_klass()) {
-    class_size += k->methods()->size();
-    // FIXME: Need to count the contents of methods
-    class_size += k->constants()->size();
-    class_size += k->local_interfaces()->size();
-    if (k->transitive_interfaces() != NULL) {
-      class_size += k->transitive_interfaces()->size();
-    }
-    // We do not have to count implementors, since we only store one!
-    // FIXME: How should these be accounted for, now when they have moved.
-    //class_size += k->fields()->size();
-  }
-  return class_size * oopSize;
-}
-
-void ClassLoadingService::notify_class_loaded(InstanceKlass* k, bool shared_class) {
-  DTRACE_CLASSLOAD_PROBE(loaded, k, shared_class);
-  PerfCounter* classes_counter = (shared_class ? _shared_classes_loaded_count
-                                               : _classes_loaded_count);
-  // increment the count
-  classes_counter->inc();
-
-  if (UsePerfData) {
-    PerfCounter* classbytes_counter = (shared_class ? _shared_classbytes_loaded
-                                                    : _classbytes_loaded);
-    // add the class size
-    size_t size = compute_class_size(k);
-    classbytes_counter->inc(size);
-  }
-}
-
 void ClassLoadingService::notify_class_unloaded(InstanceKlass* k) {
   DTRACE_CLASSLOAD_PROBE(unloaded, k, false);
   // Classes that can be unloaded must be non-shared
@@ -224,6 +137,61 @@ void ClassLoadingService::notify_class_unloaded(InstanceKlass* k) {
       _class_methods_size->inc(-methods->at(i)->size());
     }
   }
+}
+
+void ClassLoadingService::notify_class_loaded(InstanceKlass* k, bool shared_class) {
+  DTRACE_CLASSLOAD_PROBE(loaded, k, shared_class);
+  PerfCounter* classes_counter = (shared_class ? _shared_classes_loaded_count
+                                               : _classes_loaded_count);
+  // increment the count
+  classes_counter->inc();
+
+  if (UsePerfData) {
+    PerfCounter* classbytes_counter = (shared_class ? _shared_classbytes_loaded
+                                                    : _classbytes_loaded);
+    // add the class size
+    size_t size = compute_class_size(k);
+    classbytes_counter->inc(size);
+  }
+}
+
+size_t ClassLoadingService::compute_class_size(InstanceKlass* k) {
+  // lifted from ClassStatistics.do_class(Klass* k)
+
+  size_t class_size = 0;
+
+  class_size += k->size();
+
+  if (k->is_instance_klass()) {
+    class_size += k->methods()->size();
+    // FIXME: Need to count the contents of methods
+    class_size += k->constants()->size();
+    class_size += k->local_interfaces()->size();
+    if (k->transitive_interfaces() != NULL) {
+      class_size += k->transitive_interfaces()->size();
+    }
+    // We do not have to count implementors, since we only store one!
+    // FIXME: How should these be accounted for, now when they have moved.
+    //class_size += k->fields()->size();
+  }
+  return class_size * oopSize;
+}
+
+bool ClassLoadingService::set_verbose(bool verbose) {
+  MutexLocker m(Management_lock);
+  // verbose will be set to the previous value
+  LogLevelType level = verbose ? LogLevel::Info : LogLevel::Off;
+  LogConfiguration::configure_stdout(level, false, LOG_TAGS(class, load));
+  reset_trace_class_unloading();
+  return verbose;
+}
+
+// Caller to this function must own Management_lock
+void ClassLoadingService::reset_trace_class_unloading() {
+  assert(Management_lock->owned_by_self(), "Must own the Management_lock");
+  bool value = MemoryService::get_verbose() || ClassLoadingService::get_verbose();
+  LogLevelType level = value ? LogLevel::Info : LogLevel::Off;
+  LogConfiguration::configure_stdout(level, false, LOG_TAGS(class, unload));
 }
 
 #endif // INCLUDE_MANAGEMENT

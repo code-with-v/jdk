@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.security.cert.PolicyQualifierInfo;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -87,7 +88,7 @@ public class PolicyInformation {
             throw new NullPointerException("policyQualifiers is null");
         }
         this.policyQualifiers =
-                new LinkedHashSet<>(policyQualifiers);
+            new LinkedHashSet<PolicyQualifierInfo>(policyQualifiers);
         this.policyIdentifier = policyIdentifier;
     }
 
@@ -104,7 +105,7 @@ public class PolicyInformation {
         }
         policyIdentifier = new CertificatePolicyId(val.data.getDerValue());
         if (val.data.available() != 0) {
-            policyQualifiers = new LinkedHashSet<>();
+            policyQualifiers = new LinkedHashSet<PolicyQualifierInfo>();
             DerValue opt = val.data.getDerValue();
             if (opt.tag != DerValue.tag_Sequence)
                 throw new IOException("Invalid encoding of PolicyInformation");
@@ -125,8 +126,9 @@ public class PolicyInformation {
      * @return true iff the PolicyInformation objects match
      */
     public boolean equals(Object other) {
-        if (!(other instanceof PolicyInformation piOther))
+        if (!(other instanceof PolicyInformation))
             return false;
+        PolicyInformation piOther = (PolicyInformation)other;
 
         if (!policyIdentifier.equals(piOther.getPolicyIdentifier()))
             return false;
@@ -199,9 +201,11 @@ public class PolicyInformation {
                     "PolicyQualifierInfo can be set.");
             }
             if (obj instanceof Set) {
-                for (Object obj1 : (Set<?>) obj) {
+                Iterator<?> i = ((Set<?>)obj).iterator();
+                while (i.hasNext()) {
+                    Object obj1 = i.next();
                     if (!(obj1 instanceof PolicyQualifierInfo)) {
-                        throw new IOException("Attribute value must be a " +
+                        throw new IOException("Attribute value must be a" +
                                     "Set of PolicyQualifierInfo objects.");
                     }
                 }

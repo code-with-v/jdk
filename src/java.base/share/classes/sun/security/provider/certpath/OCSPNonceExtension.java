@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -48,7 +48,7 @@ public final class OCSPNonceExtension extends Extension {
      * Attribute name.
      */
     private static final String EXTENSION_NAME = "OCSPNonce";
-    private final byte[] nonceData;
+    private byte[] nonceData = null;
 
     /**
      * Create an {@code OCSPNonceExtension} by providing the nonce length.
@@ -166,9 +166,11 @@ public final class OCSPNonceExtension extends Extension {
      */
     @Override
     public String toString() {
-        return super.toString() + EXTENSION_NAME + ": " +
-                ((nonceData == null) ? "" : Debug.toString(nonceData)) +
-                "\n";
+        StringBuilder sb = new StringBuilder();
+        sb.append(super.toString()).append(EXTENSION_NAME).append(": ");
+        sb.append((nonceData == null) ? "" : Debug.toString(nonceData));
+        sb.append("\n");
+        return sb.toString();
     }
 
     /**

@@ -56,7 +56,6 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package jdk.internal.org.objectweb.asm.tree;
 
 import java.util.ArrayList;
@@ -92,7 +91,7 @@ final class Util {
         }
         ArrayList<T> list = new ArrayList<>(array.length);
         for (T t : array) {
-            list.add(t); // NOPMD(UseArraysAsList): we want a modifiable list.
+            list.add(t);
         }
         return list;
     }
@@ -103,7 +102,7 @@ final class Util {
         }
         ArrayList<Byte> byteList = new ArrayList<>(byteArray.length);
         for (byte b : byteArray) {
-            byteList.add(b); // NOPMD(UseArraysAsList): we want a modifiable list.
+            byteList.add(b);
         }
         return byteList;
     }
@@ -114,7 +113,7 @@ final class Util {
         }
         ArrayList<Boolean> booleanList = new ArrayList<>(booleanArray.length);
         for (boolean b : booleanArray) {
-            booleanList.add(b); // NOPMD(UseArraysAsList): we want a modifiable list.
+            booleanList.add(b);
         }
         return booleanList;
     }
@@ -125,7 +124,7 @@ final class Util {
         }
         ArrayList<Short> shortList = new ArrayList<>(shortArray.length);
         for (short s : shortArray) {
-            shortList.add(s); // NOPMD(UseArraysAsList): we want a modifiable list.
+            shortList.add(s);
         }
         return shortList;
     }
@@ -136,7 +135,7 @@ final class Util {
         }
         ArrayList<Character> charList = new ArrayList<>(charArray.length);
         for (char c : charArray) {
-            charList.add(c); // NOPMD(UseArraysAsList): we want a modifiable list.
+            charList.add(c);
         }
         return charList;
     }
@@ -147,7 +146,7 @@ final class Util {
         }
         ArrayList<Integer> intList = new ArrayList<>(intArray.length);
         for (int i : intArray) {
-            intList.add(i); // NOPMD(UseArraysAsList): we want a modifiable list.
+            intList.add(i);
         }
         return intList;
     }
@@ -158,7 +157,7 @@ final class Util {
         }
         ArrayList<Float> floatList = new ArrayList<>(floatArray.length);
         for (float f : floatArray) {
-            floatList.add(f); // NOPMD(UseArraysAsList): we want a modifiable list.
+            floatList.add(f);
         }
         return floatList;
     }
@@ -169,7 +168,7 @@ final class Util {
         }
         ArrayList<Long> longList = new ArrayList<>(longArray.length);
         for (long l : longArray) {
-            longList.add(l); // NOPMD(UseArraysAsList): we want a modifiable list.
+            longList.add(l);
         }
         return longList;
     }
@@ -180,7 +179,7 @@ final class Util {
         }
         ArrayList<Double> doubleList = new ArrayList<>(doubleArray.length);
         for (double d : doubleArray) {
-            doubleList.add(d); // NOPMD(UseArraysAsList): we want a modifiable list.
+            doubleList.add(d);
         }
         return doubleList;
     }
@@ -193,4 +192,3 @@ final class Util {
         return list;
     }
 }
-

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2004, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -113,7 +113,7 @@ public class Jstat {
             formatter = new OptionOutputFormatter(monitoredVm, format);
         } else {
             List<Monitor> logged = monitoredVm.findByPattern(arguments.counterNames());
-            logged.sort(arguments.comparator());
+            Collections.sort(logged, arguments.comparator());
             List<Monitor> constants = new ArrayList<Monitor>();
 
             for (Iterator<Monitor> i = logged.iterator(); i.hasNext(); /* empty */) {

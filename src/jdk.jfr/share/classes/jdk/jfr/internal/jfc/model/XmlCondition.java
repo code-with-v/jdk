@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,7 @@
  */
 package jdk.jfr.internal.jfc.model;
 
+import java.text.ParseException;
 import java.util.List;
 import java.util.Optional;
 
@@ -44,9 +45,9 @@ final class XmlCondition extends XmlExpression implements ControlElement {
     }
 
     @Override
-    protected void validateChildConstraints() throws JFCModelException {
+    protected void validateChildConstraints() throws ParseException {
         if (getExpressions().size() > 1) {
-            throw new JFCModelException("Expected <condition> to not have more than one child");
+            throw new ParseException("Expected <condition> to not have more than one child", -1);
         }
     }
 

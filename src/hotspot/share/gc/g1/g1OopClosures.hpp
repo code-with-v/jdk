@@ -61,12 +61,10 @@ public:
 
 // Used to scan cards from the DCQS or the remembered sets during garbage collection.
 class G1ScanCardClosure : public G1ScanClosureBase {
-  size_t& _heap_roots_found;
 public:
   G1ScanCardClosure(G1CollectedHeap* g1h,
-                    G1ParScanThreadState* pss,
-                    size_t& heap_roots_found) :
-    G1ScanClosureBase(g1h, pss), _heap_roots_found(heap_roots_found) { }
+                    G1ParScanThreadState* pss) :
+    G1ScanClosureBase(g1h, pss) { }
 
   template <class T> void do_oop_work(T* p);
   virtual void do_oop(narrowOop* p) { do_oop_work(p); }
@@ -87,19 +85,19 @@ public:
 
 // This closure is applied to the fields of the objects that have just been copied during evacuation.
 class G1ScanEvacuatedObjClosure : public G1ScanClosureBase {
-  friend class G1SkipCardEnqueueSetter;
+  friend class G1ScanInYoungSetter;
 
-  enum SkipCardEnqueueTristate {
+  enum ScanningInYoungValues {
     False = 0,
     True,
     Uninitialized
   };
 
-  SkipCardEnqueueTristate _skip_card_enqueue;
+  ScanningInYoungValues _scanning_in_young;
 
 public:
   G1ScanEvacuatedObjClosure(G1CollectedHeap* g1h, G1ParScanThreadState* par_scan_state) :
-    G1ScanClosureBase(g1h, par_scan_state), _skip_card_enqueue(Uninitialized) { }
+    G1ScanClosureBase(g1h, par_scan_state), _scanning_in_young(Uninitialized) { }
 
   template <class T> void do_oop_work(T* p);
   virtual void do_oop(oop* p)          { do_oop_work(p); }
@@ -113,18 +111,18 @@ public:
   }
 };
 
-// RAII object to properly set the _skip_card_enqueue field in G1ScanEvacuatedObjClosure.
-class G1SkipCardEnqueueSetter : public StackObj {
+// RAII object to properly set the _scanning_in_young field in G1ScanEvacuatedObjClosure.
+class G1ScanInYoungSetter : public StackObj {
   G1ScanEvacuatedObjClosure* _closure;
 
 public:
-  G1SkipCardEnqueueSetter(G1ScanEvacuatedObjClosure* closure, bool skip_card_enqueue) : _closure(closure) {
-    assert(_closure->_skip_card_enqueue == G1ScanEvacuatedObjClosure::Uninitialized, "Must not be set");
-    _closure->_skip_card_enqueue = skip_card_enqueue ? G1ScanEvacuatedObjClosure::True : G1ScanEvacuatedObjClosure::False;
+  G1ScanInYoungSetter(G1ScanEvacuatedObjClosure* closure, bool new_value) : _closure(closure) {
+    assert(_closure->_scanning_in_young == G1ScanEvacuatedObjClosure::Uninitialized, "Must not be set");
+    _closure->_scanning_in_young = new_value ? G1ScanEvacuatedObjClosure::True : G1ScanEvacuatedObjClosure::False;
   }
 
-  ~G1SkipCardEnqueueSetter() {
-    DEBUG_ONLY(_closure->_skip_card_enqueue = G1ScanEvacuatedObjClosure::Uninitialized;)
+  ~G1ScanInYoungSetter() {
+    DEBUG_ONLY(_closure->_scanning_in_young = G1ScanEvacuatedObjClosure::Uninitialized;)
   }
 };
 

@@ -56,7 +56,6 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package jdk.internal.org.objectweb.asm.util;
 
 import jdk.internal.org.objectweb.asm.ModuleVisitor;
@@ -89,7 +88,7 @@ public final class TraceModuleVisitor extends ModuleVisitor {
       * @param printer the printer to convert the visited module into text.
       */
     public TraceModuleVisitor(final ModuleVisitor moduleVisitor, final Printer printer) {
-        super(/* latest api = */ Opcodes.ASM9, moduleVisitor);
+        super(/* latest api = */ Opcodes.ASM8, moduleVisitor);
         this.p = printer;
     }
 

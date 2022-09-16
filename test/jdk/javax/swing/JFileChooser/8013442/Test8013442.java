@@ -118,6 +118,6 @@ public class Test8013442 extends FileFilter implements Runnable, Thread.Uncaught
 
     public void uncaughtException(Thread thread, Throwable throwable) {
         throwable.printStackTrace();
-        throw new RuntimeException(throwable);
+        System.exit(1);
     }
 }

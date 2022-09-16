@@ -26,7 +26,6 @@
  * @modules java.base/jdk.internal.misc
  * @modules java.base/jdk.internal.loader
  *          java.logging
- * @requires vm.flagless
  * @library /test/lib
  * @run driver GetSysPkgTest
  */

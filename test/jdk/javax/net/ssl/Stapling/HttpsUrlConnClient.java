@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,8 +30,7 @@
  * @summary OCSP Stapling for TLS
  * @library ../../../../java/security/testlibrary
  * @build CertificateBuilder SimpleOCSPServer
- * @run main/othervm HttpsUrlConnClient RSA SHA256withRSA
- * @run main/othervm HttpsUrlConnClient RSASSA-PSS RSASSA-PSS
+ * @run main/othervm HttpsUrlConnClient
  */
 
 import java.io.*;
@@ -61,6 +60,7 @@ import java.util.concurrent.TimeUnit;
 
 import sun.security.testlibrary.SimpleOCSPServer;
 import sun.security.testlibrary.CertificateBuilder;
+import sun.security.validator.ValidatorException;
 
 public class HttpsUrlConnClient {
 
@@ -72,9 +72,6 @@ public class HttpsUrlConnClient {
 
     static final byte[] LINESEP = { 10 };
     static final Base64.Encoder B64E = Base64.getMimeEncoder(64, LINESEP);
-
-    static String SIGALG;
-    static String KEYALG;
 
     // Turn on TLS debugging
     static boolean debug = true;
@@ -139,9 +136,6 @@ public class HttpsUrlConnClient {
         System.setProperty("javax.net.ssl.keyStorePassword", "");
         System.setProperty("javax.net.ssl.trustStore", "");
         System.setProperty("javax.net.ssl.trustStorePassword", "");
-
-        KEYALG = args[0];
-        SIGALG = args[1];
 
         // Create the PKI we will use for the test and start the OCSP servers
         createPKI();
@@ -520,7 +514,7 @@ public class HttpsUrlConnClient {
      */
     private static void createPKI() throws Exception {
         CertificateBuilder cbld = new CertificateBuilder();
-        KeyPairGenerator keyGen = KeyPairGenerator.getInstance(KEYALG);
+        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
         keyGen.initialize(2048);
         KeyStore.Builder keyStoreBuilder =
                 KeyStore.Builder.newInstance("PKCS12", null,
@@ -546,7 +540,7 @@ public class HttpsUrlConnClient {
         addCommonCAExts(cbld);
         // Make our Root CA Cert!
         X509Certificate rootCert = cbld.build(null, rootCaKP.getPrivate(),
-                SIGALG);
+                "SHA256withRSA");
         log("Root CA Created:\n" + certInfo(rootCert));
 
         // Now build a keystore and add the keys and cert
@@ -588,7 +582,7 @@ public class HttpsUrlConnClient {
         cbld.addAIAExt(Collections.singletonList(rootRespURI));
         // Make our Intermediate CA Cert!
         X509Certificate intCaCert = cbld.build(rootCert, rootCaKP.getPrivate(),
-                SIGALG);
+                "SHA256withRSA");
         log("Intermediate CA Created:\n" + certInfo(intCaCert));
 
         // Provide intermediate CA cert revocation info to the Root CA
@@ -650,7 +644,7 @@ public class HttpsUrlConnClient {
         cbld.addAIAExt(Collections.singletonList(intCaRespURI));
         // Make our SSL Server Cert!
         X509Certificate sslCert = cbld.build(intCaCert, intCaKP.getPrivate(),
-                SIGALG);
+                "SHA256withRSA");
         log("SSL Certificate Created:\n" + certInfo(sslCert));
 
         // Provide SSL server cert revocation info to the Intermeidate CA

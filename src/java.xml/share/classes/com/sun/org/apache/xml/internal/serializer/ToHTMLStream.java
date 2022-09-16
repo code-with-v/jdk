@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2019, Oracle and/or its affiliates. All rights reserved.
  */
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -31,7 +31,6 @@ import org.xml.sax.SAXException;
 import com.sun.org.apache.xml.internal.serializer.utils.MsgKey;
 import com.sun.org.apache.xml.internal.serializer.utils.Utils;
 import javax.xml.transform.ErrorListener;
-import jdk.xml.internal.JdkXmlUtils;
 
 /**
  * This serializer takes a series of SAX or
@@ -42,7 +41,7 @@ import jdk.xml.internal.JdkXmlUtils;
  * because it is used from another package.
  *
  * @xsl.usage internal
- * @LastModified: July 2021
+ * @LastModified: Aug 2019
  */
 public final class ToHTMLStream extends ToStream
 {
@@ -680,10 +679,28 @@ public final class ToHTMLStream extends ToStream
                 final java.io.Writer writer = m_writer;
                 try
                 {
-                    writer.write("<!DOCTYPE html");
-                    writer.write(JdkXmlUtils.getDTDExternalDecl(doctypePublic, doctypeSystem));
-                    writer.write('>');
-                    outputLineSep();
+                writer.write("<!DOCTYPE html");
+
+                if (null != doctypePublic)
+                {
+                    writer.write(" PUBLIC \"");
+                    writer.write(doctypePublic);
+                    writer.write('"');
+                }
+
+                if (null != doctypeSystem)
+                {
+                    if (null == doctypePublic)
+                        writer.write(" SYSTEM \"");
+                    else
+                        writer.write(" \"");
+
+                    writer.write(doctypeSystem);
+                    writer.write('"');
+                }
+
+                writer.write('>');
+                outputLineSep();
                 }
                 catch(IOException e)
                 {
@@ -1424,23 +1441,32 @@ public final class ToHTMLStream extends ToStream
                             }
                         }
                     }
+
+                    // The next is kind of a hack to keep from escaping in the case
+                    // of Shift_JIS and the like.
+
+                    /*
+                    else if ((ch < m_maxCharacter) && (m_maxCharacter == 0xFFFF)
+                    && (ch != 160))
+                    {
+                    writer.write(ch);  // no escaping in this case
+                    }
+                    else
+                    */
+                    String outputStringForChar = m_charInfo.getOutputStringForChar(ch);
+                    if (null != outputStringForChar)
+                    {
+                        writer.write(outputStringForChar);
+                    }
+                    else if (escapingNotNeeded(ch))
+                    {
+                        writer.write(ch); // no escaping in this case
+                    }
                     else
                     {
-                        String outputStringForChar = m_charInfo.getOutputStringForChar(ch);
-                        if (null != outputStringForChar)
-                        {
-                            writer.write(outputStringForChar);
-                        }
-                        else if (escapingNotNeeded(ch))
-                        {
-                            writer.write(ch); // no escaping in this case
-                        }
-                        else
-                        {
-                            writer.write("&#");
-                            writer.write(Integer.toString(ch));
-                            writer.write(';');
-                        }
+                        writer.write("&#");
+                        writer.write(Integer.toString(ch));
+                        writer.write(';');
                     }
                 }
                 cleanStart = i + 1;

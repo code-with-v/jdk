@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -119,10 +119,8 @@ public class NTLMAuthentication extends AuthenticationInfo {
         });
     };
 
-    @SuppressWarnings("serial") // Type of field is not Serializable
     PasswordAuthentication pw;
 
-    @SuppressWarnings("serial") // Type of field is not Serializable
     Client client;
     /**
      * Create a NTLMAuthentication:
@@ -243,7 +241,9 @@ public class NTLMAuthentication extends AuthenticationInfo {
             }
             conn.setAuthenticationProperty(getHeaderName(), response);
             return true;
-        } catch (IOException | GeneralSecurityException e) {
+        } catch (IOException e) {
+            return false;
+        } catch (GeneralSecurityException e) {
             return false;
         }
     }

@@ -1730,9 +1730,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
     /**
      * Returns an array of all locales for which the {@code getInstance}
      * methods of this class can return localized instances.
-     * At a minimum, the returned array must contain a {@code Locale} instance equal to
-     * {@link Locale#ROOT Locale.ROOT} and a {@code Locale} instance equal to
-     * {@link Locale#US Locale.US}.
+     * The array returned must contain at least a {@code Locale}
+     * instance equal to {@link java.util.Locale#US Locale.US}.
      *
      * @return An array of locales for which localized
      *         {@code Calendar} instances are available.
@@ -2640,7 +2639,14 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
     }
 
     private static class AvailableCalendarTypes {
-        private static final Set<String> SET = Set.of("gregory", "buddhist", "japanese");
+        private static final Set<String> SET;
+        static {
+            Set<String> set = new HashSet<>(3);
+            set.add("gregory");
+            set.add("buddhist");
+            set.add("japanese");
+            SET = Collections.unmodifiableSet(set);
+        }
         private AvailableCalendarTypes() {
         }
     }
@@ -3409,7 +3415,8 @@ public abstract class Calendar implements Serializable, Cloneable, Comparable<Ca
     }
 
     private int compareTo(long t) {
-        return Long.compare(getMillisOf(this), t);
+        long thisTime = getMillisOf(this);
+        return (thisTime > t) ? 1 : (thisTime == t) ? 0 : -1;
     }
 
     private static long getMillisOf(Calendar calendar) {

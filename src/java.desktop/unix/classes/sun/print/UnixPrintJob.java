@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -128,7 +128,7 @@ public class UnixPrintJob implements CancelablePrintJob {
         mDestType = UnixPrintJob.DESTPRINTER;
         JobSheets js = (JobSheets)(service.
                                       getDefaultAttributeValue(JobSheets.class));
-        if (JobSheets.NONE.equals(js)) {
+        if (js != null && js.equals(JobSheets.NONE)) {
             mNoJobSheet = true;
         }
     }
@@ -309,6 +309,7 @@ public class UnixPrintJob implements CancelablePrintJob {
         }
     }
 
+    @SuppressWarnings("removal")
     public void print(Doc doc, PrintRequestAttributeSet attributes)
         throws PrintException {
 
@@ -366,7 +367,8 @@ public class UnixPrintJob implements CancelablePrintJob {
                  }
              }
 
-             if (customTray != null) {
+             if (customTray != null &&
+                 customTray instanceof CustomMediaTray) {
                  String choice = customTray.getChoiceName();
                  if (choice != null) {
                      mOptions += " InputSlot="+choice;
@@ -420,9 +422,12 @@ public class UnixPrintJob implements CancelablePrintJob {
                     }
                     return;
                 }
-            } catch (ClassCastException | IOException e) {
+            } catch (ClassCastException cce) {
                 notifyEvent(PrintJobEvent.JOB_FAILED);
-                throw new PrintException(e);
+                throw new PrintException(cce);
+            } catch (IOException ioe) {
+                notifyEvent(PrintJobEvent.JOB_FAILED);
+                throw new PrintException(ioe);
             }
         } else if (flavor.equals(DocFlavor.URL.GIF) ||
                    flavor.equals(DocFlavor.URL.JPEG) ||
@@ -501,9 +506,12 @@ public class UnixPrintJob implements CancelablePrintJob {
                     ((UnixPrintService)service).wakeNotifier();
                 }
                 return;
-            } catch (ClassCastException | IOException e) {
+            } catch (ClassCastException cce) {
                 notifyEvent(PrintJobEvent.JOB_FAILED);
-                throw new PrintException(e);
+                throw new PrintException(cce);
+            } catch (IOException ioe) {
+                notifyEvent(PrintJobEvent.JOB_FAILED);
+                throw new PrintException(ioe);
             }
         } else if (repClassName.equals("java.awt.print.Printable")) {
             try {
@@ -514,9 +522,12 @@ public class UnixPrintJob implements CancelablePrintJob {
                     ((UnixPrintService)service).wakeNotifier();
                 }
                 return;
-            } catch (ClassCastException | IOException e) {
+            } catch (ClassCastException cce) {
                 notifyEvent(PrintJobEvent.JOB_FAILED);
-                throw new PrintException(e);
+                throw new PrintException(cce);
+            } catch (IOException ioe) {
+                notifyEvent(PrintJobEvent.JOB_FAILED);
+                throw new PrintException(ioe);
             }
         } else {
             notifyEvent(PrintJobEvent.JOB_FAILED);
@@ -525,8 +536,7 @@ public class UnixPrintJob implements CancelablePrintJob {
 
         // now spool the print data.
         PrinterOpener po = new PrinterOpener();
-        @SuppressWarnings("removal")
-        var dummy = java.security.AccessController.doPrivileged(po);
+        java.security.AccessController.doPrivileged(po);
         if (po.pex != null) {
             throw po.pex;
         }
@@ -599,8 +609,7 @@ public class UnixPrintJob implements CancelablePrintJob {
 
         if (mDestType == UnixPrintJob.DESTPRINTER) {
             PrinterSpooler spooler = new PrinterSpooler();
-            @SuppressWarnings("removal")
-            var dummy2 = java.security.AccessController.doPrivileged(spooler);
+            java.security.AccessController.doPrivileged(spooler);
             if (spooler.pex != null) {
                 throw spooler.pex;
             }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2004, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -42,11 +42,11 @@ public class UncaughtExceptionsTest {
 
     @DataProvider
     public Object[][] testCases() {
-        return new Object[][] {
+        return new Object[][]{
             new Object[] { "ThreadIsDeadAfterJoin",
                            0,
                            UncaughtExitSimulator.EXPECTED_RESULT,
-                           "Exception in thread \"Thread-\\d+\".*simulateUncaughtExitEvent"
+                           "Exception in thread \"Thread-0\".*simulateUncaughtExitEvent"
             },
             new Object[] {
                             "MainThreadAbruptTermination",
@@ -65,8 +65,7 @@ public class UncaughtExceptionsTest {
 
     @Test(dataProvider = "testCases")
     public void test(String className, int exitValue, String stdOutMatch, String stdErrMatch) throws Throwable {
-        String cmd = "UncaughtExitSimulator$" + className;
-        ProcessBuilder processBuilder = ProcessTools.createJavaProcessBuilder(cmd);
+        ProcessBuilder processBuilder = ProcessTools.createJavaProcessBuilder(String.format("UncaughtExitSimulator$%s",className));
         OutputAnalyzer outputAnalyzer = ProcessTools.executeCommand(processBuilder);
         outputAnalyzer.shouldHaveExitValue(exitValue);
         outputAnalyzer.stderrShouldMatch(stdErrMatch);
@@ -74,6 +73,7 @@ public class UncaughtExceptionsTest {
     }
 
 }
+
 
 class OK implements Thread.UncaughtExceptionHandler {
     public void uncaughtException(Thread t, Throwable e) {

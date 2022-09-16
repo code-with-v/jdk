@@ -130,7 +130,7 @@ public class JPEGImageWriteParam extends ImageWriteParam {
      * <p> The default implementation resets the compression quality
      * to {@code 0.75F}.
      *
-     * @throws IllegalStateException if the compression mode is not
+     * @exception IllegalStateException if the compression mode is not
      * {@code MODE_EXPLICIT}.
      */
     public void unsetCompression() {
@@ -147,7 +147,7 @@ public class JPEGImageWriteParam extends ImageWriteParam {
      *
      * @return {@code false}.
      *
-     * @throws IllegalStateException if the compression mode is not
+     * @exception IllegalStateException if the compression mode is not
      * {@code MODE_EXPLICIT}.
      */
     public boolean isCompressionLossless() {
@@ -204,7 +204,7 @@ public class JPEGImageWriteParam extends ImageWriteParam {
      * @param DCHuffmanTables An array of Huffman table objects.
      * @param ACHuffmanTables An array of Huffman table objects.
      *
-     * @throws IllegalArgumentException if any of the arguments
+     * @exception IllegalArgumentException if any of the arguments
      * is {@code null} or has more than 4 elements, or if the
      * numbers of DC and AC tables differ.
      *

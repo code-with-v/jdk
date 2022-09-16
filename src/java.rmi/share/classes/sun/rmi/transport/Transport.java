@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -190,7 +190,7 @@ public abstract class Transport {
                 ClassLoader savedCcl = Thread.currentThread().getContextClassLoader();
 
                 try {
-                    if (ccl != savedCcl) setContextClassLoader(ccl);
+                    setContextClassLoader(ccl);
                     currentTransport.set(this);
                     try {
                         java.security.AccessController.doPrivileged(
@@ -205,7 +205,7 @@ public abstract class Transport {
                         throw (IOException) pae.getException();
                     }
                 } finally {
-                    if (ccl != savedCcl) setContextClassLoader(savedCcl);
+                    setContextClassLoader(savedCcl);
                     currentTransport.set(null);
                 }
 

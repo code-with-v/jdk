@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2015, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -38,12 +38,6 @@ public class InputGraph extends Properties.Entity implements FolderElement {
     private Map<String, InputBlock> blocks;
     private List<InputBlockEdge> blockEdges;
     private Map<Integer, InputBlock> nodeToBlock;
-    private boolean isDiffGraph;
-
-    public InputGraph(String name, boolean isDiffGraph) {
-        this(name);
-        this.isDiffGraph = isDiffGraph;
-    }
 
     public InputGraph(String name) {
         setName(name);
@@ -52,11 +46,6 @@ public class InputGraph extends Properties.Entity implements FolderElement {
         blocks = new LinkedHashMap<>();
         blockEdges = new ArrayList<>();
         nodeToBlock = new LinkedHashMap<>();
-        isDiffGraph = false;
-    }
-
-    public boolean isDiffGraph() {
-        return this.isDiffGraph;
     }
 
     @Override
@@ -69,11 +58,7 @@ public class InputGraph extends Properties.Entity implements FolderElement {
     }
 
     public InputBlockEdge addBlockEdge(InputBlock left, InputBlock right) {
-        return addBlockEdge(left, right, null);
-    }
-
-    public InputBlockEdge addBlockEdge(InputBlock left, InputBlock right, String label) {
-        InputBlockEdge edge = new InputBlockEdge(left, right, label);
+        InputBlockEdge edge = new InputBlockEdge(left, right);
         blockEdges.add(edge);
         left.addSuccessor(right);
         return edge;
@@ -111,7 +96,7 @@ public class InputGraph extends Properties.Entity implements FolderElement {
 
         for(InputNode n : this.getNodes()) {
             List<InputEdge> list = result.get(n);
-            list.sort(InputEdge.OUTGOING_COMPARATOR);
+            Collections.sort(list, InputEdge.OUTGOING_COMPARATOR);
         }
 
         return result;
@@ -133,7 +118,7 @@ public class InputGraph extends Properties.Entity implements FolderElement {
 
         for(InputNode n : this.getNodes()) {
             List<InputEdge> list = result.get(n);
-            list.sort(InputEdge.INGOING_COMPARATOR);
+            Collections.sort(list, InputEdge.INGOING_COMPARATOR);
         }
 
         return result;
@@ -148,14 +133,13 @@ public class InputGraph extends Properties.Entity implements FolderElement {
             }
         }
 
-        result.sort(InputEdge.OUTGOING_COMPARATOR);
+        Collections.sort(result, InputEdge.OUTGOING_COMPARATOR);
 
         return result;
     }
 
     public void clearBlocks() {
         blocks.clear();
-        blockEdges.clear();
         nodeToBlock.clear();
     }
 
@@ -184,7 +168,7 @@ public class InputGraph extends Properties.Entity implements FolderElement {
             assert nodes.get(n.getId()) == n;
             if (!scheduledNodes.contains(n)) {
                 if (noBlock == null) {
-                    noBlock = addArtificialBlock();
+                    noBlock = this.addBlock("(no block)");
                 }
                 noBlock.addNode(n.getId());
             }
@@ -284,12 +268,6 @@ public class InputGraph extends Properties.Entity implements FolderElement {
         }
 
         return sb.toString();
-    }
-
-    public InputBlock addArtificialBlock() {
-        InputBlock b = addBlock("(no block)");
-        b.setArtificial(true);
-        return b;
     }
 
     public InputBlock addBlock(String name) {

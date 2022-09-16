@@ -1,6 +1,6 @@
 /*
  * @test /nodynamiccopyright/
- * @bug 8262891 8269146 8269113
+ * @bug 8262891 8269146
  * @summary Verify errors related to pattern switches.
  * @compile/fail/ref=SwitchErrors.out --enable-preview -source ${jdk.version} -XDrawDiagnostics -XDshould-stop.at=FLOW SwitchErrors.java
  */
@@ -154,6 +154,12 @@ public class SwitchErrors {
             case String s: break;
         }
     }
+    void nullAfterTotal(Object o) {
+        switch (o) {
+            case Object obj: break;
+            case null: break;
+        }
+    }
     void sealedNonAbstract(SealedNonAbstract obj) {
         switch (obj) {//does not cover SealedNonAbstract
             case A a -> {}
@@ -169,29 +175,20 @@ public class SwitchErrors {
     }
     Object guardWithMatchingStatement(Object o1, Object o2) {
         switch (o1) {
-            case String s when s.isEmpty() || o2 instanceof Number n: return n;
+            case String s && s.isEmpty() || o2 instanceof Number n: return n;
             default: return null;
         }
     }
     Object guardWithMatchingExpression(Object o1, Object o2) {
         return switch (o1) {
-            case String s when s.isEmpty() || o2 instanceof Number n -> n;
+            case String s && s.isEmpty() || o2 instanceof Number n -> n;
             default -> null;
         };
     }
-    void test8269146a1(Integer i) {
+    void test8269146a(Integer i) {
         switch (i) {
             //error - illegal combination of pattern and constant:
-            case 1, Integer o when o != null:
-                break;
-            default:
-                break;
-        }
-    }
-    void test8269146a2(Integer i) {
-        switch (i) {
-            //error - illegal combination of pattern and constant:
-            case Integer o when o != null, 1:
+            case Integer o && o != null, 1:
                 break;
             default:
                 break;
@@ -200,7 +197,7 @@ public class SwitchErrors {
     void test8269146b(Integer i) {
         switch (i) {
             //error - illegal combination of null and pattern other than type pattern:
-            case null, Integer o when o != null:
+            case null, Integer o && o != null:
                 break;
             default:
                 break;
@@ -213,67 +210,16 @@ public class SwitchErrors {
                 break;
         }
     }
-    void test8269301a(Integer i) {
+    void test8269301(Integer i) {
         switch (i) {
             //error - illegal combination of pattern, constant and default
-            case 1, Integer o when o != null, default:
-                break;
-        }
-    }
-    void test8269301b(Integer i) {
-        switch (i) {
-            //error - illegal combination of pattern, constant and default
-            case Integer o when o != null, 1, default:
+            case Integer o && o != null, 1, default:
                 break;
         }
     }
     void exhaustiveAndNull(String s) {
         switch (s) {
             case null: break;
-        }
-    }
-    void referenceTypeTotalForNull() {
-        switch (null) {
-            case String s: break;
-            case CharSequence cs: break;
-        }
-    }
-    void primitiveToReference(int i) {
-        switch (i) {
-            case Integer j: break;
-        }
-    }
-    void referenceToPrimitive(Integer i) {
-        switch (i) {
-            case int j: break;
-        }
-    }
-    void nullAndParenthesized1(Object o) {
-        record R(Object o) {}
-        switch (o) {
-            case null, ((R r)): break;
-            default: break;
-        }
-    }
-    void nullAndParenthesized2(Object o) {
-        record R(Object o) {}
-        switch (o) {
-            case null, ((R(var v))): break;
-            default: break;
-        }
-    }
-    void nullAndParenthesized3(Object o) {
-        record R(Object o) {}
-        switch (o) {
-            case ((R r)): case null: break;
-            default: break;
-        }
-    }
-    void nullAndParenthesized4(Object o) {
-        record R(Object o) {}
-        switch (o) {
-            case ((R(var v))): case null: break;
-            default: break;
         }
     }
 }

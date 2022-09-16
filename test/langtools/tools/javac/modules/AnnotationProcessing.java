@@ -393,7 +393,7 @@ public class AnnotationProcessing extends ModuleTestBase {
 
             for (TypeElement clazz : ElementFilter.typesIn(roundEnv.getRootElements())) {
                 for (VariableElement field : ElementFilter.fieldsIn(clazz.getEnclosedElements())) {
-                    messager.printNote("field: " + field.getSimpleName());
+                    messager.printMessage(Kind.NOTE, "field: " + field.getSimpleName());
                 }
             }
 
@@ -494,7 +494,7 @@ public class AnnotationProcessing extends ModuleTestBase {
 
         @Override
         public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-            processingEnv.getMessager().printNote("AP Invoked");
+            processingEnv.getMessager().printMessage(Kind.NOTE, "AP Invoked");
             return false;
         }
 
@@ -553,7 +553,7 @@ public class AnnotationProcessing extends ModuleTestBase {
 
         @Override
         public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-            processingEnv.getMessager().printNote("m1x/test.A AP Invoked");
+            processingEnv.getMessager().printMessage(Kind.NOTE, "m1x/test.A AP Invoked");
             return false;
         }
 
@@ -569,7 +569,7 @@ public class AnnotationProcessing extends ModuleTestBase {
 
         @Override
         public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
-            processingEnv.getMessager().printNote("m1x/test.B AP Invoked");
+            processingEnv.getMessager().printMessage(Kind.NOTE, "m1x/test.B AP Invoked");
             return false;
         }
 

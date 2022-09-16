@@ -93,6 +93,8 @@ int JLI_Open(const char* name, int flags);
 JNIEXPORT void JNICALL
 JLI_CmdToArgs(char *cmdline);
 #define JLI_Lseek                       _lseeki64
+#define JLI_PutEnv                      _putenv
+#define JLI_GetPid                      _getpid
 #else  /* NIXES */
 #include <unistd.h>
 #include <strings.h>
@@ -100,6 +102,8 @@ JLI_CmdToArgs(char *cmdline);
 #define JLI_StrNCaseCmp(p1, p2, p3)     strncasecmp((p1), (p2), (p3))
 #define JLI_Snprintf                    snprintf
 #define JLI_Open                        open
+#define JLI_PutEnv                      putenv
+#define JLI_GetPid                      getpid
 #ifdef __linux__
 #define _LARGFILE64_SOURCE
 #define JLI_Lseek                       lseek64

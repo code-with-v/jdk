@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020, 2022 THL A29 Limited, a Tencent company. All rights reserved.
+ * Copyright (C) 2020 THL A29 Limited, a Tencent company. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,14 +36,14 @@ import jdk.test.lib.containers.docker.DockerTestUtils;
 import jdk.test.lib.process.OutputAnalyzer;
 
 public class TestGetFreeSwapSpaceSize {
-    private static final String imageName = Common.imageName("osbeanSwapSpace");
+    private static final String imageName = Common.imageName("memory");
 
     public static void main(String[] args) throws Exception {
         if (!DockerTestUtils.canTestDocker()) {
             return;
         }
 
-        DockerTestUtils.buildJdkContainerImage(imageName);
+        DockerTestUtils.buildJdkDockerImage(imageName, "Dockerfile-BasicTest", "jdk-docker");
 
         try {
             testGetFreeSwapSpaceSize(
@@ -58,18 +58,17 @@ public class TestGetFreeSwapSpaceSize {
     }
 
     private static void testGetFreeSwapSpaceSize(String memoryAllocation, String expectedMemory,
-            String memorySwapAllocation, String expectedSwap) throws Exception {
+            String swapAllocation, String expectedSwap) throws Exception {
         Common.logNewTestCase("TestGetFreeSwapSpaceSize");
 
         DockerRunOptions opts = Common.newOpts(imageName, "GetFreeSwapSpaceSize")
-            .addClassOptions(memoryAllocation, expectedMemory, memorySwapAllocation, expectedSwap)
             .addDockerOpts(
                 "--memory", memoryAllocation,
-                "--memory-swap", memorySwapAllocation
+                "--memory-swap", swapAllocation
             );
 
         OutputAnalyzer out = DockerTestUtils.dockerRunJava(opts);
         out.shouldHaveExitValue(0)
-           .shouldContain("TestGetFreeSwapSpaceSize PASSED.");
+           .shouldContain("TestGetFreeSwapSpaceSize");
     }
 }

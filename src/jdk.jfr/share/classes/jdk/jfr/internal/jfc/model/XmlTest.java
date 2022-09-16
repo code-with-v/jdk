@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,7 @@
  */
 package jdk.jfr.internal.jfc.model;
 
+import java.text.ParseException;
 import java.util.List;
 
 // Corresponds to <test>
@@ -52,17 +53,17 @@ final class XmlTest extends XmlExpression {
     }
 
     @Override
-    protected void validateChildConstraints() throws JFCModelException {
+    protected void validateChildConstraints() throws ParseException {
         if (!getExpressions().isEmpty()) {
-            throw new JFCModelException("Expected <test> to not have child elements");
+            throw new ParseException("Expected <test> to not have child elements", 0);
         }
     }
 
     @Override
-    protected void validateAttributes() throws JFCModelException {
+    protected void validateAttributes() throws ParseException {
         super.validateAttributes();
         if (!getOperator().equalsIgnoreCase("equal")) {
-            throw new JFCModelException("Unknown operator '" + getOperator() + "', only supported is 'equal'");
+            throw new ParseException("Unknown operator '" + getOperator() + "', only supported is 'equal'", 0);
         }
     }
 

@@ -74,11 +74,7 @@ public class NonBlockingPumpReader extends NonBlockingReader {
             // Blocks until more input is available or the reader is closed.
             if (!closed && count == 0) {
                 try {
-                    if (timeout > 0L) {
-                        notEmpty.await(timeout, TimeUnit.MILLISECONDS);
-                    } else {
-                        notEmpty.await();
-                    }
+                    notEmpty.await(timeout, TimeUnit.MILLISECONDS);
                 } catch (InterruptedException e) {
                     throw (IOException) new InterruptedIOException().initCause(e);
                 }

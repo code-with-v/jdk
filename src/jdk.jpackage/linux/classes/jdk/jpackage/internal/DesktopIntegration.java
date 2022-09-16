@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,8 +25,11 @@
 package jdk.jpackage.internal;
 
 import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -36,8 +39,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.imageio.ImageIO;
@@ -53,19 +56,15 @@ import static jdk.jpackage.internal.StandardBundlerParam.DESCRIPTION;
 import static jdk.jpackage.internal.StandardBundlerParam.FILE_ASSOCIATIONS;
 import static jdk.jpackage.internal.StandardBundlerParam.ICON;
 import static jdk.jpackage.internal.StandardBundlerParam.PREDEFINED_APP_IMAGE;
-import static jdk.jpackage.internal.StandardBundlerParam.SHORTCUT_HINT;
 
 /**
  * Helper to create files for desktop integration.
  */
-final class DesktopIntegration extends ShellCustomAction {
+final class DesktopIntegration {
 
-    private static final String COMMANDS_INSTALL = "DESKTOP_COMMANDS_INSTALL";
-    private static final String COMMANDS_UNINSTALL = "DESKTOP_COMMANDS_UNINSTALL";
-    private static final String SCRIPTS = "DESKTOP_SCRIPTS";
-
-    private static final List<String> REPLACEMENT_STRING_IDS = List.of(
-            COMMANDS_INSTALL, COMMANDS_UNINSTALL, SCRIPTS);
+    static final String DESKTOP_COMMANDS_INSTALL = "DESKTOP_COMMANDS_INSTALL";
+    static final String DESKTOP_COMMANDS_UNINSTALL = "DESKTOP_COMMANDS_UNINSTALL";
+    static final String UTILITY_SCRIPTS = "UTILITY_SCRIPTS";
 
     private DesktopIntegration(PlatformPackage thePackage,
             Map<String, ? super Object> params,
@@ -82,8 +81,8 @@ final class DesktopIntegration extends ShellCustomAction {
 
         // Need desktop and icon files if one of conditions is met:
         //  - there are file associations configured
-        //  - user explicitly requested to create a shortcut
-        boolean withDesktopFile = !associations.isEmpty() || LINUX_SHORTCUT_HINT.fetchFrom(params);
+        //  - user explicitely requested to create a shortcut
+        boolean withDesktopFile = !associations.isEmpty() || SHORTCUT_HINT.fetchFrom(params);
 
         var curIconResource = LinuxAppImageBuilder.createIconResource(DEFAULT_ICON,
                 ICON_PNG, params, mainParams);
@@ -139,60 +138,47 @@ final class DesktopIntegration extends ShellCustomAction {
         // Read launchers information from predefine app image
         if (launchers.isEmpty() &&
                 PREDEFINED_APP_IMAGE.fetchFrom(params) != null) {
-            List<AppImageFile.LauncherInfo> launcherInfos =
-                    AppImageFile.getLaunchers(
+            List<String> launcherPaths = AppImageFile.getLauncherNames(
                     PREDEFINED_APP_IMAGE.fetchFrom(params), params);
-            if (!launcherInfos.isEmpty()) {
-                launcherInfos.remove(0); // Remove main launcher
+            if (!launcherPaths.isEmpty()) {
+                launcherPaths.remove(0); // Remove main launcher
             }
-            for (var launcherInfo : launcherInfos) {
+            for (var launcherPath : launcherPaths) {
                 Map<String, ? super Object> launcherParams = new HashMap<>();
                 Arguments.putUnlessNull(launcherParams, CLIOptions.NAME.getId(),
-                        launcherInfo.getName());
-                launcherParams = AddLauncherArguments.merge(params,
-                        launcherParams, ICON.getID(), ICON_PNG.getID(),
-                        ADD_LAUNCHERS.getID(), FILE_ASSOCIATIONS.getID(),
-                        PREDEFINED_APP_IMAGE.getID());
-                if (launcherInfo.isShortcut()) {
-                    nestedIntegrations.add(new DesktopIntegration(thePackage,
-                            launcherParams, params));
-                }
+                        launcherPath);
+                launcherParams = AddLauncherArguments.merge(params, launcherParams,
+                    ICON.getID(), ICON_PNG.getID(), ADD_LAUNCHERS.getID(),
+                    FILE_ASSOCIATIONS.getID(), PREDEFINED_APP_IMAGE.getID());
+                nestedIntegrations.add(new DesktopIntegration(thePackage,
+                        launcherParams, params));
             }
         } else {
             for (var launcherParams : launchers) {
-                launcherParams = AddLauncherArguments.merge(params,
-                        launcherParams, ICON.getID(), ICON_PNG.getID(),
-                        ADD_LAUNCHERS.getID(), FILE_ASSOCIATIONS.getID());
-                if (SHORTCUT_HINT.fetchFrom(launcherParams)) {
-                    nestedIntegrations.add(new DesktopIntegration(thePackage,
-                            launcherParams, params));
-                }
+                launcherParams = AddLauncherArguments.merge(params, launcherParams,
+                        ICON.getID(), ICON_PNG.getID(), ADD_LAUNCHERS.getID(),
+                        FILE_ASSOCIATIONS.getID());
+                nestedIntegrations.add(new DesktopIntegration(thePackage,
+                        launcherParams, params));
             }
         }
     }
 
-    static ShellCustomAction create(PlatformPackage thePackage,
+    static DesktopIntegration create(PlatformPackage thePackage,
             Map<String, ? super Object> params) throws IOException {
         if (StandardBundlerParam.isRuntimeInstaller(params)) {
-            return ShellCustomAction.nop(REPLACEMENT_STRING_IDS);
+            return null;
         }
         return new DesktopIntegration(thePackage, params, null);
     }
 
-    @Override
     List<String> requiredPackages() {
         return Stream.of(List.of(this), nestedIntegrations).flatMap(
                 List::stream).map(DesktopIntegration::requiredPackagesSelf).flatMap(
                 List::stream).distinct().toList();
     }
 
-    @Override
-    protected List<String> replacementStringIds() {
-        return REPLACEMENT_STRING_IDS;
-    }
-
-    @Override
-    protected Map<String, String> createImpl() throws IOException {
+    Map<String, String> create() throws IOException {
         associations.forEach(assoc -> assoc.data.verify());
 
         if (iconFile != null) {
@@ -237,9 +223,9 @@ final class DesktopIntegration extends ShellCustomAction {
         // of the additional launchers and append them to the corresponding
         // commands of the main launcher.
         List<String> installShellCmds = new ArrayList<>(Arrays.asList(
-                data.get(COMMANDS_INSTALL)));
+                data.get(DESKTOP_COMMANDS_INSTALL)));
         List<String> uninstallShellCmds = new ArrayList<>(Arrays.asList(
-                data.get(COMMANDS_UNINSTALL)));
+                data.get(DESKTOP_COMMANDS_UNINSTALL)));
         for (var integration: nestedIntegrations) {
             if (!integration.associations.isEmpty()) {
                 needCleanupScripts = true;
@@ -247,16 +233,26 @@ final class DesktopIntegration extends ShellCustomAction {
 
             Map<String, String> launcherData = integration.create();
 
-            installShellCmds.add(launcherData.get(COMMANDS_INSTALL));
-            uninstallShellCmds.add(launcherData.get(COMMANDS_UNINSTALL));
+            installShellCmds.add(launcherData.get(DESKTOP_COMMANDS_INSTALL));
+            uninstallShellCmds.add(launcherData.get(
+                    DESKTOP_COMMANDS_UNINSTALL));
         }
 
-        data.put(COMMANDS_INSTALL, stringifyShellCommands(installShellCmds));
-        data.put(COMMANDS_UNINSTALL, stringifyShellCommands(uninstallShellCmds));
+        data.put(DESKTOP_COMMANDS_INSTALL, stringifyShellCommands(
+                installShellCmds));
+        data.put(DESKTOP_COMMANDS_UNINSTALL, stringifyShellCommands(
+                uninstallShellCmds));
 
         if (needCleanupScripts) {
-            // Pull in desktop_utils.sh scrips library.
-            data.put(SCRIPTS, stringifyTextFile("desktop_utils.sh"));
+            // Pull in utils.sh scrips library.
+            try (InputStream is = OverridableResource.readDefault("utils.sh");
+                    InputStreamReader isr = new InputStreamReader(is);
+                    BufferedReader reader = new BufferedReader(isr)) {
+                data.put(UTILITY_SCRIPTS, reader.lines().collect(
+                        Collectors.joining(System.lineSeparator())));
+            }
+        } else {
+            data.put(UTILITY_SCRIPTS, "");
         }
 
         return data;
@@ -274,12 +270,17 @@ final class DesktopIntegration extends ShellCustomAction {
         Map<String, String> data = new HashMap<>();
         data.put("APPLICATION_NAME", APP_NAME.fetchFrom(params));
         data.put("APPLICATION_DESCRIPTION", DESCRIPTION.fetchFrom(params));
-        data.put("APPLICATION_ICON", Optional.ofNullable(iconFile).map(
-                f -> f.installPath().toString()).orElse(null));
+        data.put("APPLICATION_ICON",
+                iconFile != null ? iconFile.installPath().toString() : null);
         data.put("DEPLOY_BUNDLE_CATEGORY", MENU_GROUP.fetchFrom(params));
-        data.put("APPLICATION_LAUNCHER", Enquoter.forPropertyValues().applyTo(
-                thePackage.installedApplicationLayout().launchersDirectory().resolve(
-                        LinuxAppImageBuilder.getLauncherName(params)).toString()));
+
+        String appLauncher = thePackage.installedApplicationLayout().launchersDirectory().resolve(
+                LinuxAppImageBuilder.getLauncherName(params)).toString();
+        if (Pattern.compile("\\s").matcher(appLauncher).find()) {
+            // Path contains whitespace(s). Enclose in double quotes.
+            appLauncher = "\"" + appLauncher + "\"";
+        }
+        data.put("APPLICATION_LAUNCHER", appLauncher);
 
         return data;
     }
@@ -310,7 +311,7 @@ final class DesktopIntegration extends ShellCustomAction {
             // Add manual cleanup of system files to get rid of
             // the default mime type handlers.
             //
-            // Even after mime type is unregistered with `xdg-mime uninstall`
+            // Even after mime type is unregisterd with `xdg-mime uninstall`
             // command and desktop file deleted with `xdg-desktop-menu uninstall`
             // command, records in
             // `/usr/share/applications/defaults.list` (Ubuntu 16) or
@@ -348,13 +349,13 @@ final class DesktopIntegration extends ShellCustomAction {
             cmds.add(registerDesktopFileCmd);
             cmds.add(registerFileAssociationsCmd);
             cmds.addAll(registerIconCmds);
-            data.put(COMMANDS_INSTALL, stringifyShellCommands(cmds));
+            data.put(DESKTOP_COMMANDS_INSTALL, stringifyShellCommands(cmds));
 
             cmds.clear();
             cmds.add(unregisterDesktopFileCmd);
             cmds.add(unregisterFileAssociationsCmd);
             cmds.addAll(unregisterIconCmds);
-            data.put(COMMANDS_UNINSTALL, stringifyShellCommands(cmds));
+            data.put(DESKTOP_COMMANDS_UNINSTALL, stringifyShellCommands(cmds));
         }
 
         private String registerDesktopFileCmd;
@@ -377,25 +378,24 @@ final class DesktopIntegration extends ShellCustomAction {
     private class DesktopFile {
 
         DesktopFile(String fileName) {
-            var installPath = thePackage
+            installPath = thePackage
                     .installedApplicationLayout()
                     .destktopIntegrationDirectory().resolve(fileName);
-            var srcPath = thePackage
+            srcPath = thePackage
                     .sourceApplicationLayout()
                     .destktopIntegrationDirectory().resolve(fileName);
-
-            impl = new InstallableFile(srcPath, installPath);
         }
 
+        private final Path installPath;
+        private final Path srcPath;
+
         Path installPath() {
-            return impl.installPath();
+            return installPath;
         }
 
         Path srcPath() {
-            return impl.srcPath();
+            return srcPath;
         }
-
-        private final InstallableFile impl;
     }
 
     private void appendFileAssociation(XMLStreamWriter xml,
@@ -519,6 +519,15 @@ final class DesktopIntegration extends ShellCustomAction {
         return commonIconSize;
     }
 
+    private static String stringifyShellCommands(String... commands) {
+        return stringifyShellCommands(Arrays.asList(commands));
+    }
+
+    private static String stringifyShellCommands(List<String> commands) {
+        return String.join(System.lineSeparator(), commands.stream().filter(
+                s -> s != null && !s.isEmpty()).toList());
+    }
+
     private static class LinuxFileAssociation {
         LinuxFileAssociation(FileAssociation fa) {
             this.data = fa;
@@ -558,7 +567,7 @@ final class DesktopIntegration extends ShellCustomAction {
                 (s, p) -> s
         );
 
-    private static final StandardBundlerParam<Boolean> LINUX_SHORTCUT_HINT =
+    private static final StandardBundlerParam<Boolean> SHORTCUT_HINT =
         new StandardBundlerParam<>(
                 Arguments.CLIOptions.LINUX_SHORTCUT_HINT.getId(),
                 Boolean.class,

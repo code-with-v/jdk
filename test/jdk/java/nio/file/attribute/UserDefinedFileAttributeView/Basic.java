@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,27 +22,21 @@
  */
 
 /* @test
- * @bug 4313887 6838333 8273922
+ * @bug 4313887 6838333
  * @summary Unit test for java.nio.file.attribute.UserDefinedFileAttributeView
- * @library ../.. /test/lib
+ * @library ../..
  * @key randomness
- * @build jdk.test.lib.Platform
- * @run main Basic
  */
 
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.LinkOption;
-import java.nio.file.Path;
+import java.nio.file.*;
 import static java.nio.file.LinkOption.*;
 import java.nio.file.attribute.*;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Random;
-import jdk.test.lib.Platform;
+import java.io.IOException;
 
 public class Basic {
 
@@ -150,16 +144,9 @@ public class Basic {
             throw new RuntimeException("Unexpected attribute value");
     }
 
-    private static void setEA(Path longPath, String s) throws IOException {
-        System.out.println("Setting short EA '" + s +
-            "' on path of length " + longPath.toString().length());
-        Files.setAttribute(longPath, s,
-            ByteBuffer.wrap("ea-value".getBytes(StandardCharsets.UTF_8)));
-    }
-
-    static void miscTests(final Path dir) throws IOException {
+    static void miscTests(final Path file) throws IOException {
         final UserDefinedFileAttributeView view =
-            Files.getFileAttributeView(dir, UserDefinedFileAttributeView.class);
+            Files.getFileAttributeView(file, UserDefinedFileAttributeView.class);
         view.write(ATTR_NAME, ByteBuffer.wrap(ATTR_VALUE.getBytes()));
 
         // NullPointerException
@@ -191,31 +178,31 @@ public class Basic {
             }});
         expectNullPointerException(new Task() {
             public void run() throws IOException {
-                Files.getAttribute(dir, null);
+                Files.getAttribute(file, null);
             }});
         expectNullPointerException(new Task() {
             public void run() throws IOException {
-                Files.getAttribute(dir, "user:" + ATTR_NAME, (LinkOption[])null);
+                Files.getAttribute(file, "user:" + ATTR_NAME, (LinkOption[])null);
             }});
         expectNullPointerException(new Task() {
             public void run() throws IOException {
-                Files.setAttribute(dir, "user:" + ATTR_NAME, null);
+                Files.setAttribute(file, "user:" + ATTR_NAME, null);
             }});
         expectNullPointerException(new Task() {
             public void run() throws IOException {
-                Files.setAttribute(dir, null, new byte[0]);
+                Files.setAttribute(file, null, new byte[0]);
             }});
         expectNullPointerException(new Task() {
             public void run() throws IOException {
-                Files.setAttribute(dir, "user: " + ATTR_NAME, new byte[0], (LinkOption[])null);
+                Files.setAttribute(file, "user: " + ATTR_NAME, new byte[0], (LinkOption[])null);
             }});
         expectNullPointerException(new Task() {
             public void run() throws IOException {
-                Files.readAttributes(dir, (String)null);
+                Files.readAttributes(file, (String)null);
             }});
         expectNullPointerException(new Task() {
             public void run() throws IOException {
-                Files.readAttributes(dir, "*", (LinkOption[])null);
+                Files.readAttributes(file, "*", (LinkOption[])null);
             }});
 
         // Read-only buffer
@@ -234,41 +221,6 @@ public class Basic {
                 buf.position(buf.capacity());
                 view.read(ATTR_NAME, buf);
             }});
-
-        // Long attribute name
-        if (Platform.isWindows()) {
-            Path tmp = Files.createTempDirectory(dir, "ea-length-bug");
-            int len = tmp.toString().length();
-
-            // We need to run up to MAX_PATH for directories,
-            // but not quite go over it.
-            int MAX_PATH = 250;
-            int requiredLen = MAX_PATH - len - 2;
-
-            // Create a really long directory name.
-            Path longPath = tmp.resolve("x".repeat(requiredLen));
-
-            // Make sure the directory exists.
-            Files.createDirectory(longPath);
-
-            try {
-                System.out.println("Testing " + longPath);
-
-                // Try to set absolute path as extended attribute;
-                // expect IAE
-                tryCatch(IllegalArgumentException.class, new Task() {
-                    public void run() throws IOException {
-                        setEA(longPath, "user:C:\\");
-                    }
-                });
-
-                // Try to set an extended attribute on it.
-                setEA(longPath, "user:short");
-                setEA(longPath, "user:reallyquitelonglongattrname");
-            } finally {
-                Files.delete(longPath);
-            }
-        }
     }
 
     public static void main(String[] args) throws IOException {

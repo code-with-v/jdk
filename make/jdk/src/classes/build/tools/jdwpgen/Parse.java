@@ -106,7 +106,7 @@ class Parse {
     Node item() throws IOException {
         switch (izer.nextToken()) {
             case StreamTokenizer.TT_EOF:
-                error("Unexpected end-of-file");
+                error("Unexpect end-of-file");
                 return null;
 
             case StreamTokenizer.TT_WORD: {

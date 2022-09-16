@@ -40,7 +40,6 @@ import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpPrincipal;
-import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import sun.net.httpserver.UnmodifiableHeaders;
 import static org.testng.Assert.assertEquals;
@@ -63,24 +62,14 @@ public class UnmodifiableHeadersTest {
         assertEquals(unmodifiableHeaders2.get("Foo"), headers.get("Foo"));
     }
 
-    @DataProvider
-    public Object[][] headers() {
+    @Test
+    public static void testUnmodifiableHeaders() {
         var headers = new Headers();
         headers.add("Foo", "Bar");
-        var exchange = new TestHttpExchange(headers);
+        HttpExchange exchange = new TestHttpExchange(headers);
 
-        return new Object[][] {
-            { exchange.getRequestHeaders() },
-            { Headers.of("Foo", "Bar") },
-            { Headers.of(Map.of("Foo", List.of("Bar"))) },
-        };
-    }
-
-    @Test(dataProvider = "headers")
-    public static void testUnmodifiableHeaders(Headers headers) {
-        assertUnsupportedOperation(headers);
-        assertUnmodifiableCollection(headers);
-        assertUnmodifiableList(headers);
+        assertUnsupportedOperation(exchange.getRequestHeaders());
+        assertUnmodifiableCollection(exchange.getRequestHeaders());
     }
 
     static final Class<UnsupportedOperationException> UOP = UnsupportedOperationException.class;

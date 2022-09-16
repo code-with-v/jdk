@@ -26,7 +26,6 @@
  * @summary JVM should be able to handle full path (directory path plus
  *          class name) or directory path longer than MAX_PATH specified
  *          in -Xbootclasspath/a on windows.
- * @requires vm.flagless
  * @library /test/lib
  * @modules java.base/jdk.internal.misc
  *          java.management

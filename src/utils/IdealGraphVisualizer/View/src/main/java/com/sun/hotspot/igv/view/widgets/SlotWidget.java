@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,7 +32,6 @@ import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
-import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.geom.Rectangle2D;
 import java.util.HashSet;
@@ -58,16 +57,13 @@ public abstract class SlotWidget extends Widget implements DoubleClickHandler {
         this.diagramScene = scene;
         this.slot = slot;
         figureWidget = fw;
-        if (slot.hasSourceNodes()) {
+        if (!slot.getSource().getSourceNodes().isEmpty()) {
             this.setToolTipText("<HTML>" + slot.getToolTipText() + "</HTML>");
         }
         this.setCheckClipping(true);
         parent.addChild(this);
 
-        Point p = slot.getRelativePosition();
-        p.x -= this.calculateClientArea().width / 2;
-        p.y += yOffset();
-        this.setPreferredLocation(p);
+        //this.setPreferredBounds(this.calculateClientArea());
     }
 
     @Override
@@ -96,7 +92,7 @@ public abstract class SlotWidget extends Widget implements DoubleClickHandler {
         int w = this.getBounds().width;
         int h = this.getBounds().height;
 
-        if (getSlot().hasSourceNodes()) {
+        if (getSlot().getSource().getSourceNodes().size() > 0) {
             final int SMALLER = 0;
             g.setColor(getSlot().getColor());
 
@@ -113,7 +109,7 @@ public abstract class SlotWidget extends Widget implements DoubleClickHandler {
                 g.setStroke(new BasicStroke(1f));
             }
 
-            if (getSlot().shouldShowName()) {
+            if (getSlot().getShortName() != null && getSlot().getShortName().length() > 0) {
                 g.setFont(font);
                 Rectangle2D r1 = g.getFontMetrics().getStringBounds(getSlot().getShortName(), g);
                 rectW = (int) r1.getWidth() + FONT_OFFSET * 2;
@@ -127,15 +123,14 @@ public abstract class SlotWidget extends Widget implements DoubleClickHandler {
             }
             g.drawRect(w / 2 - rectW / 2, 0, rectW - 1, s - 1);
 
-            if (getSlot().shouldShowName() && getScene().getZoomFactor() >= TEXT_ZOOM_FACTOR) {
+            if (getSlot().getShortName() != null && getSlot().getShortName().length() > 0 && getScene().getZoomFactor() >= TEXT_ZOOM_FACTOR) {
                 Rectangle2D r1 = g.getFontMetrics().getStringBounds(getSlot().getShortName(), g);
                 g.drawString(getSlot().getShortName(), (int) (w - r1.getWidth()) / 2, g.getFontMetrics().getAscent() - 1);//(int) (r1.getHeight()));
             }
 
         } else {
 
-            if (this.getSlot().getConnections().isEmpty() &&
-                !getFigureWidget().getFigure().getDiagram().isCFG()) {
+            if (this.getSlot().getConnections().isEmpty()) {
                 if (this.getState().isHighlighted()) {
                     g.setColor(Color.BLUE);
                 } else {
@@ -159,8 +154,6 @@ public abstract class SlotWidget extends Widget implements DoubleClickHandler {
     }
 
     protected abstract int calculateSlotWidth();
-
-    protected abstract int yOffset();
 
     protected int calculateWidth(int count) {
         return getFigureWidget().getFigure().getWidth() / count;

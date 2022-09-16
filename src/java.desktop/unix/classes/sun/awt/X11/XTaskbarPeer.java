@@ -48,7 +48,7 @@ final class XTaskbarPeer implements TaskbarPeer {
         String de = AccessController.doPrivileged(
                         (PrivilegedAction<String>) ()
                                 -> System.getenv("XDG_CURRENT_DESKTOP"));
-        isUnity = "Unity".equals(de);
+        isUnity = de != null && de.equals("Unity");
     }
 
     private static void initWithLock() {

@@ -445,7 +445,7 @@ public class JList<E> extends JComponent implements Scrollable, Accessible
      * allowing for tooltips to be provided by the cell renderers.
      *
      * @param dataModel the model for the list
-     * @throws IllegalArgumentException if the model is {@code null}
+     * @exception IllegalArgumentException if the model is {@code null}
      */
     public JList(ListModel<E> dataModel)
     {
@@ -1202,7 +1202,7 @@ public class JList<E> extends JComponent implements Scrollable, Accessible
      * list's {@code TransferHandler}.
      *
      * @param b whether or not to enable automatic drag handling
-     * @throws HeadlessException if
+     * @exception HeadlessException if
      *            <code>b</code> is <code>true</code> and
      *            <code>GraphicsEnvironment.isHeadless()</code>
      *            returns <code>true</code>
@@ -1493,7 +1493,7 @@ public class JList<E> extends JComponent implements Scrollable, Accessible
      * Position.Bias.Forward or Position.Bias.Backward.
      * @return the index of the next list element that
      * starts with the prefix; otherwise {@code -1}
-     * @throws IllegalArgumentException if prefix is {@code null}
+     * @exception IllegalArgumentException if prefix is {@code null}
      * or startIndex is out of bounds
      * @since 1.4
      */
@@ -1695,7 +1695,7 @@ public class JList<E> extends JComponent implements Scrollable, Accessible
      *
      * @param model  the <code>ListModel</code> that provides the
      *                                          list of items for display
-     * @throws IllegalArgumentException  if <code>model</code> is
+     * @exception IllegalArgumentException  if <code>model</code> is
      *                                          <code>null</code>
      * @see #getModel
      * @see #clearSelection
@@ -1910,7 +1910,7 @@ public class JList<E> extends JComponent implements Scrollable, Accessible
      *
      * @param selectionModel  the <code>ListSelectionModel</code> that
      *                          implements the selections
-     * @throws IllegalArgumentException   if <code>selectionModel</code>
+     * @exception IllegalArgumentException   if <code>selectionModel</code>
      *                                          is <code>null</code>
      * @see #getSelectionModel
      */
@@ -2947,23 +2947,23 @@ public class JList<E> extends JComponent implements Scrollable, Accessible
             Object newValue = e.getNewValue();
 
                 // re-set listData listeners
-            if (name.equals("model")) {
+            if (name.compareTo("model") == 0) {
 
-                if (oldValue instanceof ListModel<?> oldModel) {
-                    oldModel.removeListDataListener(this);
+                if (oldValue != null && oldValue instanceof ListModel) {
+                    ((ListModel) oldValue).removeListDataListener(this);
                 }
-                if (newValue instanceof ListModel<?> newModel) {
-                    newModel.addListDataListener(this);
+                if (newValue != null && newValue instanceof ListModel) {
+                    ((ListModel) newValue).addListDataListener(this);
                 }
 
                 // re-set listSelectionModel listeners
-            } else if (name.equals("selectionModel")) {
+            } else if (name.compareTo("selectionModel") == 0) {
 
-                if (oldValue instanceof ListSelectionModel oldModel) {
-                    oldModel.removeListSelectionListener(this);
+                if (oldValue != null && oldValue instanceof ListSelectionModel) {
+                    ((ListSelectionModel) oldValue).removeListSelectionListener(this);
                 }
-                if (newValue instanceof ListSelectionModel newModel) {
-                    newModel.addListSelectionListener(this);
+                if (newValue != null && newValue instanceof ListSelectionModel) {
+                    ((ListSelectionModel) newValue).addListSelectionListener(this);
                 }
 
                 firePropertyChange(

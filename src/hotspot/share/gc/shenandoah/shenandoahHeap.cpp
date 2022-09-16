@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2022, Red Hat, Inc. All rights reserved.
+ * Copyright (c) 2013, 2021, Red Hat, Inc. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -39,7 +39,6 @@
 #include "gc/shenandoah/shenandoahCollectionSet.hpp"
 #include "gc/shenandoah/shenandoahCollectorPolicy.hpp"
 #include "gc/shenandoah/shenandoahConcurrentMark.hpp"
-#include "gc/shenandoah/shenandoahMarkingContext.inline.hpp"
 #include "gc/shenandoah/shenandoahControlThread.hpp"
 #include "gc/shenandoah/shenandoahFreeSet.hpp"
 #include "gc/shenandoah/shenandoahPhaseTimings.hpp"
@@ -73,7 +72,6 @@
 #endif
 
 #include "classfile/systemDictionary.hpp"
-#include "code/codeCache.hpp"
 #include "memory/classLoaderMetaspace.hpp"
 #include "memory/metaspaceUtils.hpp"
 #include "oops/compressedOops.inline.hpp"
@@ -90,13 +88,13 @@
 #include "utilities/events.hpp"
 #include "utilities/powerOfTwo.hpp"
 
-class ShenandoahPretouchHeapTask : public WorkerTask {
+class ShenandoahPretouchHeapTask : public AbstractGangTask {
 private:
   ShenandoahRegionIterator _regions;
   const size_t _page_size;
 public:
   ShenandoahPretouchHeapTask(size_t page_size) :
-    WorkerTask("Shenandoah Pretouch Heap"),
+    AbstractGangTask("Shenandoah Pretouch Heap"),
     _page_size(page_size) {}
 
   virtual void work(uint worker_id) {
@@ -110,7 +108,7 @@ public:
   }
 };
 
-class ShenandoahPretouchBitmapTask : public WorkerTask {
+class ShenandoahPretouchBitmapTask : public AbstractGangTask {
 private:
   ShenandoahRegionIterator _regions;
   char* _bitmap_base;
@@ -118,7 +116,7 @@ private:
   const size_t _page_size;
 public:
   ShenandoahPretouchBitmapTask(char* bitmap_base, size_t bitmap_size, size_t page_size) :
-    WorkerTask("Shenandoah Pretouch Bitmap"),
+    AbstractGangTask("Shenandoah Pretouch Bitmap"),
     _bitmap_base(bitmap_base),
     _bitmap_size(bitmap_size),
     _page_size(page_size) {}
@@ -418,7 +416,7 @@ void ShenandoahHeap::initialize_mode() {
       vm_exit_during_initialization("Unknown -XX:ShenandoahGCMode option");
     }
   } else {
-    vm_exit_during_initialization("Unknown -XX:ShenandoahGCMode option (null)");
+    ShouldNotReachHere();
   }
   _gc_mode->initialize_flags();
   if (_gc_mode->is_diagnostic() && !UnlockDiagnosticVMOptions) {
@@ -497,7 +495,9 @@ ShenandoahHeap::ShenandoahHeap(ShenandoahCollectorPolicy* policy) :
   BarrierSet::set_barrier_set(new ShenandoahBarrierSet(this));
 
   _max_workers = MAX2(_max_workers, 1U);
-  _workers = new ShenandoahWorkerThreads("Shenandoah GC Threads", _max_workers);
+  _workers = new ShenandoahWorkGang("Shenandoah GC Threads", _max_workers,
+                            /* are_GC_task_threads */ true,
+                            /* are_ConcurrentGC_threads */ true);
   if (_workers == NULL) {
     vm_exit_during_initialization("Failed necessary allocation.");
   } else {
@@ -505,8 +505,10 @@ ShenandoahHeap::ShenandoahHeap(ShenandoahCollectorPolicy* policy) :
   }
 
   if (ParallelGCThreads > 1) {
-    _safepoint_workers = new ShenandoahWorkerThreads("Safepoint Cleanup Thread",
-                                                ParallelGCThreads);
+    _safepoint_workers = new ShenandoahWorkGang("Safepoint Cleanup Thread",
+                                                ParallelGCThreads,
+                      /* are_GC_task_threads */ false,
+                 /* are_ConcurrentGC_threads */ false);
     _safepoint_workers->initialize_workers();
   }
 }
@@ -515,13 +517,13 @@ ShenandoahHeap::ShenandoahHeap(ShenandoahCollectorPolicy* policy) :
 #pragma warning( pop )
 #endif
 
-class ShenandoahResetBitmapTask : public WorkerTask {
+class ShenandoahResetBitmapTask : public AbstractGangTask {
 private:
   ShenandoahRegionIterator _regions;
 
 public:
   ShenandoahResetBitmapTask() :
-    WorkerTask("Shenandoah Reset Bitmap") {}
+    AbstractGangTask("Shenandoah Reset Bitmap") {}
 
   void work(uint worker_id) {
     ShenandoahHeapRegion* region = _regions.next();
@@ -614,7 +616,7 @@ void ShenandoahHeap::post_initialize() {
   _workers->threads_do(&init_gclabs);
 
   // gclab can not be initialized early during VM startup, as it can not determinate its max_size.
-  // Now, we will let WorkerThreads to initialize gclab when new worker is created.
+  // Now, we will let WorkGang to initialize gclab when new worker is created.
   _workers->set_initialize_gclab();
   if (_safepoint_workers != NULL) {
     _safepoint_workers->threads_do(&init_gclabs);
@@ -955,7 +957,7 @@ public:
   }
 };
 
-class ShenandoahEvacuationTask : public WorkerTask {
+class ShenandoahEvacuationTask : public AbstractGangTask {
 private:
   ShenandoahHeap* const _sh;
   ShenandoahCollectionSet* const _cs;
@@ -964,7 +966,7 @@ public:
   ShenandoahEvacuationTask(ShenandoahHeap* sh,
                            ShenandoahCollectionSet* cs,
                            bool concurrent) :
-    WorkerTask("Shenandoah Evacuation"),
+    AbstractGangTask("Shenandoah Evacuation"),
     _sh(sh),
     _cs(cs),
     _concurrent(concurrent)
@@ -1180,7 +1182,6 @@ void ShenandoahHeap::prepare_for_verify() {
 }
 
 void ShenandoahHeap::gc_threads_do(ThreadClosure* tcl) const {
-  tcl->do_thread(_control_thread);
   workers()->threads_do(tcl);
   if (_safepoint_workers != NULL) {
     _safepoint_workers->threads_do(tcl);
@@ -1320,8 +1321,7 @@ void ShenandoahHeap::scan_roots_for_iteration(ShenandoahScanObjectStack* oop_sta
   // This populates the work stack with initial objects
   // It is important to relinquish the associated locks before diving
   // into heap dumper
-  uint n_workers = safepoint_workers() != NULL ? safepoint_workers()->active_workers() : 1;
-  ShenandoahHeapIterationRootScanner rp(n_workers);
+  ShenandoahHeapIterationRootScanner rp;
   rp.roots_do(oops);
 }
 
@@ -1369,7 +1369,7 @@ public:
 // parallel marking queues.
 // Every worker processes it's own marking queue. work-stealing is used
 // to balance workload.
-class ShenandoahParallelObjectIterator : public ParallelObjectIteratorImpl {
+class ShenandoahParallelObjectIterator : public ParallelObjectIterator {
 private:
   uint                         _num_workers;
   bool                         _init_ready;
@@ -1425,6 +1425,7 @@ private:
     // Initialize queues for every workers
     for (uint i = 0; i < _num_workers; ++i) {
       ShenandoahObjToScanQueue* task_queue = new ShenandoahObjToScanQueue();
+      task_queue->initialize();
       _task_queues->register_queue(i, task_queue);
     }
     // Divide roots among the workers. Assume that object referencing distribution
@@ -1468,7 +1469,7 @@ private:
   }
 };
 
-ParallelObjectIteratorImpl* ShenandoahHeap::parallel_object_iterator(uint workers) {
+ParallelObjectIterator* ShenandoahHeap::parallel_object_iterator(uint workers) {
   return new ShenandoahParallelObjectIterator(workers, &_aux_bit_map);
 }
 
@@ -1486,7 +1487,7 @@ void ShenandoahHeap::heap_region_iterate(ShenandoahHeapRegionClosure* blk) const
   }
 }
 
-class ShenandoahParallelHeapRegionTask : public WorkerTask {
+class ShenandoahParallelHeapRegionTask : public AbstractGangTask {
 private:
   ShenandoahHeap* const _heap;
   ShenandoahHeapRegionClosure* const _blk;
@@ -1497,7 +1498,7 @@ private:
 
 public:
   ShenandoahParallelHeapRegionTask(ShenandoahHeapRegionClosure* blk) :
-          WorkerTask("Shenandoah Parallel Region Operation"),
+          AbstractGangTask("Shenandoah Parallel Region Operation"),
           _heap(ShenandoahHeap::heap()), _blk(blk), _index(0) {}
 
   void work(uint worker_id) {
@@ -1749,7 +1750,7 @@ bool ShenandoahHeap::try_cancel_gc() {
     if (thread->is_Java_thread()) {
       // We need to provide a safepoint here, otherwise we might
       // spin forever if a SP is pending.
-      ThreadBlockInVM sp(JavaThread::cast(thread));
+      ThreadBlockInVM sp(thread->as_Java_thread());
       SpinPause();
     }
   }
@@ -1792,14 +1793,13 @@ void ShenandoahHeap::stw_unload_classes(bool full_gc) {
     ShenandoahPhaseTimings::Phase phase = full_gc ?
                                           ShenandoahPhaseTimings::full_gc_purge_class_unload :
                                           ShenandoahPhaseTimings::degen_gc_purge_class_unload;
-    ShenandoahIsAliveSelector is_alive;
-    CodeCache::UnloadingScope scope(is_alive.is_alive_closure());
     ShenandoahGCPhase gc_phase(phase);
     ShenandoahGCWorkerPhase worker_phase(phase);
     bool purged_class = SystemDictionary::do_unloading(gc_timer());
 
+    ShenandoahIsAliveSelector is_alive;
     uint num_workers = _workers->active_workers();
-    ShenandoahClassUnloadingTask unlink_task(phase, num_workers, purged_class);
+    ShenandoahClassUnloadingTask unlink_task(phase, is_alive.is_alive_closure(), num_workers, purged_class);
     _workers->run_task(&unlink_task);
   }
 
@@ -1916,16 +1916,17 @@ void ShenandoahHeap::unregister_nmethod(nmethod* nm) {
   ShenandoahCodeRoots::unregister_nmethod(nm);
 }
 
+void ShenandoahHeap::flush_nmethod(nmethod* nm) {
+  ShenandoahCodeRoots::flush_nmethod(nm);
+}
+
 oop ShenandoahHeap::pin_object(JavaThread* thr, oop o) {
   heap_region_containing(o)->record_pin();
   return o;
 }
 
 void ShenandoahHeap::unpin_object(JavaThread* thr, oop o) {
-  ShenandoahHeapRegion* r = heap_region_containing(o);
-  assert(r != NULL, "Sanity");
-  assert(r->pin_count() > 0, "Region " SIZE_FORMAT " should have non-zero pins", r->index());
-  r->record_unpin();
+  heap_region_containing(o)->record_unpin();
 }
 
 void ShenandoahHeap::sync_pinned_region_status() {
@@ -2010,13 +2011,13 @@ ShenandoahVerifier* ShenandoahHeap::verifier() {
 }
 
 template<bool CONCURRENT>
-class ShenandoahUpdateHeapRefsTask : public WorkerTask {
+class ShenandoahUpdateHeapRefsTask : public AbstractGangTask {
 private:
   ShenandoahHeap* _heap;
   ShenandoahRegionIterator* _regions;
 public:
   ShenandoahUpdateHeapRefsTask(ShenandoahRegionIterator* regions) :
-    WorkerTask("Shenandoah Update References"),
+    AbstractGangTask("Shenandoah Update References"),
     _heap(ShenandoahHeap::heap()),
     _regions(regions) {
   }
@@ -2304,22 +2305,4 @@ void ShenandoahHeap::flush_liveness_cache(uint worker_id) {
       ld[i] = 0;
     }
   }
-}
-
-bool ShenandoahHeap::requires_barriers(stackChunkOop obj) const {
-  if (is_idle()) return false;
-
-  // Objects allocated after marking start are implicitly alive, don't need any barriers during
-  // marking phase.
-  if (is_concurrent_mark_in_progress() &&
-     !marking_context()->allocated_after_mark_start(obj)) {
-    return true;
-  }
-
-  // Can not guarantee obj is deeply good.
-  if (has_forwarded_objects()) {
-    return true;
-  }
-
-  return false;
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +25,6 @@
 
 package com.sun.crypto.provider;
 
-import jdk.internal.misc.Unsafe;
 import sun.nio.ch.DirectBuffer;
 import sun.security.jca.JCAUtil;
 import sun.security.util.ArrayUtil;
@@ -56,8 +55,6 @@ import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.InvalidParameterSpecException;
 import java.util.Arrays;
 
-import jdk.internal.vm.annotation.IntrinsicCandidate;
-
 /**
  * This class represents ciphers in GaloisCounter (GCM) mode.
  *
@@ -85,10 +82,6 @@ abstract class GaloisCounterMode extends CipherSpi {
     private static final int MAX_BUF_SIZE = Integer.MAX_VALUE;
     // data size when buffer is divided up to aid in intrinsics
     private static final int TRIGGERLEN = 65536;  // 64k
-    // x86-64 parallel intrinsic data size
-    private static final int PARALLEL_LEN = 7680;
-    // max data size for x86-64 intrinsic
-    private static final int SPLIT_LEN = 1048576;  // 1MB
 
     static final byte[] EMPTY_BUF = new byte[0];
 
@@ -572,86 +565,35 @@ abstract class GaloisCounterMode extends CipherSpi {
         return j0;
     }
 
-    // Wrapper function around AES-GCM interleaved intrinsic that splits
-    // large chunks of data into 1MB sized chunks. This is to place
-    // an upper limit on the number of blocks encrypted in the intrinsic.
-    private static int implGCMCrypt(byte[] in, int inOfs, int inLen, byte[] ct,
-                                    int ctOfs, byte[] out, int outOfs,
-                                    GCTR gctr, GHASH ghash) {
-
-        int len = 0;
-        if (inLen > SPLIT_LEN) {
-            while (inLen >= SPLIT_LEN) {
-                int partlen = implGCMCrypt0(in, inOfs + len, SPLIT_LEN, ct,
-                    ctOfs + len, out, outOfs + len, gctr, ghash);
-                len += partlen;
-                inLen -= partlen;
-            }
-        }
-        if (inLen > 0) {
-            len += implGCMCrypt0(in, inOfs + len, inLen, ct,
-                   ctOfs + len, out, outOfs + len, gctr, ghash);
-        }
-        return len;
-    }
     /**
-     * Intrinsic for Vector AES Galois Counter Mode implementation.
-     * AES and GHASH operations are interleaved in the intrinsic implementation.
-     * return - number of processed bytes
-     *
-     * Requires 768 bytes (48 AES blocks) to efficiently use the intrinsic.
-     * inLen that is less than 768 size block sizes, before or after this
-     * intrinsic is used, will be done by the calling method
-     * @param in input buffer
-     * @param inOfs input offset
-     * @param inLen input length
-     * @param ct buffer that ghash will read (in for encrypt, out for decrypt)
-     * @param ctOfs offset for ct buffer
-     * @param out output buffer
-     * @param outOfs output offset
-     * @param gctr object for the GCTR operation
-     * @param ghash object for the ghash operation
-     * @return number of processed bytes
+     * Calculate if the given data lengths and the already processed data
+     * exceeds the maximum allowed processed data by GCM.
+     * @param lengths lengths of unprocessed data.
      */
-    @IntrinsicCandidate
-    private static int implGCMCrypt0(byte[] in, int inOfs, int inLen,
-        byte[] ct, int ctOfs, byte[] out, int outOfs,
-        GCTR gctr, GHASH ghash) {
-
-        inLen -= (inLen % PARALLEL_LEN);
-
-        int len = 0;
-        int cOfs = ctOfs;
-        if (inLen >= TRIGGERLEN) {
-            int i = 0;
-            int segments = (inLen / 6);
-            segments -= segments % gctr.blockSize;
-            do {
-                len += gctr.update(in, inOfs + len, segments, out,
-                    outOfs + len);
-                ghash.update(ct, cOfs, segments);
-                cOfs = ctOfs + len;
-            } while (++i < 5);
-
-            inLen -= len;
+    private void checkDataLength(int ... lengths) {
+        int max = MAX_BUF_SIZE;
+        for (int len : lengths) {
+            max = Math.subtractExact(max, len);
         }
-
-        len += gctr.update(in, inOfs + len, inLen, out, outOfs + len);
-        ghash.update(ct, cOfs, inLen);
-        return len;
+        if (engine.processed > max) {
+            throw new ProviderException("SunJCE provider only supports " +
+                "input size up to " + MAX_BUF_SIZE + " bytes");
+        }
     }
-
 
     /**
      * Abstract class for GCMEncrypt and GCMDecrypt internal context objects
      */
     abstract class GCMEngine {
         byte[] preCounterBlock;
-        GCTR gctr;
-        GHASH ghash;
+        GCTR gctrPAndC;
+        GHASH ghashAllToS;
 
         // Block size of the algorithm
         final int blockSize;
+
+        // length of total data, i.e. len(C)
+        int processed = 0;
 
         // buffer for AAD data; if null, meaning update has been called
         ByteArrayOutputStream aadBuffer = null;
@@ -666,6 +608,7 @@ abstract class GaloisCounterMode extends CipherSpi {
         byte[] originalOut = null;
         int originalOutOfs = 0;
 
+
         GCMEngine(SymmetricCipher blockCipher) {
             blockSize = blockCipher.getBlockSize();
             byte[] subkeyH = new byte[blockSize];
@@ -673,8 +616,8 @@ abstract class GaloisCounterMode extends CipherSpi {
             preCounterBlock = getJ0(iv, subkeyH, blockSize);
             byte[] j0Plus1 = preCounterBlock.clone();
             increment32(j0Plus1);
-            gctr = new GCTR(blockCipher, j0Plus1);
-            ghash = new GHASH(subkeyH);
+            gctrPAndC = new GCTR(blockCipher, j0Plus1);
+            ghashAllToS = new GHASH(subkeyH);
         }
 
         /**
@@ -688,15 +631,15 @@ abstract class GaloisCounterMode extends CipherSpi {
         abstract int getOutputSize(int inLen, boolean isFinal);
 
         // Update operations
-        abstract byte[] doUpdate(byte[] in, int inOfs, int inLen);
-        abstract int doUpdate(byte[] in, int inOfs, int inLen, byte[] out,
-            int outOfs) throws ShortBufferException;
+        abstract byte[] doUpdate(byte[] in, int inOff, int inLen);
+        abstract int doUpdate(byte[] in, int inOff, int inLen, byte[] out,
+            int outOff) throws ShortBufferException;
         abstract int doUpdate(ByteBuffer src, ByteBuffer dst)
             throws ShortBufferException;
 
         // Final operations
-        abstract int doFinal(byte[] in, int inOfs, int inLen, byte[] out,
-            int outOfs) throws IllegalBlockSizeException, AEADBadTagException,
+        abstract int doFinal(byte[] in, int inOff, int inLen, byte[] out,
+            int outOff) throws IllegalBlockSizeException, AEADBadTagException,
             ShortBufferException;
         abstract int doFinal(ByteBuffer src, ByteBuffer dst)
             throws IllegalBlockSizeException, AEADBadTagException,
@@ -712,48 +655,6 @@ abstract class GaloisCounterMode extends CipherSpi {
         // Helper method for getting ibuffer size
         int getBufferedLength() {
             return (ibuffer == null ? 0 : ibuffer.size());
-        }
-
-        /**
-         *  ByteBuffer wrapper for intrinsic implGCMCrypt.  It will operate
-         *  on 768 byte blocks and let the calling method operate on smaller
-         *  sizes.
-         */
-        int implGCMCrypt(ByteBuffer src, ByteBuffer dst) {
-            int srcLen = src.remaining() - (src.remaining() % PARALLEL_LEN);
-
-            if (srcLen < PARALLEL_LEN) {
-                return 0;
-            }
-
-            int len;
-
-            if (src.hasArray() && dst.hasArray()) {
-                ByteBuffer ct = (encryption ? dst : src);
-                len = GaloisCounterMode.implGCMCrypt(src.array(),
-                    src.arrayOffset() + src.position(), srcLen,
-                    ct.array(), ct.arrayOffset() + ct.position(),
-                    dst.array(), dst.arrayOffset() + dst.position(),
-                    gctr, ghash);
-                src.position(src.position() + len);
-                dst.position(dst.position() + len);
-                return len;
-
-            } else {
-
-                byte[] bin = new byte[PARALLEL_LEN];
-                byte[] bout = new byte[PARALLEL_LEN];
-                byte[] ct = (encryption ? bout : bin);
-                len = srcLen;
-                do {
-                    src.get(bin, 0, PARALLEL_LEN);
-                    len -= GaloisCounterMode.implGCMCrypt(bin, 0, PARALLEL_LEN,
-                        ct, 0, bout, 0, gctr, ghash);
-                    dst.put(bout, 0, PARALLEL_LEN);
-                } while (len >= PARALLEL_LEN);
-
-                return srcLen - len;
-            }
         }
 
         /**
@@ -803,6 +704,8 @@ abstract class GaloisCounterMode extends CipherSpi {
          * (e.g., has not been initialized) or does not accept AAD, and one of
          * the {@code update} methods has already been called for the active
          * encryption/decryption operation
+         * @throws UnsupportedOperationException if this method
+         * has not been overridden by an implementation
          */
         void updateAAD(byte[] src, int offset, int len) {
             if (encryption) {
@@ -830,12 +733,12 @@ abstract class GaloisCounterMode extends CipherSpi {
 
                     int lastLen = aad.length % blockSize;
                     if (lastLen != 0) {
-                        ghash.update(aad, 0, aad.length - lastLen);
+                        ghashAllToS.update(aad, 0, aad.length - lastLen);
                         byte[] padded = expandToOneBlock(aad,
                             aad.length - lastLen, lastLen, blockSize);
-                        ghash.update(padded);
+                        ghashAllToS.update(padded);
                     } else {
-                        ghash.update(aad);
+                        ghashAllToS.update(aad);
                     }
                 }
                 aadBuffer = null;
@@ -848,28 +751,18 @@ abstract class GaloisCounterMode extends CipherSpi {
          * For input it takes the ibuffer which is wrapped in 'buffer' and 'src'
          * from doFinal.
          */
-        int doLastBlock(GCMOperation op, ByteBuffer buffer, ByteBuffer src,
-                        ByteBuffer dst) {
-            int len = 0;
-            int resultLen;
+        int doLastBlock(GCM op, ByteBuffer buffer, ByteBuffer src, ByteBuffer dst) {
+            int resultLen = 0;
 
             int bLen = (buffer != null ? buffer.remaining() : 0);
             if (bLen > 0) {
-                // en/decrypt any PARALLEL_LEN sized data in the buffer
-                if (bLen >= PARALLEL_LEN) {
-                    len = implGCMCrypt(buffer, dst);
-                    bLen -= len;
-                }
-
-                // en/decrypt any blocksize data in the buffer
+                // en/decrypt on how much buffer there is in AES_BLOCK_SIZE
                 if (bLen >= blockSize) {
-                    resultLen = op.update(buffer, dst);
-                    bLen -= resultLen;
-                    len += resultLen;
+                    resultLen += op.update(buffer, dst);
                 }
 
                 // Process the remainder in the buffer
-                if (bLen > 0) {
+                if (bLen - resultLen > 0) {
                     // Copy the buffer remainder into an extra block
                     byte[] block = new byte[blockSize];
                     int over = buffer.remaining();
@@ -880,26 +773,76 @@ abstract class GaloisCounterMode extends CipherSpi {
                     if (slen > 0) {
                         src.get(block, over, slen);
                     }
-                    int l = slen + over;
-                    if (l == blockSize) {
-                        len += op.update(block, 0, blockSize, dst);
+                    int len = slen + over;
+                    if (len == blockSize) {
+                        resultLen += op.update(block, 0, blockSize, dst);
                     } else {
-                        len += op.doFinal(block, 0, l, block,0);
+                        resultLen += op.doFinal(block, 0, len, block,
+                                0);
                         if (dst != null) {
-                            dst.put(block, 0, l);
+                            dst.put(block, 0, len);
                         }
-                        return len;
+                        processed += resultLen;
+                        return resultLen;
                     }
                 }
             }
 
             // en/decrypt whatever remains in src.
             // If src has been consumed, this will be a no-op
-            if (src.remaining() >= PARALLEL_LEN) {
-                len += implGCMCrypt(src, dst);
+            if (src.remaining() > TRIGGERLEN) {
+                resultLen += throttleData(op, src, dst);
             }
 
-            return len + op.doFinal(src, dst);
+            resultLen += op.doFinal(src, dst);
+            processed += resultLen;
+            return resultLen;
+        }
+
+
+        /**
+         * This segments large data into smaller chunks so hotspot will start
+         * using GCTR and GHASH intrinsics sooner.  This is a problem for app
+         * and perf tests that only use large input sizes.
+         */
+        int throttleData(GCM op, byte[] in, int inOfs, int inLen,
+            byte[] out, int outOfs) {
+
+            int segments = (inLen / 6);
+            segments -= segments % blockSize;
+            int len = 0;
+            int i = 0;
+            do {
+                len += op.update(in, inOfs + len, segments, out,outOfs + len);
+            } while (++i < 5);
+
+            len += op.update(in, inOfs + len, inLen - len, out, outOfs + len);
+            return len;
+        }
+
+
+        /**
+         * This segments large data into smaller chunks so hotspot will start
+         * using GCTR and GHASH intrinsics sooner.  This is a problem for app
+         * and perf tests that only use large input sizes.
+         */
+        int throttleData(GCM op, ByteBuffer src, ByteBuffer dst) {
+            int inLen = src.limit();
+            int segments = (src.remaining() / 6);
+            segments -= segments % blockSize;
+            int i = 0, resultLen = 0;
+            do {
+                src.limit(src.position() + segments);
+                resultLen += op.update(src, dst);
+            } while (++i < 5);
+
+            src.limit(inLen);
+            // If there is still at least a blockSize left
+            if (src.remaining() > blockSize) {
+                resultLen += op.update(src, dst);
+            }
+
+            return resultLen;
         }
 
         /**
@@ -957,11 +900,7 @@ abstract class GaloisCounterMode extends CipherSpi {
 
                     // Position plus arrayOffset() will give us the true offset
                     // from the underlying byte[] address.
-                    // If during encryption and the input offset is behind or
-                    // the same as the output offset, the same buffer can be
-                    // used.  But during decryption always create a new
-                    // buffer in case of a bad auth tag.
-                    if (encryption && src.position() + src.arrayOffset() >=
+                    if (src.position() + src.arrayOffset() >=
                         dst.position() + dst.arrayOffset()) {
                         return dst;
                     }
@@ -984,15 +923,12 @@ abstract class GaloisCounterMode extends CipherSpi {
         }
 
         /**
-         * This is used for both overlap detection for the data or  decryption
-         * during in-place crypto, so to not overwrite the input if the auth tag
-         * is invalid.
-         *
+         * Overlap detection for data using byte array.
          * If an intermediate array is needed, the original out array length is
          * allocated because for code simplicity.
          */
         byte[] overlapDetection(byte[] in, int inOfs, byte[] out, int outOfs) {
-            if (in == out && (!encryption || inOfs < outOfs)) {
+            if (in == out && inOfs < outOfs) {
                 originalOut = out;
                 originalOutOfs = outOfs;
                 return new byte[out.length];
@@ -1033,31 +969,11 @@ abstract class GaloisCounterMode extends CipherSpi {
      * Encryption Engine object
      */
     class GCMEncrypt extends GCMEngine {
-        GCMOperation op;
-
-        // data processed during encryption
-        int processed = 0;
-
+        GCTRGHASH gctrghash;
 
         GCMEncrypt(SymmetricCipher blockCipher) {
             super(blockCipher);
-            op = new EncryptOp(gctr, ghash);
-        }
-
-        /**
-         * Calculate if the given data lengths and the already processed data
-         * exceeds the maximum allowed processed data by GCM.
-         * @param lengths lengths of unprocessed data.
-         */
-        private void checkDataLength(int ... lengths) {
-            int max = MAX_BUF_SIZE;
-            for (int len : lengths) {
-                max = Math.subtractExact(max, len);
-                if (processed > max) {
-                    throw new ProviderException("SunJCE provider only " +
-                        "supports input size up to " + MAX_BUF_SIZE + " bytes");
-                }
-            }
+            gctrghash = new GCTRGHASH(gctrPAndC, ghashAllToS);
         }
 
         @Override
@@ -1118,7 +1034,7 @@ abstract class GaloisCounterMode extends CipherSpi {
                     System.arraycopy(buffer, 0, block, 0, bLen);
                     System.arraycopy(in, inOfs, block, bLen, remainder);
 
-                    len = op.update(block, 0, blockSize, out, outOfs);
+                    len = gctrghash.update(block, 0, blockSize, out, outOfs);
                     inOfs += remainder;
                     inLen -= remainder;
                     outOfs += blockSize;
@@ -1127,20 +1043,8 @@ abstract class GaloisCounterMode extends CipherSpi {
             }
 
             // Encrypt the remaining blocks inside of 'in'
-            if (inLen >= PARALLEL_LEN) {
-                int r = GaloisCounterMode.implGCMCrypt(in, inOfs, inLen, out,
-                    outOfs, out, outOfs, gctr, ghash);
-                len += r;
-                inOfs += r;
-                inLen -= r;
-                outOfs += r;
-            }
-
             if (inLen >= blockSize) {
-                int r = op.update(in, inOfs, inLen, out, outOfs);
-                len += r;
-                inOfs += r;
-                inLen -= r;
+                len += gctrghash.update(in, inOfs, inLen, out, outOfs);
             }
 
             // Write any remaining bytes less than a blockSize into ibuffer.
@@ -1185,32 +1089,21 @@ abstract class GaloisCounterMode extends CipherSpi {
                     ByteBuffer buffer = ByteBuffer.wrap(ibuffer.toByteArray());
                     buffer.get(block, 0, bLen);
                     src.get(block, bLen, remainder);
-                    len += op.update(ByteBuffer.wrap(block, 0, blockSize),
-                        dst);
+                    len += cryptBlocks(
+                            ByteBuffer.wrap(block, 0, blockSize), dst);
                     ibuffer.reset();
                 }
             }
 
-            int srcLen = src.remaining();
-            int resultLen;
-            // encrypt any PARALLEL_LEN sized data in 'src'
-            if (srcLen >= PARALLEL_LEN) {
-                resultLen = implGCMCrypt(src, dst);
-                srcLen -= resultLen;
-                len += resultLen;
-            }
-
-            // encrypt any blocksize data in 'src'
-            if (srcLen >= blockSize) {
-                resultLen = op.update(src, dst);
-                srcLen -= resultLen;
-                len += resultLen;
+            // encrypt any blocksized data in 'src'
+            if (src.remaining() >= blockSize) {
+                len += cryptBlocks(src, dst);
             }
 
             // Write the remaining bytes into the 'ibuffer'
-            if (srcLen > 0) {
-                initBuffer(srcLen);
-                byte[] b = new byte[srcLen];
+            if (src.remaining() > 0) {
+                initBuffer(src.remaining());
+                byte[] b = new byte[src.remaining()];
                 src.get(b);
                 // remainder offset is based on original buffer length
                 try {
@@ -1221,7 +1114,6 @@ abstract class GaloisCounterMode extends CipherSpi {
             }
 
             restoreDst(dst);
-            processed += len;
             return len;
         }
 
@@ -1235,7 +1127,7 @@ abstract class GaloisCounterMode extends CipherSpi {
             try {
                 ArrayUtil.nullAndBoundsCheck(out, outOfs, getOutputSize(inLen,
                     true));
-            } catch (ArrayIndexOutOfBoundsException e) {
+            } catch (ArrayIndexOutOfBoundsException aiobe) {
                 throw new ShortBufferException("Output buffer invalid");
             }
 
@@ -1244,7 +1136,7 @@ abstract class GaloisCounterMode extends CipherSpi {
             processAAD();
             out = overlapDetection(in, inOfs, out, outOfs);
 
-            int len = 0;
+            int resultLen = 0;
             byte[] block;
 
             // process what is in the ibuffer
@@ -1253,16 +1145,18 @@ abstract class GaloisCounterMode extends CipherSpi {
 
                 // Make a block if the remaining ibuffer and 'in' can make one.
                 if (bLen + inLen >= blockSize) {
-                    int r;
+                    int r, bufOfs = 0;
                     block = new byte[blockSize];
-                    r = mergeBlock(buffer, 0, in, inOfs, inLen, block);
+                    r = mergeBlock(buffer, bufOfs, in, inOfs, inLen, block);
                     inOfs += r;
                     inLen -= r;
-                    op.update(block, 0, blockSize, out, outOfs);
-                    outOfs += blockSize;
-                    len += blockSize;
+                    r = gctrghash.update(block, 0, blockSize, out,
+                        outOfs);
+                    outOfs += r;
+                    resultLen += r;
+                    processed += r;
                 } else {
-                    // Need to consume the ibuffer here to prepare for doFinal()
+                    // Need to consume all the ibuffer here to prepare for doFinal()
                     block = new byte[bLen + inLen];
                     System.arraycopy(buffer, 0, block, 0, bLen);
                     System.arraycopy(in, inOfs, block, bLen, inLen);
@@ -1273,18 +1167,28 @@ abstract class GaloisCounterMode extends CipherSpi {
             }
 
             // process what is left in the input buffer
-            len += op.doFinal(in, inOfs, inLen, out, outOfs);
-            outOfs += inLen;
+            if (inLen > TRIGGERLEN) {
+                int r = throttleData(gctrghash, in, inOfs, inLen, out, outOfs);
+                inOfs += r;
+                inLen -= r;
+                outOfs += r;
+                resultLen += r;
+                processed += r;
+            }
 
-            block = getLengthBlock(sizeOfAAD, processed + len);
-            ghash.update(block);
-            block = ghash.digest();
+            processed += gctrghash.doFinal(in, inOfs, inLen, out, outOfs);
+            outOfs += inLen;
+            resultLen += inLen;
+
+            block = getLengthBlock(sizeOfAAD, processed);
+            ghashAllToS.update(block);
+            block = ghashAllToS.digest();
             new GCTR(blockCipher, preCounterBlock).doFinal(block, 0,
                 tagLenBytes, block, 0);
 
             // copy the tag to the end of the buffer
             System.arraycopy(block, 0, out, outOfs, tagLenBytes);
-            len += tagLenBytes;
+            int len = resultLen + tagLenBytes;
             restoreOut(out, len);
 
             reInit = true;
@@ -1304,13 +1208,13 @@ abstract class GaloisCounterMode extends CipherSpi {
             // 'len' includes ibuffer data
             checkDataLength(len, tagLenBytes);
             if (dst.remaining() < len + tagLenBytes) {
-                throw new ShortBufferException("Output buffer too small, must " +
+                throw new ShortBufferException("Output buffer too small, must" +
                     "be at least " + (len + tagLenBytes) + " bytes long");
             }
 
             processAAD();
             if (len > 0) {
-                processed += doLastBlock(op,
+                processed += doLastBlock(gctrghash,
                     (ibuffer == null || ibuffer.size() == 0) ? null :
                         ByteBuffer.wrap(ibuffer.toByteArray()), src, dst);
             }
@@ -1321,8 +1225,8 @@ abstract class GaloisCounterMode extends CipherSpi {
             }
 
             byte[] block = getLengthBlock(sizeOfAAD, processed);
-            ghash.update(block);
-            block = ghash.digest();
+            ghashAllToS.update(block);
+            block = ghashAllToS.digest();
             new GCTR(blockCipher, preCounterBlock).doFinal(block, 0,
                 tagLenBytes, block, 0);
             dst.put(block, 0, tagLenBytes);
@@ -1330,6 +1234,18 @@ abstract class GaloisCounterMode extends CipherSpi {
 
             reInit = true;
             return (len + tagLenBytes);
+        }
+
+        // Handler method for encrypting blocks
+        int cryptBlocks(ByteBuffer src, ByteBuffer dst) {
+            int len;
+            if (src.remaining() > TRIGGERLEN) {
+                len = throttleData(gctrghash, src, dst);
+            } else {
+                len = gctrghash.update(src, dst);
+            }
+            processed += len;
+            return len;
         }
     }
 
@@ -1344,22 +1260,6 @@ abstract class GaloisCounterMode extends CipherSpi {
 
         GCMDecrypt(SymmetricCipher blockCipher) {
             super(blockCipher);
-        }
-
-        /**
-         * Calculate if the given data lengths exceeds the maximum allowed
-         * processed data by GCM.
-         * @param lengths lengths of unprocessed data.
-         */
-        private void checkDataLength(int ... lengths) {
-            int max = MAX_BUF_SIZE;
-            for (int len : lengths) {
-                max = Math.subtractExact(max, len);
-                if (max < 0) {
-                    throw new ProviderException("SunJCE provider only " +
-                        "supports input size up to " + MAX_BUF_SIZE + " bytes");
-                }
-            }
         }
 
         @Override
@@ -1411,8 +1311,9 @@ abstract class GaloisCounterMode extends CipherSpi {
 
             processAAD();
             if (inLen > 0) {
-                // store internally until doFinal.  Per the spec, data is
-                // returned after tag is successfully verified.
+                // store internally until decryptFinal is called because
+                // spec mentioned that only return recovered data after tag
+                // is successfully verified
                 initBuffer(inLen);
                 ibuffer.write(in, inOfs, inLen);
             }
@@ -1449,43 +1350,38 @@ abstract class GaloisCounterMode extends CipherSpi {
         }
 
         /**
-         * Use available data from ibuffer and 'in' to verify and decrypt the
-         * data.  If the verification fails, the 'out' left to it's original
-         * values if crypto was in-place; otherwise 'out' is zeroed
+         * Use any data from ibuffer and 'in' to first verify the auth tag. If
+         * the tag is valid, decrypt the data.
          */
         @Override
         public int doFinal(byte[] in, int inOfs, int inLen, byte[] out,
             int outOfs) throws IllegalBlockSizeException, AEADBadTagException,
             ShortBufferException {
+            GHASH save = null;
 
             int len = inLen + getBufferedLength();
-            if (len < tagLenBytes) {
-                throw new AEADBadTagException("Input data too short to " +
-                    "contain an expected tag length of " + tagLenBytes +
-                    "bytes");
-            }
-
             try {
                 ArrayUtil.nullAndBoundsCheck(out, outOfs, len - tagLenBytes);
-            } catch (ArrayIndexOutOfBoundsException e) {
+            } catch (ArrayIndexOutOfBoundsException aiobe) {
                 throw new ShortBufferException("Output buffer invalid");
             }
 
+            if (len < tagLenBytes) {
+                throw new AEADBadTagException("Input too short - need tag");
+            }
+
             if (len - tagLenBytes > out.length - outOfs) {
-                throw new ShortBufferException("Output buffer too small, must " +
-                    "be at least " + (len - tagLenBytes) + " bytes long");
+                save = ghashAllToS.clone();
             }
 
             checkDataLength(len - tagLenBytes);
             processAAD();
-            findTag(in, inOfs, inLen);
-            out = overlapDetection(in, inOfs, out, outOfs);
 
-            len = decryptBlocks(new DecryptOp(gctr, ghash), in, inOfs, inLen,
-                out, outOfs);
-            byte[] block = getLengthBlock(sizeOfAAD, len);
-            ghash.update(block);
-            block = ghash.digest();
+            findTag(in, inOfs, inLen);
+            byte[] block = getLengthBlock(sizeOfAAD,
+                decryptBlocks(ghashAllToS, in, inOfs, inLen, null, 0));
+            ghashAllToS.update(block);
+            block = ghashAllToS.digest();
             new GCTR(blockCipher, preCounterBlock).doFinal(block, 0,
                 tagLenBytes, block, 0);
 
@@ -1496,24 +1392,30 @@ abstract class GaloisCounterMode extends CipherSpi {
             }
 
             if (mismatch != 0) {
-                // Clear output data
-                Arrays.fill(out, outOfs, outOfs + len, (byte) 0);
-                throw new AEADBadTagException("Tag mismatch");
+                throw new AEADBadTagException("Tag mismatch!");
             }
 
+            if (save != null) {
+                ghashAllToS = save;
+                throw new ShortBufferException("Output buffer too small, must" +
+                    "be at least " + (len - tagLenBytes) + " bytes long");
+            }
+
+            out = overlapDetection(in, inOfs, out, outOfs);
+            len = decryptBlocks(gctrPAndC, in, inOfs, inLen, out, outOfs);
             restoreOut(out, len);
             return len;
         }
 
         /**
-         * Use available data from ibuffer and 'src' to verify and decrypt the
-         * data.  If the verification fails, the 'dst' left to it's original
-         * values if crypto was in-place; otherwise 'dst' is zeroed
+         * Use any data from ibuffer and 'src' to first verify the auth tag. If
+         * the tag is valid, decrypt the data.
          */
         @Override
         public int doFinal(ByteBuffer src, ByteBuffer dst)
             throws IllegalBlockSizeException, AEADBadTagException,
             ShortBufferException {
+            GHASH save = null;
 
             ByteBuffer tag;
             ByteBuffer ct = src.duplicate();
@@ -1530,10 +1432,11 @@ abstract class GaloisCounterMode extends CipherSpi {
 
             checkDataLength(len);
 
-            // Verify dst is large enough
+            // Save GHASH context to allow the tag to be checked even though
+            // the dst buffer is too short.  Context will be restored so the
+            // method can be called again with the proper sized dst buffer.
             if (len > dst.remaining()) {
-                throw new ShortBufferException("Output buffer too small, " +
-                    "must be at least " + len + " bytes long");
+                save = ghashAllToS.clone();
             }
 
             // Create buffer 'tag' that contains only the auth tag
@@ -1556,19 +1459,20 @@ abstract class GaloisCounterMode extends CipherSpi {
                 tag.put(ct);
                 tag.flip();
             } else {
-                throw new AEADBadTagException("Input data too short to " +
-                    "contain an expected tag length of " + tagLenBytes +
-                    "bytes");
+                throw new AEADBadTagException("Input too short - need tag");
             }
 
-            dst = overlapDetection(src, dst);
-            dst.mark();
+            // Set the mark for a later reset. Either it will be zero, or the
+            // tag buffer creation above will have consume some or all of it.
+            ct.mark();
+
             processAAD();
-            len = doLastBlock(new DecryptOp(gctr, ghash), buffer, ct, dst);
+            // Perform GHASH check on data
+            doLastBlock(ghashAllToS, buffer, ct, null);
 
             byte[] block = getLengthBlock(sizeOfAAD, len);
-            ghash.update(block);
-            block = ghash.digest();
+            ghashAllToS.update(block);
+            block = ghashAllToS.digest();
             new GCTR(blockCipher, preCounterBlock).doFinal(block, 0,
                 tagLenBytes, block, 0);
 
@@ -1579,22 +1483,32 @@ abstract class GaloisCounterMode extends CipherSpi {
             }
 
             if (mismatch != 0) {
-                // Clear output data
-                dst.reset();
-                if (dst.hasArray()) {
-                    int ofs = dst.arrayOffset() + dst.position();
-                    Arrays.fill(dst.array(), ofs , ofs + len, (byte)0);
-                } else {
-                    Unsafe.getUnsafe().setMemory(((DirectBuffer)dst).address(),
-                        len + dst.position(), (byte)0);
-                }
-                throw new AEADBadTagException("Tag mismatch");
+                throw new AEADBadTagException("Tag mismatch!");
             }
 
-            src.position(src.limit());
-            engine = null;
+            if (save != null) {
+                ghashAllToS = save;
+                throw new ShortBufferException("Output buffer too small, must" +
+                    " be at least " + len + " bytes long");
+            }
+
+            // Prepare for decryption
+            if (buffer != null) {
+                buffer.flip();
+            }
+            ct.reset();
+            processed = 0;
+            // Check for overlap in the bytebuffers
+            dst = overlapDetection(src, dst);
+
+            // Decrypt the all the input data and put it into dst
+            doLastBlock(gctrPAndC, buffer, ct, dst);
             restoreDst(dst);
-            return len;
+            src.position(src.limit());
+            if (ibuffer != null) {
+                ibuffer.reset();
+            }
+            return processed;
         }
 
         /**
@@ -1603,12 +1517,11 @@ abstract class GaloisCounterMode extends CipherSpi {
          * When this method is used, all the data is either in the ibuffer
          * or in 'in'.
          */
-        int decryptBlocks(GCMOperation op, byte[] in, int inOfs, int inLen,
+        int decryptBlocks(GCM op, byte[] in, int inOfs, int inLen,
             byte[] out, int outOfs) {
             byte[] buffer;
             byte[] block;
             int len = 0;
-            int resultLen;
 
             // Calculate the encrypted data length inside the ibuffer
             // considering the tag location
@@ -1625,24 +1538,15 @@ abstract class GaloisCounterMode extends CipherSpi {
             if (bLen > 0) {
                 buffer = ibuffer.toByteArray();
 
-                if (bLen >= PARALLEL_LEN) {
-                    len = GaloisCounterMode.implGCMCrypt(buffer, 0, bLen,
-                        buffer, 0, out, outOfs, gctr, ghash);
-                    outOfs += len;
+                if (bLen >= blockSize) {
+                    len += op.update(buffer, 0, bLen, out, outOfs);
+                    outOfs += len; // noop for ghash
                     // Use len as it becomes the ibuffer offset, if
                     // needed, in the next op
                 }
 
-                int bufRemainder = bLen - len;
-                if (bufRemainder >= blockSize) {
-                    resultLen = op.update(buffer, len, bufRemainder, out,
-                        outOfs);
-                    len += resultLen;
-                    outOfs += resultLen;
-                    bufRemainder -= resultLen;
-                }
-
                 // merge the remaining ibuffer with the 'in'
+                int bufRemainder = bLen - len;
                 if (bufRemainder > 0) {
                     block = new byte[blockSize];
                     int inUsed = mergeBlock(buffer, len, bufRemainder, in,
@@ -1653,9 +1557,9 @@ abstract class GaloisCounterMode extends CipherSpi {
                     // If is more than block between the merged data and 'in',
                     // update(), otherwise setup for final
                     if (inLen > 0) {
-                        resultLen = op.update(block, 0, blockSize,
+                        int resultLen = op.update(block, 0, blockSize,
                             out, outOfs);
-                        outOfs += resultLen;
+                        outOfs += resultLen; // noop for ghash
                         len += resultLen;
                     } else {
                         in = block;
@@ -1665,6 +1569,14 @@ abstract class GaloisCounterMode extends CipherSpi {
                 }
             }
 
+            // Finish off the operation
+            if (inLen > TRIGGERLEN) {
+                int l = throttleData(op, in, inOfs, inLen, out, outOfs);
+                inOfs += l;
+                inLen -= l;
+                outOfs += l; // noop for ghash
+                len += l;
+            }
             return len + op.doFinal(in, inOfs, inLen, out, outOfs);
         }
     }
@@ -1697,11 +1609,11 @@ abstract class GaloisCounterMode extends CipherSpi {
      * This class is for encryption when both GCTR and GHASH
      * can operation in parallel.
      */
-    static final class EncryptOp implements GCMOperation {
+    static final class GCTRGHASH implements GCM {
         GCTR gctr;
         GHASH ghash;
 
-        EncryptOp(GCTR c, GHASH g) {
+        GCTRGHASH(GCTR c, GHASH g) {
             gctr = c;
             ghash = g;
         }
@@ -1733,96 +1645,19 @@ abstract class GaloisCounterMode extends CipherSpi {
         }
 
         @Override
-        public int doFinal(byte[] in, int inOfs, int inLen, byte[] out,
-                           int outOfs) {
-            int len = 0;
-
-            if (inLen >= PARALLEL_LEN) {
-                len = implGCMCrypt(in, inOfs, inLen, out, outOfs, out, outOfs,
-                    gctr, ghash);
-                inLen -= len;
-                outOfs += len;
-            }
-
-            gctr.doFinal(in, inOfs + len, inLen, out, outOfs);
-            return len + ghash.doFinal(out, outOfs, inLen);
+        public int doFinal(byte[] in, int inOfs, int inLen, byte[] out, int outOfs) {
+            int len = gctr.doFinal(in, inOfs, inLen, out, outOfs);
+            ghash.doFinal(out, outOfs, len);
+            return len;
         }
 
         @Override
         public int doFinal(ByteBuffer src, ByteBuffer dst) {
             dst.mark();
-            int len = gctr.doFinal(src, dst);
+            int l = gctr.doFinal(src, dst);
             dst.reset();
-            ghash.doFinal(dst, len);
-            return len;
+            ghash.doFinal(dst, l);
+            return l;
         }
-    }
-
-    /**
-     * This class is for decryption when both GCTR and GHASH
-     * can operation in parallel.
-     */
-    static final class DecryptOp implements GCMOperation {
-        GCTR gctr;
-        GHASH ghash;
-
-        DecryptOp(GCTR c, GHASH g) {
-            gctr = c;
-            ghash = g;
-        }
-
-        @Override
-        public int update(byte[] in, int inOfs, int inLen, byte[] out,
-            int outOfs) {
-            ghash.update(in, inOfs, inLen);
-            return gctr.update(in, inOfs, inLen, out, outOfs);
-        }
-
-        @Override
-        public int update(byte[] in, int inOfs, int inLen, ByteBuffer dst) {
-            ghash.update(in, inOfs, inLen);
-            return gctr.update(in, inOfs, inLen, dst);
-        }
-
-        @Override
-        public int update(ByteBuffer src, ByteBuffer dst) {
-            src.mark();
-            ghash.update(src, src.remaining());
-            src.reset();
-            return gctr.update(src, dst);
-        }
-
-        @Override
-        public int doFinal(byte[] in, int inOfs, int inLen, byte[] out,
-                           int outOfs) {
-            int len = 0;
-            if (inLen >= PARALLEL_LEN) {
-                len += implGCMCrypt(in, inOfs, inLen, in, inOfs, out, outOfs,
-                    gctr, ghash);
-            }
-            ghash.doFinal(in, inOfs + len, inLen - len);
-            return len + gctr.doFinal(in, inOfs + len, inLen - len, out,
-                    outOfs + len);
-        }
-
-        @Override
-        public int doFinal(ByteBuffer src, ByteBuffer dst) {
-            src.mark();
-            ghash.doFinal(src, src.remaining());
-            src.reset();
-            return gctr.doFinal(src, dst);
-        }
-    }
-
-    /**
-     * Interface to organize encryption and decryption operations in the
-     * proper order for GHASH and GCTR.
-     */
-    public interface GCMOperation {
-        int update(byte[] in, int inOfs, int inLen, byte[] out, int outOfs);
-        int update(byte[] in, int inOfs, int inLen, ByteBuffer dst);
-        int update(ByteBuffer src, ByteBuffer dst);
-        int doFinal(byte[] in, int inOfs, int inLen, byte[] out, int outOfs);
-        int doFinal(ByteBuffer src, ByteBuffer dst);
     }
 }

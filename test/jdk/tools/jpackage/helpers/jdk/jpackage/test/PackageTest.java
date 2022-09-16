@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +25,6 @@ package jdk.jpackage.test;
 import java.awt.Desktop;
 import java.awt.GraphicsEnvironment;
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -37,33 +36,19 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
+import jdk.jpackage.internal.AppImageFile;
 import jdk.jpackage.internal.ApplicationLayout;
 import jdk.jpackage.test.Functional.ThrowingBiConsumer;
-import static jdk.jpackage.test.Functional.ThrowingBiConsumer.toBiConsumer;
 import jdk.jpackage.test.Functional.ThrowingConsumer;
-import static jdk.jpackage.test.Functional.ThrowingConsumer.toConsumer;
 import jdk.jpackage.test.Functional.ThrowingRunnable;
-import static jdk.jpackage.test.Functional.ThrowingSupplier.toSupplier;
-import static jdk.jpackage.test.Functional.rethrowUnchecked;
-import static jdk.jpackage.test.PackageType.LINUX;
-import static jdk.jpackage.test.PackageType.LINUX_DEB;
-import static jdk.jpackage.test.PackageType.LINUX_RPM;
-import static jdk.jpackage.test.PackageType.MAC_DMG;
-import static jdk.jpackage.test.PackageType.MAC_PKG;
-import static jdk.jpackage.test.PackageType.NATIVE;
-import static jdk.jpackage.test.PackageType.WINDOWS;
-import static jdk.jpackage.test.PackageType.WIN_EXE;
-import static jdk.jpackage.test.PackageType.WIN_MSI;
+
 
 
 /**
@@ -97,7 +82,7 @@ public final class PackageTest extends RunnablePackageTest {
     public PackageTest forTypes(PackageType... types) {
         Collection<PackageType> newTypes;
         if (types == null || types.length == 0) {
-            newTypes = NATIVE;
+            newTypes = PackageType.NATIVE;
         } else {
             newTypes = Stream.of(types).collect(Collectors.toSet());
         }
@@ -137,7 +122,7 @@ public final class PackageTest extends RunnablePackageTest {
             namedInitializers.add(id);
         }
         currentTypes.forEach(type -> handlers.get(type).addInitializer(
-                toConsumer(v)));
+                ThrowingConsumer.toConsumer(v)));
         return this;
     }
 
@@ -166,12 +151,13 @@ public final class PackageTest extends RunnablePackageTest {
     public PackageTest addBundleVerifier(
             ThrowingBiConsumer<JPackageCommand, Executor.Result> v) {
         currentTypes.forEach(type -> handlers.get(type).addBundleVerifier(
-                toBiConsumer(v)));
+                ThrowingBiConsumer.toBiConsumer(v)));
         return this;
     }
 
     public PackageTest addBundleVerifier(ThrowingConsumer<JPackageCommand> v) {
-        return addBundleVerifier((cmd, unused) -> toConsumer(v).accept(cmd));
+        return addBundleVerifier(
+                (cmd, unused) -> ThrowingConsumer.toConsumer(v).accept(cmd));
     }
 
     public PackageTest addBundlePropertyVerifier(String propertyName,
@@ -198,7 +184,7 @@ public final class PackageTest extends RunnablePackageTest {
     }
 
     public PackageTest addBundleDesktopIntegrationVerifier(boolean integrated) {
-        forTypes(LINUX, () -> {
+        forTypes(PackageType.LINUX, () -> {
             LinuxHelper.addBundleDesktopIntegrationVerifier(this, integrated);
         });
         return this;
@@ -206,54 +192,53 @@ public final class PackageTest extends RunnablePackageTest {
 
     public PackageTest addInstallVerifier(ThrowingConsumer<JPackageCommand> v) {
         currentTypes.forEach(type -> handlers.get(type).addInstallVerifier(
-                toConsumer(v)));
+                ThrowingConsumer.toConsumer(v)));
         return this;
     }
 
     public PackageTest addUninstallVerifier(ThrowingConsumer<JPackageCommand> v) {
         currentTypes.forEach(type -> handlers.get(type).addUninstallVerifier(
-                toConsumer(v)));
+                ThrowingConsumer.toConsumer(v)));
         return this;
     }
 
-    public PackageTest disablePackageInstaller() {
+    public PackageTest setPackageInstaller(Consumer<JPackageCommand> v) {
         currentTypes.forEach(
-                type -> packageHandlers.get(type).installHandler = cmd -> {});
+                type -> packageHandlers.get(type).installHandler = v);
         return this;
     }
 
-    public PackageTest disablePackageUninstaller() {
+    public PackageTest setPackageUnpacker(
+            BiFunction<JPackageCommand, Path, Path> v) {
+        currentTypes.forEach(type -> packageHandlers.get(type).unpackHandler = v);
+        return this;
+    }
+
+    public PackageTest setPackageUninstaller(Consumer<JPackageCommand> v) {
         currentTypes.forEach(
-                type -> packageHandlers.get(type).uninstallHandler = cmd -> {});
+                type -> packageHandlers.get(type).uninstallHandler = v);
         return this;
     }
 
-    static void withFileAssociationsTestRuns(FileAssociations fa,
-            ThrowingBiConsumer<FileAssociations.TestRun, List<Path>> consumer) {
-        for (var testRun : fa.getTestRuns()) {
-            TKit.withTempDirectory("fa-test-files", tempDir -> {
-                List<Path> testFiles = StreamSupport.stream(testRun.getFileNames().spliterator(), false).map(fname -> {
-                    return tempDir.resolve(fname + fa.getSuffix()).toAbsolutePath().normalize();
-                }).toList();
-
-                testFiles.forEach(toConsumer(Files::createFile));
-
-                if (TKit.isLinux()) {
-                    testFiles.forEach(LinuxHelper::initFileAssociationsTestFile);
-                }
-
-                consumer.accept(testRun, testFiles);
-            });
-        }
+    static void withTestFileAssociationsFile(FileAssociations fa,
+            ThrowingConsumer<Path> consumer) {
+        final Path testFileDefaultName = Path.of("test" + fa.getSuffix());
+        TKit.withTempFile(testFileDefaultName, testFile -> {
+            if (TKit.isLinux()) {
+                LinuxHelper.initFileAssociationsTestFile(testFile);
+            }
+            consumer.accept(testFile);
+        });
     }
 
-    PackageTest addHelloAppFileAssociationsVerifier(FileAssociations fa) {
+    PackageTest addHelloAppFileAssociationsVerifier(FileAssociations fa,
+            String... faLauncherDefaultArgs) {
 
         // Setup test app to have valid jpackage command line before
         // running check of type of environment.
         addHelloAppInitializer(null);
 
-        forTypes(LINUX, () -> {
+        forTypes(PackageType.LINUX, () -> {
             LinuxHelper.addFileAssociationsVerifier(this, fa);
         });
 
@@ -269,13 +254,21 @@ public final class PackageTest extends RunnablePackageTest {
                 return;
             }
 
-            withFileAssociationsTestRuns(fa, (testRun, testFiles) -> {
-                final Path appOutput = testFiles.get(0).getParent()
+            withTestFileAssociationsFile(fa, testFile -> {
+                testFile = testFile.toAbsolutePath().normalize();
+
+                final Path appOutput = testFile.getParent()
                         .resolve(HelloApp.OUTPUT_FILENAME);
                 Files.deleteIfExists(appOutput);
 
-                List<String> expectedArgs = testRun.openFiles(testFiles);
+                TKit.trace(String.format("Use desktop to open [%s] file",
+                        testFile));
+                Desktop.getDesktop().open(testFile.toFile());
                 TKit.waitForFileCreated(appOutput, 7);
+
+                List<String> expectedArgs = new ArrayList<>(List.of(
+                        faLauncherDefaultArgs));
+                expectedArgs.add(testFile.toString());
 
                 // Wait a little bit after file has been created to
                 // make sure there are no pending writes into it.
@@ -283,18 +276,6 @@ public final class PackageTest extends RunnablePackageTest {
                 HelloApp.verifyOutputFile(appOutput, expectedArgs,
                         Collections.emptyMap());
             });
-
-            if (TKit.isWindows()) {
-                // Verify context menu label in registry.
-                String progId = WindowsHelper.queryRegistryValue(
-                        String.format("HKEY_LOCAL_MACHINE\\SOFTWARE\\Classes\\%s", fa.getSuffix()), "");
-                TKit.assertNotNull(progId, "context menu progId found");
-                String contextMenuLabel = WindowsHelper.queryRegistryValue(
-                        String.format("HKEY_CLASSES_ROOT\\%s\\shell\\open", progId), "");
-                TKit.assertNotNull(contextMenuLabel, "context menu label found");
-                String appName = cmd.getArgumentValue("--name");
-                TKit.assertTrue(String.format("Open with %s", appName).equals(contextMenuLabel), "context menu label text");
-            }
         });
 
         return this;
@@ -336,14 +317,12 @@ public final class PackageTest extends RunnablePackageTest {
         return this;
     }
 
-    public PackageTest addHelloAppInitializer(String javaAppDesc) {
-        addInitializer(
-                cmd -> new HelloApp(JavaAppDesc.parse(javaAppDesc)).addTo(cmd),
-                "HelloApp");
+    public PackageTest addLauncherName(String name) {
+        launcherNames.add(name);
         return this;
     }
 
-    public static class Group extends RunnablePackageTest {
+    public final static class Group extends RunnablePackageTest {
         public Group(PackageTest... tests) {
             handlers = Stream.of(tests)
                     .map(PackageTest::createPackageTypeHandlers)
@@ -386,8 +365,14 @@ public final class PackageTest extends RunnablePackageTest {
         throw new UnsupportedOperationException();
     }
 
+    private void addHelloAppInitializer(String javaAppDesc) {
+        addInitializer(
+                cmd -> new HelloApp(JavaAppDesc.parse(javaAppDesc)).addTo(cmd),
+                "HelloApp");
+    }
+
     private List<Consumer<Action>> createPackageTypeHandlers() {
-        return NATIVE.stream()
+        return PackageType.NATIVE.stream()
                 .map(type -> {
                     Handler handler = handlers.entrySet().stream()
                         .filter(entry -> !entry.getValue().isVoid())
@@ -408,123 +393,75 @@ public final class PackageTest extends RunnablePackageTest {
 
     private Consumer<Action> createPackageTypeHandler(
             PackageType type, Handler handler) {
-        return toConsumer(new ThrowingConsumer<Action>() {
+        return ThrowingConsumer.toConsumer(new ThrowingConsumer<Action>() {
             @Override
             public void accept(Action action) throws Throwable {
-                if (terminated) {
-                    throw new IllegalStateException();
-                }
-
                 if (action == Action.FINALIZE) {
-                    if (unpackDir != null) {
-                        if (Files.isDirectory(unpackDir)
-                                && !unpackDir.startsWith(TKit.workDir())) {
-                            TKit.deleteDirectoryRecursive(unpackDir);
-                        }
-                        unpackDir = null;
-                    }
-                    terminated = true;
-                }
-
-                boolean skip = false;
-
-                if (unhandledAction != null) {
-                    switch (unhandledAction) {
-                        case CREATE:
-                            skip = true;
-                            break;
-                        case UNPACK:
-                        case INSTALL:
-                            skip = (action == Action.VERIFY_INSTALL);
-                            break;
-                        case UNINSTALL:
-                            skip = (action == Action.VERIFY_UNINSTALL);
-                            break;
+                    if (unpackDir != null && Files.isDirectory(unpackDir)
+                            && !unpackDir.startsWith(TKit.workDir())) {
+                        TKit.deleteDirectoryRecursive(unpackDir);
                     }
                 }
 
-                if (skip) {
-                    TKit.trace(String.format("Skip [%s] action of %s command",
-                            action, cmd.getPrintableCommandLine()));
+                if (aborted) {
                     return;
                 }
 
-                final Supplier<JPackageCommand> curCmd = () -> {
-                    if (Set.of(Action.INITIALIZE, Action.CREATE).contains(action)) {
-                        return cmd;
-                    } else {
-                        return cmd.createImmutableCopy();
-                    }
-                };
+                final JPackageCommand curCmd;
+                if (Set.of(Action.INITIALIZE, Action.CREATE).contains(action)) {
+                    curCmd = cmd;
+                } else {
+                    curCmd = cmd.createImmutableCopy();
+                }
 
                 switch (action) {
                     case UNPACK: {
-                        cmd.setUnpackedPackageLocation(null);
-                        handleAction(action,
-                                packageHandlers.get(type).unpackHandler,
-                                handler -> {
-                                    unpackDir = TKit.createTempDirectory(
+                        var handler = packageHandlers.get(type).unpackHandler;
+                        if (!(aborted = (handler == null))) {
+                            unpackDir = TKit.createTempDirectory(
                                             String.format("unpacked-%s",
                                                     type.getName()));
-                                    unpackDir = handler.apply(cmd, unpackDir);
-                                    cmd.setUnpackedPackageLocation(unpackDir);
-                                });
+                            unpackDir = handler.apply(cmd, unpackDir);
+                            cmd.setUnpackedPackageLocation(unpackDir);
+                        }
                         break;
                     }
 
                     case INSTALL: {
-                        cmd.setUnpackedPackageLocation(null);
-                        handleAction(action,
-                                packageHandlers.get(type).installHandler,
-                                handler -> {
-                                    handler.accept(curCmd.get());
-                                });
+                        var handler = packageHandlers.get(type).installHandler;
+                        if (!(aborted = (handler == null))) {
+                            handler.accept(curCmd);
+                        }
                         break;
                     }
 
                     case UNINSTALL: {
-                        handleAction(action,
-                                packageHandlers.get(type).uninstallHandler,
-                                handler -> {
-                                    handler.accept(curCmd.get());
-                                });
+                        var handler = packageHandlers.get(type).uninstallHandler;
+                        if (!(aborted = (handler == null))) {
+                            handler.accept(curCmd);
+                        }
                         break;
                     }
 
                     case CREATE:
-                        cmd.setUnpackedPackageLocation(null);
-                        handler.accept(action, curCmd.get());
-                        handleAction(action,
-                                (expectedJPackageExitCode == 0) ? Boolean.TRUE : null,
-                                handler -> {
-                                });
+                        handler.accept(action, curCmd);
+                        aborted = (expectedJPackageExitCode != 0);
                         return;
 
                     default:
-                        handler.accept(action, curCmd.get());
+                        handler.accept(action, curCmd);
                         break;
                 }
 
-                Optional.ofNullable(unhandledAction).ifPresent(v -> {
-                    TKit.trace(String.format(
-                            "No handler of [%s] action for %s command", v,
-                            cmd.getPrintableCommandLine()));
-                });
-            }
-
-            private <T> void handleAction(Action action, T handler,
-                    ThrowingConsumer<T> consumer) throws Throwable {
-                if (handler == null) {
-                    unhandledAction = action;
-                } else {
-                    unhandledAction = null;
-                    consumer.accept(handler);
+                if (aborted) {
+                    TKit.trace(
+                            String.format("Aborted [%s] action of %s command",
+                                    action, cmd.getPrintableCommandLine()));
                 }
             }
 
             private Path unpackDir;
-            private Action unhandledAction;
-            private boolean terminated;
+            private boolean aborted;
             private final JPackageCommand cmd = Functional.identity(() -> {
                 JPackageCommand result = new JPackageCommand();
                 result.setDefaultInputOutput().setDefaultAppName();
@@ -598,23 +535,13 @@ public final class PackageTest extends RunnablePackageTest {
                         verifyPackageUninstalled(cmd);
                     }
                     break;
-
-                case PURGE:
-                    if (expectedJPackageExitCode == 0) {
-                        var bundle = cmd.outputBundle();
-                        if (toSupplier(() -> TKit.deleteIfExists(bundle)).get()) {
-                            TKit.trace(String.format("Deleted [%s] package",
-                                    bundle));
-                        }
-                    }
-                    break;
             }
         }
 
         private void verifyPackageBundle(JPackageCommand cmd,
                 Executor.Result result) {
             if (expectedJPackageExitCode == 0) {
-                if (LINUX.contains(cmd.packageType())) {
+                if (PackageType.LINUX.contains(cmd.packageType())) {
                     LinuxHelper.verifyPackageBundleEssential(cmd);
                 }
             }
@@ -630,85 +557,21 @@ public final class PackageTest extends RunnablePackageTest {
             }
             TKit.trace(String.format(formatString, cmd.getPrintableCommandLine()));
 
-            Optional.ofNullable(cmd.unpackedPackageDirectory()).ifPresent(
-                    unpackedDir -> {
-                        verifyRootCountInUnpackedPackage(cmd, unpackedDir);
-                    });
-
             if (!cmd.isRuntime()) {
-                if (WINDOWS.contains(cmd.packageType())
+                if (PackageType.WINDOWS.contains(cmd.packageType())
                         && !cmd.isPackageUnpacked(
                                 "Not verifying desktop integration")) {
                     // Check main launcher
-                    WindowsHelper.verifyDesktopIntegration(cmd, null);
+                    new WindowsHelper.DesktopIntegrationVerifier(cmd, null);
                     // Check additional launchers
-                    cmd.addLauncherNames().forEach(name -> {
-                        WindowsHelper.verifyDesktopIntegration(cmd, name);
+                    launcherNames.forEach(name -> {
+                        new WindowsHelper.DesktopIntegrationVerifier(cmd, name);
                     });
                 }
             }
-
-            if (LauncherAsServiceVerifier.SUPPORTED_PACKAGES.contains(
-                    cmd.packageType())) {
-                LauncherAsServiceVerifier.verify(cmd);
-            }
-
             cmd.assertAppLayout();
 
             installVerifiers.forEach(v -> v.accept(cmd));
-        }
-
-        private void verifyRootCountInUnpackedPackage(JPackageCommand cmd,
-                Path unpackedDir) {
-
-            final boolean withServices = !cmd.isRuntime()
-                    && !LauncherAsServiceVerifier.getLaunchersAsServices(cmd).isEmpty();
-
-            final long expectedRootCount;
-            if (WINDOWS.contains(cmd.packageType())) {
-                // On Windows it is always two entries:
-                // installation home directory and MSI file
-                expectedRootCount = 2;
-            } else if (withServices && MAC_PKG.equals(cmd.packageType())) {
-                expectedRootCount = 2;
-            } else if (LINUX.contains(cmd.packageType())) {
-                Set<Path> roots = new HashSet<>();
-                roots.add(Path.of("/").resolve(Path.of(cmd.getArgumentValue(
-                        "--install-dir", () -> "/opt")).getName(0)));
-                if (withServices) {
-                    // /lib/systemd
-                    roots.add(Path.of("/lib"));
-                }
-                if (cmd.hasArgument("--license-file")) {
-                    switch (cmd.packageType()) {
-                        case LINUX_RPM -> {
-                            // License file is in /usr/share/licenses subtree
-                            roots.add(Path.of("/usr"));
-                        }
-
-                        case LINUX_DEB -> {
-                            Path installDir = cmd.appInstallationDirectory();
-                            if (installDir.equals(Path.of("/"))
-                                    || installDir.startsWith("/usr")) {
-                                // License file is in /usr/share/doc subtree
-                                roots.add(Path.of("/usr"));
-                            }
-                        }
-                    }
-                }
-                expectedRootCount = roots.size();
-            } else {
-                expectedRootCount = 1;
-            }
-
-            try ( var files = Files.list(unpackedDir)) {
-                TKit.assertEquals(expectedRootCount, files.count(),
-                        String.format(
-                                "Check the package has %d top installation directories",
-                                expectedRootCount));
-            } catch (IOException ex) {
-                rethrowUnchecked(ex);
-            }
         }
 
         private void verifyPackageUninstalled(JPackageCommand cmd) {
@@ -717,12 +580,12 @@ public final class PackageTest extends RunnablePackageTest {
             if (!cmd.isRuntime()) {
                 TKit.assertPathExists(cmd.appLauncherPath(), false);
 
-                if (WINDOWS.contains(cmd.packageType())) {
+                if (PackageType.WINDOWS.contains(cmd.packageType())) {
                     // Check main launcher
-                    WindowsHelper.verifyDesktopIntegration(cmd, null);
+                    new WindowsHelper.DesktopIntegrationVerifier(cmd, null);
                     // Check additional launchers
-                    cmd.addLauncherNames().forEach(name -> {
-                        WindowsHelper.verifyDesktopIntegration(cmd, name);
+                    launcherNames.forEach(name -> {
+                        new WindowsHelper.DesktopIntegrationVerifier(cmd, name);
                     });
                 }
             }
@@ -733,11 +596,6 @@ public final class PackageTest extends RunnablePackageTest {
                 TKit.assertPathExists(appLayout.runtimeDirectory(), false);
             } else {
                 TKit.assertPathExists(appInstallDir, false);
-            }
-
-            if (LauncherAsServiceVerifier.SUPPORTED_PACKAGES.contains(
-                    cmd.packageType())) {
-                LauncherAsServiceVerifier.verifyUninstalled(cmd);
             }
 
             uninstallVerifiers.forEach(v -> v.accept(cmd));
@@ -752,18 +610,18 @@ public final class PackageTest extends RunnablePackageTest {
     private static Map<PackageType, PackageHandlers> createDefaultPackageHandlers() {
         HashMap<PackageType, PackageHandlers> handlers = new HashMap<>();
         if (TKit.isLinux()) {
-            handlers.put(LINUX_DEB, LinuxHelper.createDebPackageHandlers());
-            handlers.put(LINUX_RPM, LinuxHelper.createRpmPackageHandlers());
+            handlers.put(PackageType.LINUX_DEB, LinuxHelper.createDebPackageHandlers());
+            handlers.put(PackageType.LINUX_RPM, LinuxHelper.createRpmPackageHandlers());
         }
 
         if (TKit.isWindows()) {
-            handlers.put(WIN_MSI, WindowsHelper.createMsiPackageHandlers());
-            handlers.put(WIN_EXE, WindowsHelper.createExePackageHandlers());
+            handlers.put(PackageType.WIN_MSI, WindowsHelper.createMsiPackageHandlers());
+            handlers.put(PackageType.WIN_EXE, WindowsHelper.createExePackageHandlers());
         }
 
         if (TKit.isOSX()) {
-            handlers.put(MAC_DMG,  MacHelper.createDmgPackageHandlers());
-            handlers.put(MAC_PKG,  MacHelper.createPkgPackageHandlers());
+            handlers.put(PackageType.MAC_DMG,  MacHelper.createDmgPackageHandlers());
+            handlers.put(PackageType.MAC_PKG,  MacHelper.createPkgPackageHandlers());
         }
 
         return handlers;
@@ -775,6 +633,7 @@ public final class PackageTest extends RunnablePackageTest {
     private Map<PackageType, Handler> handlers;
     private Set<String> namedInitializers;
     private Map<PackageType, PackageHandlers> packageHandlers;
+    private final List<String> launcherNames = new ArrayList();
 
     private final static File BUNDLE_OUTPUT_DIR;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -90,10 +90,8 @@ public final class Executor extends CommandArguments<Executor> {
     }
 
     public Executor setWindowsTmpDir(String tmp) {
-        if (!TKit.isWindows()) {
-            throw new UnsupportedOperationException(
-                    "setWindowsTmpDir is only valid on Windows platform");
-        }
+        TKit.assertTrue(TKit.isWindows(),
+                "setWindowsTmpDir is only valid on Windows platform");
         winTmpDir = tmp;
         return this;
     }

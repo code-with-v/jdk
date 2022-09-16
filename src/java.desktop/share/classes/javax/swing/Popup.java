@@ -82,7 +82,7 @@ public class Popup {
      * @param contents Contents of the Popup
      * @param x        Initial x screen coordinate
      * @param y        Initial y screen coordinate
-     * @throws IllegalArgumentException if contents is null
+     * @exception IllegalArgumentException if contents is null
      */
     protected Popup(Component owner, Component contents, int x, int y) {
         this();

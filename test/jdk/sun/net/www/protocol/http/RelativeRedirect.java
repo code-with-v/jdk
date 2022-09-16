@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,32 +24,20 @@
 /**
  * @test
  * @bug 4726087
- * @library /test/lib
- * @run main/othervm RelativeRedirect
+ * @modules java.base/sun.net.www
+ * @library ../../httptest/
+ * @build HttpCallback TestHttpServer ClosedChannelList HttpTransaction
+ * @run main RelativeRedirect
  * @run main/othervm -Djava.net.preferIPv6Addresses=true RelativeRedirect
  * @summary URLConnection cannot handle redirects
  */
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintWriter;
-import java.net.Authenticator;
-import java.net.HttpURLConnection;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.PasswordAuthentication;
-import java.net.Proxy;
-import java.net.URL;
-import java.util.concurrent.Executors;
+import java.io.*;
+import java.net.*;
 
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
-
-public class RelativeRedirect implements HttpHandler {
+public class RelativeRedirect implements HttpCallback {
     static int count = 0;
-    static HttpServer server;
-
+    static TestHttpServer server;
 
     static class MyAuthenticator extends Authenticator {
         public MyAuthenticator () {
@@ -62,29 +50,26 @@ public class RelativeRedirect implements HttpHandler {
         }
     }
 
-    void firstReply(HttpExchange req) throws IOException {
-        req.getResponseHeaders().set("Connection", "close");
-        req.getResponseHeaders().set("Location", "/redirect/file.html");
-        req.sendResponseHeaders(302, -1);
+    void firstReply (HttpTransaction req) throws IOException {
+        req.addResponseHeader ("Connection", "close");
+        req.addResponseHeader ("Location", "/redirect/file.html");
+        req.sendResponse (302, "Moved Permamently");
+        req.orderlyClose();
     }
 
-    void secondReply (HttpExchange req) throws IOException {
+    void secondReply (HttpTransaction req) throws IOException {
         if (req.getRequestURI().toString().equals("/redirect/file.html") &&
-            req.getRequestHeaders().get("Host").get(0).equals(authority(server.getAddress().getPort()))) {
-            req.sendResponseHeaders(200, 0);
-            try(PrintWriter pw = new PrintWriter(req.getResponseBody())) {
-                pw.print("Hello .");
-            }
+            req.getRequestHeader("Host").equals(authority(server.getLocalPort()))) {
+            req.setResponseEntityBody ("Hello .");
+            req.sendResponse (200, "Ok");
         } else {
-            req.sendResponseHeaders(400, 0);
-            try(PrintWriter pw = new PrintWriter(req.getResponseBody())) {
-                pw.print(req.getRequestURI().toString());
-            }
+            req.setResponseEntityBody (req.getRequestURI().toString());
+            req.sendResponse (400, "Bad request");
         }
-    }
+        req.orderlyClose();
 
-    @Override
-    public void handle (HttpExchange req) {
+    }
+    public void request (HttpTransaction req) {
         try {
             switch (count) {
             case 0:
@@ -116,12 +101,9 @@ public class RelativeRedirect implements HttpHandler {
         MyAuthenticator auth = new MyAuthenticator ();
         Authenticator.setDefault (auth);
         try {
-            server = HttpServer.create(new InetSocketAddress(loopback, 0), 10);
-            server.createContext("/", new RelativeRedirect());
-            server.setExecutor(Executors.newSingleThreadExecutor());
-            server.start();
-            System.out.println ("Server: listening on port: " + server.getAddress().getPort());
-            URL url = new URL("http://" + authority(server.getAddress().getPort()));
+            server = new TestHttpServer (new RelativeRedirect(), 1, 10, loopback, 0);
+            System.out.println ("Server: listening on port: " + server.getLocalPort());
+            URL url = new URL("http://" + authority(server.getLocalPort()));
             System.out.println ("client opening connection to: " + url);
             HttpURLConnection urlc = (HttpURLConnection)url.openConnection (Proxy.NO_PROXY);
             InputStream is = urlc.getInputStream ();
@@ -130,7 +112,7 @@ public class RelativeRedirect implements HttpHandler {
             throw new RuntimeException(e);
         } finally {
             if (server != null) {
-                server.stop(1);
+                server.terminate();
             }
         }
     }

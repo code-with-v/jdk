@@ -23,7 +23,7 @@
  */
 
 /*
- * @test
+ * @test TestSoftMaxHeapSize
  * @summary Test that Shenandoah checks SoftMaxHeapSize
  * @requires vm.gc.Shenandoah
  * @library /test/lib

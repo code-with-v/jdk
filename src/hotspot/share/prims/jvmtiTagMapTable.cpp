@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -186,9 +186,8 @@ void JvmtiTagMapTable::resize_if_needed() {
   }
 }
 
-// Serially remove entries for dead oops from the table and store dead oops'
-// tag in objects array if provided.
-void JvmtiTagMapTable::remove_dead_entries(GrowableArray<jlong>* objects) {
+// Serially remove entries for dead oops from the table, and notify jvmti.
+void JvmtiTagMapTable::remove_dead_entries(JvmtiEnv* env, bool post_object_free) {
   int oops_removed = 0;
   int oops_counted = 0;
   for (int i = 0; i < table_size(); ++i) {
@@ -207,18 +206,19 @@ void JvmtiTagMapTable::remove_dead_entries(GrowableArray<jlong>* objects) {
         *p = entry->next();
         free_entry(entry);
 
-        // collect object tags for posting JVMTI events later
-        if (objects != NULL) {
-          objects->append(tag);
+        // post the event to the profiler
+        if (post_object_free) {
+          JvmtiExport::post_object_free(env, tag);
         }
+
       }
       // get next entry
       entry = *p;
     }
   }
 
-  log_info(jvmti, table) ("JvmtiTagMap entries counted %d removed %d",
-                          oops_counted, oops_removed);
+  log_info(jvmti, table) ("JvmtiTagMap entries counted %d removed %d; %s",
+                          oops_counted, oops_removed, post_object_free ? "free object posted" : "no posting");
 }
 
 // Rehash oops in the table

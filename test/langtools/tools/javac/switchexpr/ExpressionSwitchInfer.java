@@ -1,6 +1,6 @@
 /*
  * @test /nodynamiccopyright/
- * @bug 8206986 8254286 8274347
+ * @bug 8206986 8254286
  * @summary Check types inferred for switch expressions.
  * @compile/fail/ref=ExpressionSwitchInfer.out -XDrawDiagnostics ExpressionSwitchInfer.java
  */
@@ -83,14 +83,4 @@ public class ExpressionSwitchInfer {
     interface I1 extends I {}
     interface I2 extends I {}
 
-    void preflow(int i, int j) {
-        System.out.println(switch (i) {
-            case 1 -> switch (j) {
-                    case 1 -> "one and one";
-                    default -> "one and many";
-                };
-            case 2 -> "two";
-            default -> "many";
-        });
-    }
 }

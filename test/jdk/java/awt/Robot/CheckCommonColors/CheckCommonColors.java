@@ -42,8 +42,6 @@ import javax.imageio.ImageIO;
  * @key headful
  * @bug 8215105 8211999
  * @summary tests that Robot can capture the common colors without artifacts
- * @run main/othervm CheckCommonColors
- * @run main/othervm -Xcheck:jni CheckCommonColors
  */
 public final class CheckCommonColors {
 

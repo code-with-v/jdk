@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2017, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,6 +32,7 @@
  * @build FdlibmTranslit
  * @build HypotTests
  * @run main HypotTests
+ * @author Joseph D. Darcy
  */
 
 import jdk.test.lib.RandomFactory;
@@ -71,28 +72,28 @@ public class HypotTests {
     static int testHypotCase(double input1, double input2, double expected) {
         int failures = 0;
         failures += Tests.test("StrictMath.hypot(double)", input1, input2,
-                               StrictMath::hypot, expected);
+                               StrictMath.hypot(input1, input2), expected);
 
         failures += Tests.test("StrictMath.hypot(double)", input2, input1,
-                               StrictMath::hypot, expected);
+                          StrictMath.hypot(input2, input1), expected);
 
         failures += Tests.test("StrictMath.hypot(double)", -input1, input2,
-                               StrictMath::hypot, expected);
+                               StrictMath.hypot(-input1, input2), expected);
 
         failures += Tests.test("StrictMath.hypot(double)", input2, -input1,
-                               StrictMath::hypot, expected);
+                          StrictMath.hypot(input2, -input1), expected);
 
         failures += Tests.test("StrictMath.hypot(double)", input1, -input2,
-                               StrictMath::hypot, expected);
+                               StrictMath.hypot(input1, -input2), expected);
 
         failures += Tests.test("StrictMath.hypot(double)", -input2, input1,
-                               StrictMath::hypot, expected);
+                          StrictMath.hypot(-input2, input1), expected);
 
         failures += Tests.test("StrictMath.hypot(double)", -input1, -input2,
-                               StrictMath::hypot, expected);
+                               StrictMath.hypot(-input1, -input2), expected);
 
         failures +=  Tests.test("StrictMath.hypot(double)", -input2, -input1,
-                                StrictMath::hypot, expected);
+                          StrictMath.hypot(-input2, -input1), expected);
         return failures;
     }
 

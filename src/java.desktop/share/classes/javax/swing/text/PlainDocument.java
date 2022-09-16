@@ -107,7 +107,7 @@ public class PlainDocument extends AbstractDocument {
      * @param offs the starting offset &gt;= 0
      * @param str the string to insert; does nothing with null/empty strings
      * @param a the attributes for the inserted content
-     * @throws BadLocationException  the given insert position is not a valid
+     * @exception BadLocationException  the given insert position is not a valid
      *   position within the document
      * @see Document#insertString
      */

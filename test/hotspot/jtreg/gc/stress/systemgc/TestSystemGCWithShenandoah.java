@@ -25,7 +25,7 @@
 package gc.stress.systemgc;
 
 /*
- * @test id=default
+ * @test TestSystemGCWithShenandoah
  * @key stress
  * @library /
  * @requires vm.gc.Shenandoah
@@ -42,7 +42,7 @@ package gc.stress.systemgc;
  */
 
 /*
- * @test id=iu
+ * @test TestSystemGCWithShenandoah
  * @key stress
  * @library /
  * @requires vm.gc.Shenandoah

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2017, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -182,7 +182,7 @@ public class DefaultStyledDocument extends AbstractDocument implements StyledDoc
      *
      * @param offset the starting offset &gt;= 0
      * @param data the element data
-     * @throws BadLocationException for an invalid starting offset
+     * @exception BadLocationException for an invalid starting offset
      */
     protected void insert(int offset, ElementSpec[] data) throws BadLocationException {
         if (data == null || data.length == 0) {
@@ -438,11 +438,11 @@ public class DefaultStyledDocument extends AbstractDocument implements StyledDoc
      */
     public void setLogicalStyle(int pos, Style s) {
         Element paragraph = getParagraphElement(pos);
-        if (paragraph instanceof AbstractElement abstractElement) {
+        if ((paragraph != null) && (paragraph instanceof AbstractElement)) {
             try {
                 writeLock();
-                StyleChangeUndoableEdit edit = new StyleChangeUndoableEdit(abstractElement, s);
-                abstractElement.setResolveParent(s);
+                StyleChangeUndoableEdit edit = new StyleChangeUndoableEdit((AbstractElement)paragraph, s);
+                ((AbstractElement)paragraph).setResolveParent(s);
                 int p0 = paragraph.getStartOffset();
                 int p1 = paragraph.getEndOffset();
                 DefaultDocumentEvent e =
@@ -484,18 +484,6 @@ public class DefaultStyledDocument extends AbstractDocument implements StyledDoc
      * A write lock is held by this operation while changes
      * are being made, and a DocumentEvent is sent to the listeners
      * after the change has been successfully completed.
-     *
-     * <p>
-     * {@code offset} and {@code length} define the range of the text
-     * over which the attributes are set.
-     * If the length is &lt;= 0, then no action is taken  and the method
-     * just returns.
-     * If the offset is &lt;=0 or &gt; the length of the text then no
-     * action is taken, and the method just returns.
-     * Otherwise if {@code offset + length} will exceed the length of
-     * the  text then the affected range is truncated.
-     * </p>
-     *
      * <p>
      * This method is thread safe, although most Swing methods
      * are not. Please see
@@ -503,13 +491,13 @@ public class DefaultStyledDocument extends AbstractDocument implements StyledDoc
      * in Swing</A> for more information.
      *
      * @param offset the offset in the document &gt;= 0
-     * @param length the length &gt; 0
+     * @param length the length &gt;= 0
      * @param s the attributes
      * @param replace true if the previous attributes should be replaced
      *  before setting the new attributes
      */
     public void setCharacterAttributes(int offset, int length, AttributeSet s, boolean replace) {
-        if (length <= 0) {
+        if (length == 0) {
             return;
         }
         try {
@@ -845,17 +833,17 @@ public class DefaultStyledDocument extends AbstractDocument implements StyledDoc
         else {
             // Will only happen for text with more than 2 levels.
             // Find the common parent of a paragraph and pParagraph
-            ArrayList<Element> leftParents = new ArrayList<Element>();
-            ArrayList<Element> rightParents = new ArrayList<Element>();
+            Vector<Element> leftParents = new Vector<Element>();
+            Vector<Element> rightParents = new Vector<Element>();
             Element e = pParagraph;
             while(e != null) {
-                leftParents.add(e);
+                leftParents.addElement(e);
                 e = e.getParentElement();
             }
             e = paragraph;
             int leftIndex = -1;
             while(e != null && (leftIndex = leftParents.indexOf(e)) == -1) {
-                rightParents.add(e);
+                rightParents.addElement(e);
                 e = e.getParentElement();
             }
             if(e != null) {
@@ -870,7 +858,7 @@ public class DefaultStyledDocument extends AbstractDocument implements StyledDoc
                 ElementSpec spec;
                 for(int counter = rightParents.size() - 1;
                     counter >= 0; counter--) {
-                    spec = new ElementSpec(rightParents.get(counter).getAttributes(),
+                    spec = new ElementSpec(rightParents.elementAt(counter).getAttributes(),
                                    ElementSpec.StartTagType);
                     if(counter > 0)
                         spec.setDirection(ElementSpec.JoinNextDirection);
@@ -2093,34 +2081,35 @@ public class DefaultStyledDocument extends AbstractDocument implements StyledDoc
                 if (rj.getStartOffset() == rmOffs1) {
                     rj = null;
                 }
-                ArrayList<Element> children = new ArrayList<Element>();
+                Vector<Element> children = new Vector<Element>();
 
                 // transfer the left
                 for (int i = 0; i < ljIndex; i++) {
-                    children.add(clone(to, left.getElement(i)));
+                    children.addElement(clone(to, left.getElement(i)));
                 }
 
                 // transfer the join/middle
                 if (canJoin(lj, rj)) {
                     Element e = join(to, lj, rj, rmOffs0, rmOffs1);
-                    children.add(e);
+                    children.addElement(e);
                 } else {
                     if (lj != null) {
-                        children.add(cloneAsNecessary(to, lj, rmOffs0, rmOffs1));
+                        children.addElement(cloneAsNecessary(to, lj, rmOffs0, rmOffs1));
                     }
                     if (rj != null) {
-                        children.add(cloneAsNecessary(to, rj, rmOffs0, rmOffs1));
+                        children.addElement(cloneAsNecessary(to, rj, rmOffs0, rmOffs1));
                     }
                 }
 
                 // transfer the right
                 int n = right.getElementCount();
                 for (int i = (rj == null) ? rjIndex : rjIndex + 1; i < n; i++) {
-                    children.add(clone(to, right.getElement(i)));
+                    children.addElement(clone(to, right.getElement(i)));
                 }
 
                 // install the children
-                Element[] c = children.toArray(new Element[0]);
+                Element[] c = new Element[children.size()];
+                children.copyInto(c);
                 ((BranchElement)to).replace(0, 0, c);
                 return to;
             } else {
@@ -2560,7 +2549,7 @@ public class DefaultStyledDocument extends AbstractDocument implements StyledDoc
         /**
          * Redoes a change.
          *
-         * @throws CannotRedoException if the change cannot be redone
+         * @exception CannotRedoException if the change cannot be redone
          */
         public void redo() throws CannotRedoException {
             super.redo();
@@ -2574,7 +2563,7 @@ public class DefaultStyledDocument extends AbstractDocument implements StyledDoc
         /**
          * Undoes a change.
          *
-         * @throws CannotUndoException if the change cannot be undone
+         * @exception CannotUndoException if the change cannot be undone
          */
         public void undo() throws CannotUndoException {
             super.undo();
@@ -2616,7 +2605,7 @@ public class DefaultStyledDocument extends AbstractDocument implements StyledDoc
         /**
          * Redoes a change.
          *
-         * @throws CannotRedoException if the change cannot be redone
+         * @exception CannotRedoException if the change cannot be redone
          */
         public void redo() throws CannotRedoException {
             super.redo();
@@ -2626,7 +2615,7 @@ public class DefaultStyledDocument extends AbstractDocument implements StyledDoc
         /**
          * Undoes a change.
          *
-         * @throws CannotUndoException if the change cannot be undone
+         * @exception CannotUndoException if the change cannot be undone
          */
         public void undo() throws CannotUndoException {
             super.undo();

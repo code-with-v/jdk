@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -158,6 +158,15 @@ bool FastUnlockNode::cmp( const Node &n ) const {
   return (&n == this);                // Always fail except on self
 }
 
+//
+// Create a counter which counts the number of times this lock is acquired
+//
+void FastLockNode::create_lock_counter(JVMState* state) {
+  BiasedLockingNamedCounter* blnc = (BiasedLockingNamedCounter*)
+           OptoRuntime::new_named_counter(state, NamedCounter::BiasedLockingCounter);
+  _counters = blnc->counters();
+}
+
 void FastLockNode::create_rtm_lock_counter(JVMState* state) {
 #if INCLUDE_RTM_OPT
   Compile* C = Compile::current();
@@ -179,8 +188,6 @@ void FastLockNode::create_rtm_lock_counter(JVMState* state) {
 void Parse::do_monitor_enter() {
   kill_dead_locals();
 
-  C->set_has_monitors(true);
-
   // Null check; get casted pointer.
   Node* obj = null_check(peek());
   // Check for locking null object
@@ -197,10 +204,6 @@ void Parse::do_monitor_enter() {
 //------------------------------do_monitor_exit--------------------------------
 void Parse::do_monitor_exit() {
   kill_dead_locals();
-
-  // need to set it for monitor exit as well.
-  // OSR compiled methods can start with lock taken
-  C->set_has_monitors(true);
 
   pop();                        // Pop oop to unlock
   // Because monitors are guaranteed paired (else we bail out), we know

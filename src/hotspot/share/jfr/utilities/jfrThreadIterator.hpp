@@ -26,8 +26,8 @@
 #define SHARE_VM_JFR_UTILITIES_JFRTHREADITERATOR_HPP
 
 #include "memory/allocation.hpp"
-#include "runtime/javaThread.hpp"
 #include "runtime/nonJavaThread.hpp"
+#include "runtime/thread.hpp"
 #include "runtime/threadSMR.hpp"
 
 template <typename Adapter, typename AP = StackObj>
@@ -47,17 +47,15 @@ class JfrThreadIterator : public AP {
 
 class JfrJavaThreadIteratorAdapter {
  private:
-  ThreadsListHandle _tlist;
-  ThreadsListHandle::Iterator _it;
-  ThreadsListHandle::Iterator _end;
+  JavaThreadIteratorWithHandle _iter;
+  JavaThread* _next;
   bool _live_only;
-
-  void skip_excluded();
-
  public:
   typedef JavaThread Type;
   JfrJavaThreadIteratorAdapter(bool live_only = true);
-  bool has_next() const;
+  bool has_next() const {
+    return _next != NULL;
+  }
   Type* next();
 };
 

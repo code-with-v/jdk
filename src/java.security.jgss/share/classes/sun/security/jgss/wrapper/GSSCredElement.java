@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +25,6 @@
 package sun.security.jgss.wrapper;
 
 import org.ietf.jgss.*;
-import java.lang.ref.Cleaner;
 import java.security.Provider;
 import sun.security.jgss.GSSUtil;
 import sun.security.jgss.spi.GSSCredentialSpi;
@@ -38,12 +37,11 @@ import sun.security.jgss.spi.GSSNameSpi;
  * @since 1.6
  */
 public class GSSCredElement implements GSSCredentialSpi {
-    private final Cleaner.Cleanable cleanable;
 
-    private final int usage;
-    final long pCred; // Pointer to the gss_cred_id_t structure
-    private GSSNameElement name;
-    private final GSSLibStub cStub;
+    private int usage;
+    long pCred; // Pointer to the gss_cred_id_t structure
+    private GSSNameElement name = null;
+    private GSSLibStub cStub;
 
     // Perform the necessary ServicePermission check on this cred
     @SuppressWarnings("removal")
@@ -71,7 +69,6 @@ public class GSSCredElement implements GSSCredentialSpi {
         cStub = GSSLibStub.getInstance(mech);
         usage = GSSCredential.INITIATE_ONLY;
         name = srcName;
-        cleanable = Krb5Util.cleaner.register(this, disposerFor(cStub, pCred));
     }
 
     GSSCredElement(GSSNameElement name, int lifetime, int usage,
@@ -88,23 +85,17 @@ public class GSSCredElement implements GSSCredentialSpi {
             this.name = new GSSNameElement(cStub.getCredName(pCred), cStub);
             doServicePermCheck();
         }
-
-        cleanable = Krb5Util.cleaner.register(this, disposerFor(cStub, pCred));
     }
 
     public Provider getProvider() {
         return SunNativeProvider.INSTANCE;
     }
 
-    public void dispose() {
+    public void dispose() throws GSSException {
         name = null;
-        cleanable.clean();
-    }
-
-    private static Runnable disposerFor(GSSLibStub stub, long pCredentials) {
-        return () -> {
-            stub.releaseCred(pCredentials);
-        };
+        if (pCred != 0) {
+            pCred = cStub.releaseCred(pCred);
+        }
     }
 
     public GSSNameElement getName() throws GSSException {
@@ -139,6 +130,11 @@ public class GSSCredElement implements GSSCredentialSpi {
     public String toString() {
         // No hex bytes available for native impl
         return "N/A";
+    }
+
+    @SuppressWarnings("deprecation")
+    protected void finalize() throws Throwable {
+        dispose();
     }
 
     @Override

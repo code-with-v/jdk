@@ -27,7 +27,7 @@
  */
 
 /*
- * @test id=default
+ * @test TestReferenceCAS
  * @summary Shenandoah reference CAS test
  * @requires vm.gc.Shenandoah
  * @modules java.base/jdk.internal.misc:+open
@@ -40,7 +40,7 @@
  */
 
 /*
- * @test id=no-coops
+ * @test TestReferenceCAS
  * @summary Shenandoah reference CAS test
  * @requires vm.gc.Shenandoah
  * @requires vm.bits == "64"

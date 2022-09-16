@@ -23,7 +23,7 @@
  */
 
 /*
- * @test
+ * @test TestExplicitGC
  * @summary Test that Shenandoah reacts to explicit GC flags appropriately
  * @requires vm.gc.Shenandoah
  * @library /test/lib

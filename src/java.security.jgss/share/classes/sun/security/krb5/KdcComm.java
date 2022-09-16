@@ -188,22 +188,21 @@ public final class KdcComm {
         this.realm = realm;
     }
 
-    public byte[] send(KrbKdcReq req)
+    public byte[] send(byte[] obuf)
         throws IOException, KrbException {
         int udpPrefLimit = getRealmSpecificValue(
                 realm, "udp_preference_limit", defaultUdpPrefLimit);
 
-        byte[] obuf = req.encoding();
         boolean useTCP = (udpPrefLimit > 0 &&
              (obuf != null && obuf.length > udpPrefLimit));
 
-        return send(req, useTCP);
+        return send(obuf, useTCP);
     }
 
-    private byte[] send(KrbKdcReq req, boolean useTCP)
+    private byte[] send(byte[] obuf, boolean useTCP)
         throws IOException, KrbException {
 
-        if (req == null)
+        if (obuf == null)
             return null;
         Config cfg = Config.getInstance();
 
@@ -226,12 +225,12 @@ public final class KdcComm {
         }
         byte[] ibuf = null;
         try {
-            ibuf = sendIfPossible(req, tempKdc.next(), useTCP);
+            ibuf = sendIfPossible(obuf, tempKdc.next(), useTCP);
         } catch(Exception first) {
             boolean ok = false;
             while(tempKdc.hasNext()) {
                 try {
-                    ibuf = sendIfPossible(req, tempKdc.next(), useTCP);
+                    ibuf = sendIfPossible(obuf, tempKdc.next(), useTCP);
                     ok = true;
                     break;
                 } catch(Exception ignore) {}
@@ -244,34 +243,22 @@ public final class KdcComm {
         return ibuf;
     }
 
-    // send the KDC Request to the specified KDC
+    // send the AS Request to the specified KDC
     // failover to using TCP if useTCP is not set and response is too big
-    private byte[] sendIfPossible(KrbKdcReq req, String tempKdc, boolean useTCP)
+    private byte[] sendIfPossible(byte[] obuf, String tempKdc, boolean useTCP)
         throws IOException, KrbException {
 
         try {
-            byte[] ibuf = send(req, tempKdc, useTCP);
+            byte[] ibuf = send(obuf, tempKdc, useTCP);
             KRBError ke = null;
             try {
                 ke = new KRBError(ibuf);
             } catch (Exception e) {
                 // OK
             }
-            if (ke != null) {
-                if (ke.getErrorCode() ==
+            if (ke != null && ke.getErrorCode() ==
                     Krb5.KRB_ERR_RESPONSE_TOO_BIG) {
-                    ibuf = send(req, tempKdc, true);
-                } else if (ke.getErrorCode() ==
-                        Krb5.KDC_ERR_SVC_UNAVAILABLE) {
-                    throw new KrbException("A service is not available");
-                } else if (ke.getErrorCode() == Krb5.KDC_ERR_BADOPTION
-                        && Credentials.S4U2PROXY_ACCEPT_NON_FORWARDABLE
-                        && req instanceof KrbTgsReq tgsReq) {
-                    Credentials extra = tgsReq.getAdditionalCreds();
-                    if (extra != null && !extra.isForwardable()) {
-                        throw new KrbException("S4U2Proxy with non-forwardable ticket");
-                    }
-                }
+                ibuf = send(obuf, tempKdc, true);
             }
             KdcAccessibility.removeBad(tempKdc);
             return ibuf;
@@ -286,12 +273,12 @@ public final class KdcComm {
         }
     }
 
-    // send the KDC Request to the specified KDC
+    // send the AS Request to the specified KDC
 
-    private byte[] send(KrbKdcReq req, String tempKdc, boolean useTCP)
+    private byte[] send(byte[] obuf, String tempKdc, boolean useTCP)
         throws IOException, KrbException {
 
-        if (req == null)
+        if (obuf == null)
             return null;
 
         int port = Krb5.KDC_INET_DEFAULT_PORT;
@@ -344,7 +331,6 @@ public final class KdcComm {
                 port = tempPort;
         }
 
-        byte[] obuf = req.encoding();
         if (DEBUG) {
             System.out.println(">>> KrbKdcReq send: kdc=" + kdc
                                + (useTCP ? " TCP:":" UDP:")

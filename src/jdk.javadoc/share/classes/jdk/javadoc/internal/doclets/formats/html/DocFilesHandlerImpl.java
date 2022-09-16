@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,6 +30,7 @@ import com.sun.source.doctree.EndElementTree;
 import com.sun.source.doctree.StartElementTree;
 import com.sun.source.util.DocTreeFactory;
 import jdk.javadoc.internal.doclets.formats.html.markup.BodyContents;
+import jdk.javadoc.internal.doclets.formats.html.markup.ContentBuilder;
 import jdk.javadoc.internal.doclets.formats.html.markup.HtmlTree;
 import jdk.javadoc.internal.doclets.toolkit.Content;
 import jdk.javadoc.internal.doclets.toolkit.DocFileElement;
@@ -38,6 +39,7 @@ import jdk.javadoc.internal.doclets.toolkit.util.DocFile;
 import jdk.javadoc.internal.doclets.toolkit.util.DocFileIOException;
 import jdk.javadoc.internal.doclets.toolkit.util.DocPath;
 import jdk.javadoc.internal.doclets.toolkit.util.DocPaths;
+import jdk.javadoc.internal.doclets.toolkit.util.DocletConstants;
 import jdk.javadoc.internal.doclets.toolkit.util.Utils;
 import jdk.javadoc.internal.doclint.HtmlTag;
 
@@ -50,6 +52,7 @@ import javax.tools.JavaFileManager.Location;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import jdk.javadoc.internal.doclets.formats.html.Navigation.PageMode;
@@ -75,23 +78,22 @@ public class DocFilesHandlerImpl implements DocFilesHandler {
         this.element = element;
 
         switch (element.getKind()) {
-            case MODULE -> {
-                ModuleElement mdle = (ModuleElement) element;
+            case MODULE:
+                ModuleElement mdle = (ModuleElement)element;
                 location = configuration.utils.getLocationForModule(mdle);
                 source = DocPaths.DOC_FILES;
-            }
-
-            case PACKAGE -> {
-                PackageElement pkg = (PackageElement) element;
+                break;
+            case PACKAGE:
+                PackageElement pkg = (PackageElement)element;
                 location = configuration.utils.getLocationForPackage(pkg);
                 // Note, given that we have a module-specific location,
                 // we want a module-relative path for the source, and not the
                 // standard path that may include the module directory
                 source = DocPath.create(pkg.getQualifiedName().toString().replace('.', '/'))
                         .resolve(DocPaths.DOC_FILES);
-            }
-
-            default -> throw new AssertionError("unsupported element " + element);
+                break;
+            default:
+                throw new AssertionError("unsupported element " + element);
         }
     }
 
@@ -109,11 +111,17 @@ public class DocFilesHandlerImpl implements DocFilesHandler {
             if (!srcdir.isDirectory()) {
                 continue;
             }
-            DocPath path = switch (this.element.getKind()) {
-                case MODULE -> DocPaths.forModule((ModuleElement) this.element);
-                case PACKAGE -> configuration.docPaths.forPackage((PackageElement) this.element);
-                default -> throw new AssertionError("unknown kind:" + this.element.getKind());
-            };
+            DocPath path = null;
+            switch (this.element.getKind()) {
+                case MODULE:
+                    path = DocPaths.forModule((ModuleElement)this.element);
+                    break;
+                case PACKAGE:
+                    path = configuration.docPaths.forPackage((PackageElement)this.element);
+                    break;
+                default:
+                    throw new AssertionError("unknown kind:" + this.element.getKind());
+            }
             copyDirectory(srcdir, path.resolve(DocPaths.DOC_FILES), first);
             first = false;
         }
@@ -121,7 +129,7 @@ public class DocFilesHandlerImpl implements DocFilesHandler {
 
     @Override
     public List<DocPath> getStylesheets() throws DocFileIOException {
-        var stylesheets = new ArrayList<DocPath>();
+        List<DocPath> stylesheets = new ArrayList<DocPath>();
         for (DocFile srcdir : DocFile.list(configuration, location, source)) {
             for (DocFile srcFile : srcdir.list()) {
                 if (srcFile.getName().endsWith(".css"))
@@ -192,20 +200,20 @@ public class DocFilesHandlerImpl implements DocFilesHandler {
         HtmlDocletWriter docletWriter = new DocFileWriter(configuration, dfilePath, element, pkg);
 
         List<? extends DocTree> localTags = getLocalHeaderTags(utils.getPreamble(dfElement));
-        Content localTagsContent = docletWriter.commentTagsToContent(dfElement, localTags, false);
+        Content localTagsContent = docletWriter.commentTagsToContent(null, dfElement, localTags, false);
 
         String title = getWindowTitle(docletWriter, dfElement).trim();
         HtmlTree htmlContent = docletWriter.getBody(title);
 
         List<? extends DocTree> fullBody = utils.getFullBody(dfElement);
-        Content pageContent = docletWriter.commentTagsToContent(dfElement, fullBody, false);
+        Content pageContent = docletWriter.commentTagsToContent(null, dfElement, fullBody, false);
         docletWriter.addTagsInfo(dfElement, pageContent);
 
         htmlContent.add(new BodyContents()
                 .setHeader(docletWriter.getHeader(PageMode.DOC_FILE, element))
                 .addMainContent(pageContent)
                 .setFooter(docletWriter.getFooter()));
-        docletWriter.printHtmlDocument(List.of(), null, localTagsContent, List.of(), htmlContent);
+        docletWriter.printHtmlDocument(Collections.emptyList(), null, localTagsContent, Collections.emptyList(), htmlContent);
     }
 
 
@@ -231,7 +239,7 @@ public class DocFilesHandlerImpl implements DocFilesHandler {
                         default:
                             if (inHead) {
                                 localTags.add(startElem);
-                                localTags.add(docTreeFactory.newTextTree("\n"));
+                                localTags.add(docTreeFactory.newTextTree(DocletConstants.NL));
                             }
                     }
                     break;
@@ -247,7 +255,7 @@ public class DocFilesHandlerImpl implements DocFilesHandler {
                         default:
                             if (inHead) {
                                 localTags.add(endElem);
-                                localTags.add(docTreeFactory.newTextTree("\n"));
+                                localTags.add(docTreeFactory.newTextTree(DocletConstants.NL));
                             }
                     }
                     break;

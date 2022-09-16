@@ -39,12 +39,12 @@
 
 - (NSString * _Nullable)accessibilityLabel
 {
-    return [super accessibilityLabel];
+    return [self accessibilityTitleAttribute];
 }
 
 - (id _Nullable)accessibilityValue
 {
-    return [super accessibilityValue];
+    return [self accessibilityValueAttribute];
 }
 
 - (BOOL)accessibilityPerformIncrement
@@ -56,16 +56,6 @@
 - (BOOL)accessibilityPerformDecrement
 {
     return [self performAccessibleAction:DECREMENT];
-}
-
-- (NSRect)accessibilityFrame
-{
-    return [super accessibilityFrame];
-}
-
-- (id)accessibilityParent
-{
-    return [super accessibilityParent];
 }
 
 @end

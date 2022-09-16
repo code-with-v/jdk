@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -41,6 +41,7 @@
 #include "runtime/safepoint.hpp"
 #include "utilities/events.hpp"
 #include "utilities/growableArray.hpp"
+#include "utilities/hashtable.inline.hpp"
 #include "utilities/ostream.hpp"
 #include "utilities/quickSort.hpp"
 #include "utilities/resourceHash.hpp"
@@ -50,9 +51,11 @@ ModuleEntry* ModuleEntryTable::_javabase_module = NULL;
 oop ModuleEntry::module() const { return _module.resolve(); }
 
 void ModuleEntry::set_location(Symbol* location) {
-  // _location symbol's refcounts are managed by ModuleEntry,
-  // must decrement the old one before updating.
-  Symbol::maybe_decrement_refcount(_location);
+  if (_location != NULL) {
+    // _location symbol's refcounts are managed by ModuleEntry,
+    // must decrement the old one before updating.
+    _location->decrement_refcount();
+  }
 
   _location = location;
 
@@ -95,13 +98,17 @@ bool ModuleEntry::should_show_version() {
 }
 
 void ModuleEntry::set_version(Symbol* version) {
-  // _version symbol's refcounts are managed by ModuleEntry,
-  // must decrement the old one before updating.
-  Symbol::maybe_decrement_refcount(_version);
+  if (_version != NULL) {
+    // _version symbol's refcounts are managed by ModuleEntry,
+    // must decrement the old one before updating.
+    _version->decrement_refcount();
+  }
 
   _version = version;
 
-  Symbol::maybe_increment_refcount(version);
+  if (version != NULL) {
+    version->increment_refcount();
+  }
 }
 
 // Returns the shared ProtectionDomain
@@ -255,59 +262,6 @@ void ModuleEntry::delete_reads() {
   _reads = NULL;
 }
 
-ModuleEntry::ModuleEntry(Handle module_handle,
-                         bool is_open, Symbol* name,
-                         Symbol* version, Symbol* location,
-                         ClassLoaderData* loader_data) :
-    _name(name),
-    _loader_data(loader_data),
-    _reads(nullptr),
-    _version(nullptr),
-    _location(nullptr),
-    CDS_ONLY(_shared_path_index(-1) COMMA)
-    _can_read_all_unnamed(false),
-    _has_default_read_edges(false),
-    _must_walk_reads(false),
-    _is_open(is_open),
-    _is_patched(false) {
-
-  // Initialize fields specific to a ModuleEntry
-  if (_name == nullptr) {
-    // Unnamed modules can read all other unnamed modules.
-    set_can_read_all_unnamed();
-  } else {
-    _name->increment_refcount();
-  }
-
-  if (!module_handle.is_null()) {
-    _module = loader_data->add_handle(module_handle);
-  }
-
-  set_version(version);
-
-  // may need to add CDS info
-  set_location(location);
-
-  if (name != nullptr && ClassLoader::is_in_patch_mod_entries(name)) {
-    set_is_patched();
-    if (log_is_enabled(Trace, module, patch)) {
-      ResourceMark rm;
-      log_trace(module, patch)("Marked module %s as patched from --patch-module",
-                               name != NULL ? name->as_C_string() : UNNAMED_MODULE);
-    }
-  }
-
-  JFR_ONLY(INIT_ID(this);)
-}
-
-ModuleEntry::~ModuleEntry() {
-  // Clean out the C heap allocated reads list first before freeing the entry
-  delete_reads();
-  Symbol::maybe_decrement_refcount(_name);
-  Symbol::maybe_decrement_refcount(_version);
-  Symbol::maybe_decrement_refcount(_location);
-}
-
 ModuleEntry* ModuleEntry::create_unnamed_module(ClassLoaderData* cld) {
   // The java.lang.Module for this loader's
   // corresponding unnamed module can be found in the java.lang.ClassLoader object.
@@ -341,36 +295,72 @@ ModuleEntry* ModuleEntry::create_boot_unnamed_module(ClassLoaderData* cld) {
 // This is okay because the unnamed module gets created before the ClassLoaderData
 // is available to other threads.
 ModuleEntry* ModuleEntry::new_unnamed_module_entry(Handle module_handle, ClassLoaderData* cld) {
+  ModuleEntry* entry = NEW_C_HEAP_OBJ(ModuleEntry, mtModule);
 
-  ModuleEntry* entry = new ModuleEntry(module_handle, /*is_open*/true, /*name*/nullptr,
-                                       /*version*/ nullptr, /*location*/ nullptr,
-                                       cld);
+  // Initialize everything BasicHashtable would
+  entry->set_next(NULL);
+  entry->set_hash(0);
+  entry->set_literal(NULL);
+
+  // Initialize fields specific to a ModuleEntry
+  entry->init();
+
   // Unnamed modules can read all other unnamed modules.
-  assert(entry->can_read_all_unnamed(), "constructor set that");
+  entry->set_can_read_all_unnamed();
+
+  if (!module_handle.is_null()) {
+    entry->set_module(cld->add_handle(module_handle));
+  }
+
+  entry->set_loader_data(cld);
+  entry->_is_open = true;
+
+  JFR_ONLY(INIT_ID(entry);)
+
   return entry;
 }
 
-ModuleEntryTable::ModuleEntryTable() { }
+void ModuleEntry::delete_unnamed_module() {
+  // Do not need unlink_entry() since the unnamed module is not in the hashtable
+  FREE_C_HEAP_OBJ(this);
+}
+
+ModuleEntryTable::ModuleEntryTable(int table_size)
+  : Hashtable<Symbol*, mtModule>(table_size, sizeof(ModuleEntry))
+{
+}
 
 ModuleEntryTable::~ModuleEntryTable() {
-  class ModuleEntryTableDeleter : public StackObj {
-   public:
-    bool do_entry(const SymbolHandle& name, ModuleEntry*& entry) {
-      if (log_is_enabled(Info, module, unload) || log_is_enabled(Debug, module)) {
-        ResourceMark rm;
-        const char* str = name->as_C_string();
-        log_info(module, unload)("unloading module %s", str);
-        log_debug(module)("ModuleEntryTable: deleting module: %s", str);
+  // Walk through all buckets and all entries in each bucket,
+  // freeing each entry.
+  for (int i = 0; i < table_size(); ++i) {
+    for (ModuleEntry* m = bucket(i); m != NULL;) {
+      ModuleEntry* to_remove = m;
+      // read next before freeing.
+      m = m->next();
+
+      ResourceMark rm;
+      if (to_remove->name() != NULL) {
+        log_info(module, unload)("unloading module %s", to_remove->name()->as_C_string());
       }
-      delete entry;
-      return true;
+      log_debug(module)("ModuleEntryTable: deleting module: %s", to_remove->name() != NULL ?
+                        to_remove->name()->as_C_string() : UNNAMED_MODULE);
+
+      // Clean out the C heap allocated reads list first before freeing the entry
+      to_remove->delete_reads();
+      if (to_remove->name() != NULL) {
+        to_remove->name()->decrement_refcount();
+      }
+      if (to_remove->version() != NULL) {
+        to_remove->version()->decrement_refcount();
+      }
+      if (to_remove->location() != NULL) {
+        to_remove->location()->decrement_refcount();
+      }
+      BasicHashtable<mtModule>::free_entry(to_remove);
     }
-  };
-
-  ModuleEntryTableDeleter deleter;
-  _table.unlink(&deleter);
-  assert(_table.number_of_entries() == 0, "should have removed all entries");
-
+  }
+  assert(number_of_entries() == 0, "should have removed all entries");
 }
 
 void ModuleEntry::set_loader_data(ClassLoaderData* cld) {
@@ -382,6 +372,8 @@ void ModuleEntry::set_loader_data(ClassLoaderData* cld) {
 typedef ResourceHashtable<
   const ModuleEntry*,
   ModuleEntry*,
+  primitive_hash<const ModuleEntry*>,
+  primitive_equals<const ModuleEntry*>,
   557, // prime number
   ResourceObj::C_HEAP> ArchivedModuleEntries;
 static ArchivedModuleEntries* _archive_modules_entries = NULL;
@@ -439,7 +431,7 @@ GrowableArray<ModuleEntry*>* ModuleEntry::restore_growable_array(Array<ModuleEnt
 }
 
 void ModuleEntry::iterate_symbols(MetaspaceClosure* closure) {
-  closure->push(&_name);
+  closure->push(literal_addr()); // name
   closure->push(&_version);
   closure->push(&_location);
 }
@@ -447,18 +439,20 @@ void ModuleEntry::iterate_symbols(MetaspaceClosure* closure) {
 void ModuleEntry::init_as_archived_entry() {
   Array<ModuleEntry*>* archived_reads = write_growable_array(_reads);
 
+  set_next(NULL);
+  set_hash(0x0);        // re-init at runtime
   _loader_data = NULL;  // re-init at runtime
   _shared_path_index = FileMapInfo::get_module_shared_path_index(_location);
-  if (name() != NULL) {
-    _name = ArchiveBuilder::get_buffered_symbol(_name);
-    ArchivePtrMarker::mark_pointer((address*)&_name);
+  if (literal() != NULL) {
+    set_literal(ArchiveBuilder::get_relocated_symbol(literal()));
+    ArchivePtrMarker::mark_pointer((address*)literal_addr());
   }
   _reads = (GrowableArray<ModuleEntry*>*)archived_reads;
   if (_version != NULL) {
-    _version = ArchiveBuilder::get_buffered_symbol(_version);
+    _version = ArchiveBuilder::get_relocated_symbol(_version);
   }
   if (_location != NULL) {
-    _location = ArchiveBuilder::get_buffered_symbol(_location);
+    _location = ArchiveBuilder::get_relocated_symbol(_location);
   }
   JFR_ONLY(set_trace_id(0));// re-init at runtime
 
@@ -511,20 +505,21 @@ static int compare_module_by_name(ModuleEntry* a, ModuleEntry* b) {
 }
 
 void ModuleEntryTable::iterate_symbols(MetaspaceClosure* closure) {
-  auto syms = [&] (const SymbolHandle& key, ModuleEntry*& m) {
+  for (int i = 0; i < table_size(); ++i) {
+    for (ModuleEntry* m = bucket(i); m != NULL; m = m->next()) {
       m->iterate_symbols(closure);
-  };
-  _table.iterate_all(syms);
+    }
+  }
 }
 
 Array<ModuleEntry*>* ModuleEntryTable::allocate_archived_entries() {
-  Array<ModuleEntry*>* archived_modules = ArchiveBuilder::new_rw_array<ModuleEntry*>(_table.number_of_entries());
+  Array<ModuleEntry*>* archived_modules = ArchiveBuilder::new_rw_array<ModuleEntry*>(number_of_entries());
   int n = 0;
-  auto grab = [&] (const SymbolHandle& key, ModuleEntry*& m) {
-    archived_modules->at_put(n++, m);
-  };
-  _table.iterate_all(grab);
-
+  for (int i = 0; i < table_size(); ++i) {
+    for (ModuleEntry* m = bucket(i); m != NULL; m = m->next()) {
+      archived_modules->at_put(n++, m);
+    }
+  }
   if (n > 1) {
     // Always allocate in the same order to produce deterministic archive.
     QuickSort::sort(archived_modules->data(), n, (_sort_Fn)compare_module_by_name, true);
@@ -559,7 +554,10 @@ void ModuleEntryTable::load_archived_entries(ClassLoaderData* loader_data,
   for (int i = 0; i < archived_modules->length(); i++) {
     ModuleEntry* archived_entry = archived_modules->at(i);
     archived_entry->load_from_archive(loader_data);
-    _table.put(archived_entry->name(), archived_entry);
+
+    unsigned int hash = compute_hash(archived_entry->name());
+    archived_entry->set_hash(hash);
+    add_entry(hash_to_index(hash), archived_entry);
   }
 }
 
@@ -571,6 +569,50 @@ void ModuleEntryTable::restore_archived_oops(ClassLoaderData* loader_data, Array
   }
 }
 #endif // INCLUDE_CDS_JAVA_HEAP
+
+ModuleEntry* ModuleEntryTable::new_entry(unsigned int hash, Handle module_handle,
+                                         bool is_open, Symbol* name,
+                                         Symbol* version, Symbol* location,
+                                         ClassLoaderData* loader_data) {
+  assert(Module_lock->owned_by_self(), "should have the Module_lock");
+  ModuleEntry* entry = (ModuleEntry*)Hashtable<Symbol*, mtModule>::new_entry(hash, name);
+
+  // Initialize fields specific to a ModuleEntry
+  entry->init();
+  if (name != NULL) {
+    name->increment_refcount();
+  } else {
+    // Unnamed modules can read all other unnamed modules.
+    entry->set_can_read_all_unnamed();
+  }
+
+  if (!module_handle.is_null()) {
+    entry->set_module(loader_data->add_handle(module_handle));
+  }
+
+  entry->set_loader_data(loader_data);
+  entry->set_version(version);
+  entry->set_location(location);
+  entry->set_is_open(is_open);
+
+  if (ClassLoader::is_in_patch_mod_entries(name)) {
+    entry->set_is_patched();
+    if (log_is_enabled(Trace, module, patch)) {
+      ResourceMark rm;
+      log_trace(module, patch)("Marked module %s as patched from --patch-module",
+                               name != NULL ? name->as_C_string() : UNNAMED_MODULE);
+    }
+  }
+
+  JFR_ONLY(INIT_ID(entry);)
+
+  return entry;
+}
+
+void ModuleEntryTable::add_entry(int index, ModuleEntry* new_entry) {
+  assert(Module_lock->owned_by_self(), "should have the Module_lock");
+  Hashtable<Symbol*, mtModule>::add_entry(index, (HashtableEntry<Symbol*, mtModule>*)new_entry);
+}
 
 // Create an entry in the class loader's module_entry_table.  It is the
 // caller's responsibility to ensure that the entry has not already been
@@ -584,29 +626,35 @@ ModuleEntry* ModuleEntryTable::locked_create_entry(Handle module_handle,
   assert(module_name != NULL, "ModuleEntryTable locked_create_entry should never be called for unnamed module.");
   assert(Module_lock->owned_by_self(), "should have the Module_lock");
   assert(lookup_only(module_name) == NULL, "Module already exists");
-  ModuleEntry* entry = new ModuleEntry(module_handle, is_open, module_name,
-                                       module_version, module_location, loader_data);
-  bool created = _table.put(module_name, entry);
-  assert(created, "should be");
+  ModuleEntry* entry = new_entry(compute_hash(module_name), module_handle, is_open, module_name,
+                                 module_version, module_location, loader_data);
+  add_entry(index_for(module_name), entry);
   return entry;
 }
 
 // lookup_only by Symbol* to find a ModuleEntry.
 ModuleEntry* ModuleEntryTable::lookup_only(Symbol* name) {
-  assert_locked_or_safepoint(Module_lock);
   assert(name != NULL, "name cannot be NULL");
-  ModuleEntry** entry = _table.get(name);
-  return (entry == nullptr) ? nullptr : *entry;
+  int index = index_for(name);
+  for (ModuleEntry* m = bucket(index); m != NULL; m = m->next()) {
+    if (m->name()->fast_compare(name) == 0) {
+      return m;
+    }
+  }
+  return NULL;
 }
 
 // Remove dead modules from all other alive modules' reads list.
 // This should only occur at class unloading.
 void ModuleEntryTable::purge_all_module_reads() {
   assert_locked_or_safepoint(Module_lock);
-  auto purge = [&] (const SymbolHandle& key, ModuleEntry*& entry) {
-    entry->purge_reads();
-  };
-  _table.iterate_all(purge);
+  for (int i = 0; i < table_size(); i++) {
+    for (ModuleEntry* entry = bucket(i);
+                      entry != NULL;
+                      entry = entry->next()) {
+      entry->purge_reads();
+    }
+  }
 }
 
 void ModuleEntryTable::finalize_javabase(Handle module_handle, Symbol* version, Symbol* location) {
@@ -637,7 +685,7 @@ void ModuleEntryTable::finalize_javabase(Handle module_handle, Symbol* version, 
 // be set with the defining module.  During startup, prior to java.base's definition,
 // classes needing their module field set are added to the fixup_module_list.
 // Their module field is set once java.base's java.lang.Module is known to the VM.
-void ModuleEntryTable::patch_javabase_entries(JavaThread* current, Handle module_handle) {
+void ModuleEntryTable::patch_javabase_entries(Handle module_handle) {
   if (module_handle.is_null()) {
     fatal("Unable to patch the module field of classes loaded prior to "
           JAVA_BASE_NAME "'s definition, invalid java.lang.Module");
@@ -660,18 +708,7 @@ void ModuleEntryTable::patch_javabase_entries(JavaThread* current, Handle module
   for (int i = 0; i < list_length; i++) {
     Klass* k = list->at(i);
     assert(k->is_klass(), "List should only hold classes");
-#ifndef PRODUCT
-    if (HeapShared::is_a_test_class_in_unnamed_module(k)) {
-      // We allow -XX:ArchiveHeapTestClass to archive additional classes
-      // into the CDS heap, but these must be in the unnamed module.
-      ModuleEntry* unnamed_module = ClassLoaderData::the_null_class_loader_data()->unnamed_module();
-      Handle unnamed_module_handle(current, unnamed_module->module());
-      java_lang_Class::fixup_module_field(k, unnamed_module_handle);
-    } else
-#endif
-    {
-      java_lang_Class::fixup_module_field(k, module_handle);
-    }
+    java_lang_Class::fixup_module_field(k, module_handle);
     k->class_loader_data()->dec_keep_alive();
   }
 
@@ -680,47 +717,31 @@ void ModuleEntryTable::patch_javabase_entries(JavaThread* current, Handle module
 }
 
 void ModuleEntryTable::print(outputStream* st) {
-  ResourceMark rm;
-  auto printer = [&] (const SymbolHandle& name, ModuleEntry*& entry) {
-    entry->print(st);
-  };
   st->print_cr("Module Entry Table (table_size=%d, entries=%d)",
-               _table.table_size(), _table.number_of_entries());
-  assert_locked_or_safepoint(Module_lock);
-  _table.iterate_all(printer);
-}
-
-void ModuleEntryTable::modules_do(void f(ModuleEntry*)) {
-  auto do_f = [&] (const SymbolHandle& key, ModuleEntry*& entry) {
-    f(entry);
-  };
-  _table.iterate_all(do_f);
-}
-
-void ModuleEntryTable::modules_do(ModuleClosure* closure) {
-  auto do_f = [&] (const SymbolHandle& key, ModuleEntry*& entry) {
-    closure->do_module(entry);
-  };
-  _table.iterate_all(do_f);
+               table_size(), number_of_entries());
+  for (int i = 0; i < table_size(); i++) {
+    for (ModuleEntry* probe = bucket(i);
+                              probe != NULL;
+                              probe = probe->next()) {
+      probe->print(st);
+    }
+  }
 }
 
 void ModuleEntry::print(outputStream* st) {
-  st->print_cr("entry " PTR_FORMAT " name %s module " PTR_FORMAT " loader %s version %s location %s strict %s",
+  ResourceMark rm;
+  st->print_cr("entry " PTR_FORMAT " name %s module " PTR_FORMAT " loader %s version %s location %s strict %s next " PTR_FORMAT,
                p2i(this),
                name() == NULL ? UNNAMED_MODULE : name()->as_C_string(),
                p2i(module()),
                loader_data()->loader_name_and_id(),
                version() != NULL ? version()->as_C_string() : "NULL",
                location() != NULL ? location()->as_C_string() : "NULL",
-               BOOL_TO_STR(!can_read_all_unnamed()));
+               BOOL_TO_STR(!can_read_all_unnamed()), p2i(next()));
 }
 
 void ModuleEntryTable::verify() {
-  auto do_f = [&] (const SymbolHandle& key, ModuleEntry*& entry) {
-    entry->verify();
-  };
-  assert_locked_or_safepoint(Module_lock);
-  _table.iterate_all(do_f);
+  verify_table<ModuleEntry>("Module Entry Table");
 }
 
 void ModuleEntry::verify() {

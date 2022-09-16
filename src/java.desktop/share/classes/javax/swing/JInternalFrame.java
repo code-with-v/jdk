@@ -188,8 +188,6 @@ public class JInternalFrame extends JComponent implements
     protected String  title;
     /**
      * The icon that is displayed when this internal frame is iconified.
-     * Subclassers must ensure this is set to a non-null value
-     * during construction and not subsequently set this to null.
      * @see #iconable
      */
     protected JDesktopIcon desktopIcon;
@@ -497,10 +495,10 @@ public class JInternalFrame extends JComponent implements
      * @param comp the component to be enhanced
      * @param constraints the constraints to be respected
      * @param index the index
-     * @throws IllegalArgumentException if <code>index</code> is invalid
-     * @throws IllegalArgumentException if adding the container's parent
+     * @exception IllegalArgumentException if <code>index</code> is invalid
+     * @exception IllegalArgumentException if adding the container's parent
      *                  to itself
-     * @throws IllegalArgumentException if adding a window to a container
+     * @exception IllegalArgumentException if adding a window to a container
      *
      * @see #setRootPaneCheckingEnabled
      * @see javax.swing.RootPaneContainer
@@ -628,7 +626,7 @@ public class JInternalFrame extends JComponent implements
      *
      * @param c  the content pane for this internal frame
      *
-     * @throws java.awt.IllegalComponentStateException (a runtime
+     * @exception java.awt.IllegalComponentStateException (a runtime
      *           exception) if the content pane parameter is <code>null</code>
      * @see RootPaneContainer#getContentPane
      */
@@ -657,7 +655,7 @@ public class JInternalFrame extends JComponent implements
      *
      * @param layered the <code>JLayeredPane</code> for this internal frame
      *
-     * @throws java.awt.IllegalComponentStateException (a runtime
+     * @exception java.awt.IllegalComponentStateException (a runtime
      *           exception) if the layered pane parameter is <code>null</code>
      * @see RootPaneContainer#setLayeredPane
      */
@@ -794,7 +792,7 @@ public class JInternalFrame extends JComponent implements
      *
      * @param b must be <code>true</code>
      *
-     * @throws PropertyVetoException when the attempt to set the
+     * @exception PropertyVetoException when the attempt to set the
      *            property is vetoed by the <code>JInternalFrame</code>
      *
      * @see #isClosed()
@@ -906,7 +904,7 @@ public class JInternalFrame extends JComponent implements
      *
      * @param b a boolean, where <code>true</code> means to iconify this internal frame and
      *          <code>false</code> means to de-iconify it
-     * @throws PropertyVetoException when the attempt to set the
+     * @exception PropertyVetoException when the attempt to set the
      *            property is vetoed by the <code>JInternalFrame</code>
      *
      * @see InternalFrameEvent#INTERNAL_FRAME_ICONIFIED
@@ -985,7 +983,7 @@ public class JInternalFrame extends JComponent implements
      *
      * @param b  a boolean, where <code>true</code> maximizes this internal frame and <code>false</code>
      *           restores it
-     * @throws PropertyVetoException when the attempt to set the
+     * @exception PropertyVetoException when the attempt to set the
      *            property is vetoed by the <code>JInternalFrame</code>
      */
     @BeanProperty(description
@@ -1047,7 +1045,7 @@ public class JInternalFrame extends JComponent implements
      * @param selected  a boolean, where <code>true</code> means this internal frame
      *                  should become selected (currently active)
      *                  and <code>false</code> means it should become deselected
-     * @throws PropertyVetoException when the attempt to set the
+     * @exception PropertyVetoException when the attempt to set the
      *            property is vetoed by the <code>JInternalFrame</code>
      *
      * @see #isShowing
@@ -1233,9 +1231,10 @@ public class JInternalFrame extends JComponent implements
     @BeanProperty(bound = false, expert = true, description
             = "Specifies what desktop layer is used.")
     public void setLayer(Integer layer) {
-        if (getParent() instanceof JLayeredPane p) {
+        if(getParent() != null && getParent() instanceof JLayeredPane) {
             // Normally we want to do this, as it causes the LayeredPane
             // to draw properly.
+            JLayeredPane p = (JLayeredPane)getParent();
             p.setLayer(this, layer.intValue(), p.getPosition(this));
         } else {
              // Try to do the right thing
@@ -1308,15 +1307,11 @@ public class JInternalFrame extends JComponent implements
      * <code>JInternalFrame</code>.
      *
      * @param d the <code>JDesktopIcon</code> to display on the desktop
-     * @throws NullPointerException if the {@code d} is {@code null}
      * @see #getDesktopIcon
      */
     @BeanProperty(description
             = "The icon shown when this internal frame is minimized.")
     public void setDesktopIcon(JDesktopIcon d) {
-        if (d == null) {
-            throw new NullPointerException("JDesktopIcon is null");
-        }
         JDesktopIcon oldValue = getDesktopIcon();
         desktopIcon = d;
         firePropertyChange("desktopIcon", oldValue, d);

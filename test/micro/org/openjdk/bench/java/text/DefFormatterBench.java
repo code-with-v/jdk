@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,10 +31,9 @@ import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
 import org.openjdk.jmh.annotations.Measurement;
 import org.openjdk.jmh.annotations.Mode;
-import org.openjdk.jmh.annotations.OperationsPerInvocation;
 import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
@@ -44,29 +43,20 @@ import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 @BenchmarkMode(Mode.Throughput)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
-@Warmup(iterations = 5, time = 1)
-@Measurement(iterations = 5, time = 1)
-@Fork(3)
+@Warmup(iterations = 5, time = 5, timeUnit = TimeUnit.SECONDS)
+@Measurement(iterations = 5, time = 10, timeUnit = TimeUnit.SECONDS)
+@Fork(1)
 @State(Scope.Benchmark)
 public class DefFormatterBench {
 
-    public double[] values;
+    @Param({"1.23", "1.49", "1.80", "1.7", "0.0", "-1.49", "-1.50", "9999.9123", "1.494", "1.495", "1.03", "25.996", "-25.996"})
+    public double value;
 
-    @Setup
-    public void setup() {
-        values = new double[] {
-            1.23, 1.49, 1.80, 1.7, 0.0, -1.49, -1.50, 9999.9123, 1.494, 1.495, 1.03, 25.996, -25.996
-        };
-    }
-
-    private DefNumberFormat dnf = new DefNumberFormat();
+    private DefNumerFormat dnf = new DefNumerFormat();
 
     @Benchmark
-    @OperationsPerInvocation(13)
     public void testDefNumberFormatter(final Blackhole blackhole) {
-        for (double value : values) {
-            blackhole.consume(this.dnf.format(value));
-        }
+        blackhole.consume(this.dnf.format(this.value));
     }
 
     public static void main(String... args) throws Exception {
@@ -74,11 +64,11 @@ public class DefFormatterBench {
         new Runner(opts).run();
     }
 
-    private static class DefNumberFormat {
+    private static class DefNumerFormat {
 
         private final NumberFormat n;
 
-        public DefNumberFormat() {
+        public DefNumerFormat() {
             this.n = NumberFormat.getInstance(Locale.ENGLISH);
             this.n.setMaximumFractionDigits(2);
             this.n.setMinimumFractionDigits(2);

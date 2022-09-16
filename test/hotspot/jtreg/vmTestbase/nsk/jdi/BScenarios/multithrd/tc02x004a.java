@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,7 @@
 package nsk.jdi.BScenarios.multithrd;
 
 import nsk.share.*;
+import nsk.share.jpda.*;
 import nsk.share.jdi.*;
 
 //    THIS TEST IS LINE NUMBER SENSITIVE
@@ -37,7 +38,7 @@ public class tc02x004a {
     static Log log;
 
     public final static int checkClassBrkpLine = 79;
-    Thread[] thrds = new Thread[threadCount];
+    Thready [] thrds = new Thready [threadCount];
 
     public static void main (String argv[]) {
         ArgumentHandler argHandler = new ArgumentHandler(argv);
@@ -57,12 +58,12 @@ public class tc02x004a {
 
     tc02x004a() {
         for (int i = 0; i < thrds.length; i++ ) {
-            thrds[i] = JDIThreadFactory.newThread(new Thready("Thread-" + (i+1)));
+            thrds[i] = new Thready("Thread-" + (i+1));
             thrds[i].start();
         }
     }
 
-    static class Thready extends NamedTask {
+    static class Thready extends Thread {
         Thready(String name) {
             super(name);
         }
@@ -73,7 +74,6 @@ public class tc02x004a {
         }
     }
 }
-
 
 class tc02x004aClass1 {
     public tc02x004aClass1(String thrdName) { // checkClassBrkpLine

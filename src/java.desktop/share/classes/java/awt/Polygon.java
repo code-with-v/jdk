@@ -139,12 +139,12 @@ public class Polygon implements Shape, java.io.Serializable {
      * @param ypoints an array of Y coordinates
      * @param npoints the total number of points in the
      *                          {@code Polygon}
-     * @throws  NegativeArraySizeException if the value of
+     * @exception  NegativeArraySizeException if the value of
      *                       {@code npoints} is negative.
-     * @throws  IndexOutOfBoundsException if {@code npoints} is
+     * @exception  IndexOutOfBoundsException if {@code npoints} is
      *             greater than the length of {@code xpoints}
      *             or the length of {@code ypoints}.
-     * @throws  NullPointerException if {@code xpoints} or
+     * @exception  NullPointerException if {@code xpoints} or
      *             {@code ypoints} is {@code null}.
      * @since 1.0
      */
@@ -575,7 +575,7 @@ public class Polygon implements Shape, java.io.Serializable {
         return getPathIterator(at);
     }
 
-    static class PolygonPathIterator implements PathIterator {
+    class PolygonPathIterator implements PathIterator {
         Polygon poly;
         AffineTransform transform;
         int index;

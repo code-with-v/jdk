@@ -920,7 +920,7 @@ public class JSlider extends JComponent implements SwingConstants, Accessible {
      * @return a new {@code Hashtable} of labels
      * @see #setLabelTable
      * @see #setPaintLabels
-     * @throws IllegalArgumentException if {@code start} is
+     * @exception IllegalArgumentException if {@code start} is
      *          out of range, or if {@code increment} is less than or equal
      *          to zero
      */
@@ -1018,8 +1018,8 @@ public class JSlider extends JComponent implements SwingConstants, Accessible {
         @SuppressWarnings("rawtypes")
         Dictionary labelTable = getLabelTable();
 
-        if (labelTable instanceof PropertyChangeListener listener) {
-            removePropertyChangeListener(listener);
+        if (labelTable != null && (labelTable instanceof PropertyChangeListener)) {
+            removePropertyChangeListener((PropertyChangeListener) labelTable);
         }
 
         addPropertyChangeListener( table );

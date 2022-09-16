@@ -51,11 +51,12 @@ void JVMCICleaningTask::work(bool unloading_occurred) {
 }
 #endif // INCLUDE_JVMCI
 
-G1ParallelCleaningTask::G1ParallelCleaningTask(uint num_workers,
+G1ParallelCleaningTask::G1ParallelCleaningTask(BoolObjectClosure* is_alive,
+                                               uint num_workers,
                                                bool unloading_occurred) :
-  WorkerTask("G1 Parallel Cleaning"),
+  AbstractGangTask("G1 Parallel Cleaning"),
   _unloading_occurred(unloading_occurred),
-  _code_cache_task(num_workers, unloading_occurred),
+  _code_cache_task(num_workers, is_alive, unloading_occurred),
   JVMCI_ONLY(_jvmci_cleaning_task() COMMA)
   _klass_cleaning_task() {
 }

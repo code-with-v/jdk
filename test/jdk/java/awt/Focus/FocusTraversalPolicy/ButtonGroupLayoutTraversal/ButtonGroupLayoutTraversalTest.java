@@ -37,7 +37,6 @@ import java.awt.Robot;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.KeyEvent;
-import java.util.Arrays;
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
@@ -51,113 +50,98 @@ import javax.swing.UnsupportedLookAndFeelException;
 
 public class ButtonGroupLayoutTraversalTest {
 
-    private static final int NX = 3;
-    private static final int NY = 3;
+    static int nx = 3;
+    static int ny = 3;
 
-    private static final int[] focusCnt = new int[NX * NY];
-
+    static int focusCnt[] = new int[nx * ny];
     private static JFrame window;
-    private static Robot robot;
 
     public static void main(String[] args) throws Exception {
-        robot = new Robot();
-        robot.setAutoDelay(100);
 
-        for (UIManager.LookAndFeelInfo laf : UIManager.getInstalledLookAndFeels()) {
-            try {
-                SwingUtilities.invokeAndWait(() -> setLookAndFeel(laf));
-                SwingUtilities.invokeAndWait(() -> initLayout(NX, NY));
-                test();
-            } finally {
-                SwingUtilities.invokeAndWait(() -> {
-                    if (window != null) {
-                        window.dispose();
-                    }
-                    window = null;
-                    synchronized (focusCnt) {
-                        Arrays.fill(focusCnt, 0);
-                    }
-                });
+        try {
+            SwingUtilities.invokeAndWait(() -> changeLAF());
+            SwingUtilities.invokeAndWait(() -> initLayout(nx, ny));
+            Robot robot = new Robot();
+            robot.setAutoDelay(100);
+            robot.waitForIdle();
+            robot.delay(1000);
+
+            for (int i = 0; i < nx * ny - nx * ny / 2 - 1; i++) {
+                robot.keyPress(KeyEvent.VK_RIGHT);
+                robot.keyRelease(KeyEvent.VK_RIGHT);
+                robot.waitForIdle();
             }
-        }
-    }
 
+            for (int i = 0; i < nx * ny / 2; i++) {
+                robot.keyPress(KeyEvent.VK_TAB);
+                robot.keyRelease(KeyEvent.VK_TAB);
+                robot.waitForIdle();
+            }
 
-    private static void test() {
-        robot.waitForIdle();
-        robot.delay(1000);
+            robot.delay(200);
 
-        for (int i = 0; i < NX * NY - NX * NY / 2 - 1; i++) {
-            robot.keyPress(KeyEvent.VK_RIGHT);
-            robot.keyRelease(KeyEvent.VK_RIGHT);
-            robot.waitForIdle();
-        }
-
-        for (int i = 0; i < NX * NY / 2; i++) {
-            robot.keyPress(KeyEvent.VK_TAB);
-            robot.keyRelease(KeyEvent.VK_TAB);
-            robot.waitForIdle();
-        }
-
-        robot.delay(200);
-
-        synchronized (focusCnt) {
-            for (int i = 0; i < NX * NY; i++) {
+            for (int i = 0; i < nx * ny; i++) {
                 if (focusCnt[i] < 1) {
                     throw new RuntimeException("Component " + i
-                            + " is not reachable in the forward focus cycle");
+                        + " is not reachable in the forward focus cycle");
                 } else if (focusCnt[i] > 1) {
                     throw new RuntimeException("Component " + i
-                            + " got focus more than once in the forward focus cycle");
+                        + " got focus more than once in the forward focus cycle");
                 }
             }
-        }
 
-        for (int i = 0; i < NX * NY / 2; i++) {
+            for (int i = 0; i < nx * ny / 2; i++) {
+                robot.keyPress(KeyEvent.VK_SHIFT);
+                robot.keyPress(KeyEvent.VK_TAB);
+                robot.keyRelease(KeyEvent.VK_TAB);
+                robot.keyRelease(KeyEvent.VK_SHIFT);
+                robot.waitForIdle();
+            }
+
+            for (int i = 0; i < nx * ny - nx * ny / 2 - 1; i++) {
+                robot.keyPress(KeyEvent.VK_LEFT);
+                robot.keyRelease(KeyEvent.VK_LEFT);
+                robot.waitForIdle();
+            }
+
             robot.keyPress(KeyEvent.VK_SHIFT);
             robot.keyPress(KeyEvent.VK_TAB);
             robot.keyRelease(KeyEvent.VK_TAB);
             robot.keyRelease(KeyEvent.VK_SHIFT);
             robot.waitForIdle();
-        }
 
-        for (int i = 0; i < NX * NY - NX * NY / 2 - 1; i++) {
-            robot.keyPress(KeyEvent.VK_LEFT);
-            robot.keyRelease(KeyEvent.VK_LEFT);
-            robot.waitForIdle();
-        }
+            robot.delay(200);
 
-        robot.keyPress(KeyEvent.VK_SHIFT);
-        robot.keyPress(KeyEvent.VK_TAB);
-        robot.keyRelease(KeyEvent.VK_TAB);
-        robot.keyRelease(KeyEvent.VK_SHIFT);
-        robot.waitForIdle();
-
-        robot.delay(200);
-
-        synchronized (focusCnt) {
-            for (int i = 0; i < NX * NY; i++) {
+            for (int i = 0; i < nx * ny; i++) {
                 if (focusCnt[i] < 2) {
                     throw new RuntimeException("Component " + i
-                            + " is not reachable in the backward focus cycle");
+                        + " is not reachable in the backward focus cycle");
                 } else if (focusCnt[i] > 2) {
                     throw new RuntimeException("Component " + i
-                            + " got focus more than once in the backward focus cycle");
+                        + " got focus more than once in the backward focus cycle");
                 }
             }
+        } finally {
+            SwingUtilities.invokeAndWait(() -> {
+                if (window != null) {
+                    window.dispose();
+                }
+            });
         }
-
     }
 
-    private static void setLookAndFeel(UIManager.LookAndFeelInfo laf) {
-        try {
-            UIManager.setLookAndFeel(laf.getClassName());
-            System.out.println(laf.getName());
-        } catch (UnsupportedLookAndFeelException ignored){
-            System.out.println("Unsupported LookAndFeel: " + laf.getClassName());
-        } catch (ClassNotFoundException | InstantiationException |
-                         IllegalAccessException e) {
-            throw new RuntimeException(e);
+    private static void changeLAF() {
+        String currentLAF = UIManager.getLookAndFeel().toString();
+        currentLAF = currentLAF.toLowerCase();
+        if (currentLAF.contains("aqua") || currentLAF.contains("nimbus")) {
+            try {
+                UIManager.setLookAndFeel("javax.swing.plaf.metal.MetalLookAndFeel");
+            } catch (ClassNotFoundException
+                    | IllegalAccessException
+                    | InstantiationException
+                    | UnsupportedLookAndFeelException ex) {
+                ex.printStackTrace();
+            }
         }
     }
 
@@ -184,16 +168,16 @@ public class ButtonGroupLayoutTraversalTest {
             comp.addFocusListener(new FocusAdapter() {
                 @Override
                 public void focusGained(FocusEvent e) {
-                    synchronized (focusCnt) {
-                        focusCnt[fi]++;
-                        JComponent btn = (JComponent) e.getSource();
-                        if (focusCnt[fi] == 1) {
-                            btn.setBackground(Color.yellow);
-                        } else if (focusCnt[fi] == 2) {
-                            btn.setBackground(Color.green);
-                        } else {
-                            btn.setBackground(Color.red);
-                        }
+                    focusCnt[fi]++;
+                    if (focusCnt[fi] == 1) {
+                        ((JComponent) e.getSource())
+                                .setBackground(Color.yellow);
+                    } else if (focusCnt[fi] == 2) {
+                        ((JComponent) e.getSource())
+                                .setBackground(Color.green);
+                    } else {
+                        ((JComponent) e.getSource())
+                                .setBackground(Color.red);
                     }
                 }
             });

@@ -33,7 +33,6 @@ import java.awt.print.*;
 import java.net.URI;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.util.concurrent.atomic.AtomicReference;
 
 import javax.print.*;
 import javax.print.attribute.PrintRequestAttributeSet;
@@ -61,7 +60,6 @@ public final class CPrinterJob extends RasterPrinterJob {
     private static String sShouldNotReachHere = "Should not reach here.";
 
     private volatile SecondaryLoop printingLoop;
-    private AtomicReference<Throwable> printErrorRef = new AtomicReference<>();
 
     private boolean noDefaultPrinter = false;
 
@@ -325,7 +323,6 @@ public final class CPrinterJob extends RasterPrinterJob {
                 performingPrinting = true;
                 userCancelled = false;
             }
-            printErrorRef.set(null);
 
             //Add support for PageRange
             PageRanges pr = (attributes == null) ?  null
@@ -383,15 +380,6 @@ public final class CPrinterJob extends RasterPrinterJob {
             }
             if (printingLoop != null) {
                 printingLoop.exit();
-            }
-
-            Throwable printError = printErrorRef.getAndSet(null);
-            if (printError != null) {
-                if (printError instanceof PrinterException) {
-                    throw (PrinterException) printError;
-                }
-                throw (PrinterException)
-                    new PrinterException().initCause(printError);
             }
         }
 
@@ -598,7 +586,7 @@ public final class CPrinterJob extends RasterPrinterJob {
     // The following methods are CPrinterJob specific.
 
     @Override
-    @SuppressWarnings("removal")
+    @SuppressWarnings("deprecation")
     protected void finalize() {
         synchronized (fNSPrintInfoLock) {
             if (fNSPrintInfo != -1) {
@@ -798,36 +786,22 @@ public final class CPrinterJob extends RasterPrinterJob {
     private Rectangle2D printAndGetPageFormatArea(final Printable printable, final Graphics graphics, final PageFormat pageFormat, final int pageIndex) {
         final Rectangle2D[] ret = new Rectangle2D[1];
 
-        Runnable r = new Runnable() {
-            @Override
-            public void run() {
-                synchronized (ret) {
-                    try {
-                        int pageResult = printable.print(
-                            graphics, pageFormat, pageIndex);
-                        if (pageResult != Printable.NO_SUCH_PAGE) {
-                            ret[0] = getPageFormatArea(pageFormat);
-                        }
-                    } catch (Throwable t) {
-                        printErrorRef.compareAndSet(null, t);
-                    }
+        Runnable r = new Runnable() { public void run() { synchronized(ret) {
+            try {
+                int pageResult = printable.print(graphics, pageFormat, pageIndex);
+                if (pageResult != Printable.NO_SUCH_PAGE) {
+                    ret[0] = getPageFormatArea(pageFormat);
                 }
-            }
-        };
+            } catch (Exception e) {} // Original code bailed on any exception
+        }}};
 
         if (onEventThread) {
-            try {
-                EventQueue.invokeAndWait(r);
-            } catch (Throwable t) {
-                printErrorRef.compareAndSet(null, t);
-            }
+            try { EventQueue.invokeAndWait(r); } catch (Exception e) { e.printStackTrace(); }
         } else {
             r.run();
         }
 
-        synchronized (ret) {
-            return ret[0];
-        }
+        synchronized(ret) { return ret[0]; }
     }
 
     // upcall from native
@@ -845,10 +819,10 @@ public final class CPrinterJob extends RasterPrinterJob {
     @Override
     protected MediaSize getMediaSize(Media media, PrintService service,
             PageFormat page) {
-        if (!(media instanceof MediaSizeName msn)) {
+        if (media == null || !(media instanceof MediaSizeName)) {
             return getDefaultMediaSize(page);
         }
-        MediaSize size = MediaSize.getMediaSizeForName(msn);
+        MediaSize size = MediaSize.getMediaSizeForName((MediaSizeName) media);
         return size != null ? size : getDefaultMediaSize(page);
     }
 

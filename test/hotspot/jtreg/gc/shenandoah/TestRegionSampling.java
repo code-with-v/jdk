@@ -23,7 +23,7 @@
  */
 
 /*
- * @test id=passive
+ * @test TestRegionSampling
  * @requires vm.gc.Shenandoah
  *
  * @run main/othervm -Xmx1g -Xms1g -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions -XX:+ShenandoahRegionSampling
@@ -38,7 +38,7 @@
  */
 
 /*
- * @test id=adaptive
+ * @test TestRegionSampling
  * @requires vm.gc.Shenandoah
  *
  * @run main/othervm -Xmx1g -Xms1g -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions -XX:+ShenandoahRegionSampling
@@ -47,7 +47,7 @@
  */
 
 /*
- * @test id=static
+ * @test TestRegionSampling
  * @requires vm.gc.Shenandoah
  *
  * @run main/othervm -Xmx1g -Xms1g -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions -XX:+ShenandoahRegionSampling
@@ -56,7 +56,7 @@
  */
 
 /*
- * @test id=compact
+ * @test TestRegionSampling
  * @requires vm.gc.Shenandoah
  *
  * @run main/othervm -Xmx1g -Xms1g -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions -XX:+ShenandoahRegionSampling
@@ -65,7 +65,7 @@
  */
 
 /*
- * @test id=aggressive
+ * @test TestRegionSampling
  * @requires vm.gc.Shenandoah
  *
  * @run main/othervm -Xmx1g -Xms1g -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions -XX:+ShenandoahRegionSampling
@@ -74,7 +74,7 @@
  */
 
 /*
- * @test id=iu-aggressive
+ * @test TestRegionSampling
  * @requires vm.gc.Shenandoah
  *
  * @run main/othervm -Xmx1g -Xms1g -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions -XX:+ShenandoahRegionSampling
@@ -83,7 +83,7 @@
  */
 
 /*
- * @test id=iu
+ * @test TestRegionSampling
  * @requires vm.gc.Shenandoah
  *
  * @run main/othervm -Xmx1g -Xms1g -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions -XX:+ShenandoahRegionSampling

@@ -43,7 +43,7 @@ private:
 
 // Do cleanup of some weakly held data in the same parallel task.
 // Assumes a non-moving context.
-class G1ParallelCleaningTask : public WorkerTask {
+class G1ParallelCleaningTask : public AbstractGangTask {
 private:
   bool                    _unloading_occurred;
   CodeCacheUnloadingTask  _code_cache_task;
@@ -54,7 +54,8 @@ private:
 
 public:
   // The constructor is run in the VMThread.
-  G1ParallelCleaningTask(uint num_workers,
+  G1ParallelCleaningTask(BoolObjectClosure* is_alive,
+                         uint num_workers,
                          bool unloading_occurred);
 
   void work(uint worker_id);

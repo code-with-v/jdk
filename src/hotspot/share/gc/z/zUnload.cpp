@@ -75,7 +75,7 @@ public:
 
 class ZIsUnloadingBehaviour : public IsUnloadingBehaviour {
 public:
-  virtual bool has_dead_oop(CompiledMethod* method) const {
+  virtual bool is_unloading(CompiledMethod* method) const {
     nmethod* const nm = method->as_nmethod();
     ZReentrantLock* const lock = ZNMethod::lock_for_nmethod(nm);
     ZLocker<ZReentrantLock> locker(lock);
@@ -162,7 +162,7 @@ void ZUnload::purge() {
 
   {
     SuspendibleThreadSetJoiner sts;
-    ZNMethod::purge();
+    ZNMethod::purge(_workers);
   }
 
   ClassLoaderDataGraph::purge(/*at_safepoint*/false);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,6 +27,7 @@ package sun.security.x509;
 
 import java.io.*;
 import java.util.Arrays;
+import java.util.Properties;
 import java.security.Key;
 import java.security.PublicKey;
 import java.security.KeyFactory;
@@ -149,10 +150,10 @@ public class X509Key implements PublicKey {
      * this kind of key, a subclass is returned.  Otherwise, a generic
      * X509Key object is returned.
      *
-     * <P>This mechanism guarantees that keys (and algorithms) may be
+     * <P>This mechanism gurantees that keys (and algorithms) may be
      * freely manipulated and transferred, without risk of losing
      * information.  Also, when a key (or algorithm) needs some special
-     * handling, that specific need can be accommodated.
+     * handling, that specific need can be accomodated.
      *
      * @param in the DER-encoded SubjectPublicKeyInfo value
      * @exception IOException on data format errors
@@ -232,6 +233,8 @@ public class X509Key implements PublicKey {
          */
         String classname = "";
         try {
+            Properties props;
+            String keytype;
             Provider sunProvider;
 
             sunProvider = Security.getProvider("SUN");
@@ -264,13 +267,15 @@ public class X509Key implements PublicKey {
                 result.parseKeyBits();
                 return result;
             }
-        } catch (ClassNotFoundException | InstantiationException e) {
+        } catch (ClassNotFoundException e) {
+        } catch (InstantiationException e) {
         } catch (IllegalAccessException e) {
             // this should not happen.
             throw new IOException (classname + " [internal error]");
         }
 
-        return new X509Key(algid, key);
+        X509Key result = new X509Key(algid, key);
+        return result;
     }
 
     /**
@@ -425,7 +430,7 @@ public class X509Key implements PublicKey {
         if (this == obj) {
             return true;
         }
-        if (!(obj instanceof Key)) {
+        if (obj instanceof Key == false) {
             return false;
         }
         try {

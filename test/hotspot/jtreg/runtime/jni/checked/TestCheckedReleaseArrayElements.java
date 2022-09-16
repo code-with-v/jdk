@@ -24,7 +24,6 @@
 /* @test
  * @bug 8258077
  * @summary verify multiple release calls on a copied array work when checked
- * @requires vm.flagless
  * @library /test/lib
  * @run main/native TestCheckedReleaseArrayElements launch
  */

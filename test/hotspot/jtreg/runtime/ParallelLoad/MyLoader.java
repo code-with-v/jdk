@@ -23,7 +23,6 @@
 
 import java.io.*;
 import jdk.test.lib.classloader.ClassUnloadCommon;
-import java.util.concurrent.Semaphore;
 
 // This class loader will deadlock where one thread has a lock for A, trying to get a lock for B
 // and the other thread has a lock for B, trying to get a lock for A in the case of
@@ -61,15 +60,16 @@ class MyLoader extends ClassLoader {
 
     private static boolean parallel = false;
     private Object sync = new Object();
+    private Object thread_sync = new Object();
     private static volatile boolean waiting = false;
-    private static Semaphore mainSem = new Semaphore(0);
 
     private void makeThreadWait() {
         if (!parallel) { return; }
 
-        // Signal main thread to start t2.
-        mainSem.release();
-
+        // Wake up the second thread here.
+        synchronized (thread_sync) {
+            thread_sync.notify();
+        }
         if (isRegisteredAsParallelCapable()) {
             synchronized(sync) {
                 try {
@@ -136,16 +136,18 @@ class MyLoader extends ClassLoader {
     void startLoading() {
 
         for (int i = 0; i < 2; i++) {
-            threads[i] = new ClassLoadingThread(this, parallel ? null : mainSem);
+            threads[i] = new ClassLoadingThread(this, thread_sync);
             threads[i].setName("Loading Thread #" + (i + 1));
             threads[i].start();
             System.out.println("Thread " + (i + 1) + " was started...");
             // wait to start the second thread if not concurrent
             if (i == 0) {
-                try {
-                    ThreadPrint.println("Main thread calls mainSem.acquire()");
-                    mainSem.acquire();
-                } catch (InterruptedException e) {}
+                synchronized(thread_sync) {
+                    try {
+                        ThreadPrint.println("t2 waits");
+                        thread_sync.wait();
+                    } catch (InterruptedException e) {}
+                }
             }
         }
     }

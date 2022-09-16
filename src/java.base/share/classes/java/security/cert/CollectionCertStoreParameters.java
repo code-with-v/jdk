@@ -25,6 +25,7 @@
 
 package java.security.cert;
 
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -54,7 +55,7 @@ import java.util.Collections;
 public class CollectionCertStoreParameters
     implements CertStoreParameters {
 
-    private final Collection<?> coll;
+    private Collection<?> coll;
 
     /**
      * Creates an instance of {@code CollectionCertStoreParameters}
@@ -131,8 +132,10 @@ public class CollectionCertStoreParameters
      * @return a formatted string describing the parameters
      */
     public String toString() {
-        return "CollectionCertStoreParameters: [\n" +
-                "  collection: " + coll + "\n" +
-                "]";
+        StringBuilder sb = new StringBuilder();
+        sb.append("CollectionCertStoreParameters: [\n");
+        sb.append("  collection: " + coll + "\n");
+        sb.append("]");
+        return sb.toString();
     }
 }

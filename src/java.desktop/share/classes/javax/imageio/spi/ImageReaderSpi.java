@@ -180,15 +180,15 @@ public abstract class ImageReaderSpi extends ImageReaderWriterSpi {
      * {@code getImageMetadataFormat}.  An array of length
      * 0 is normalized to {@code null}.
      *
-     * @throws IllegalArgumentException if {@code vendorName}
+     * @exception IllegalArgumentException if {@code vendorName}
      * is {@code null}.
-     * @throws IllegalArgumentException if {@code version}
+     * @exception IllegalArgumentException if {@code version}
      * is {@code null}.
-     * @throws IllegalArgumentException if {@code names}
+     * @exception IllegalArgumentException if {@code names}
      * is {@code null} or has length 0.
-     * @throws IllegalArgumentException if {@code readerClassName}
+     * @exception IllegalArgumentException if {@code readerClassName}
      * is {@code null}.
-     * @throws IllegalArgumentException if {@code inputTypes}
+     * @exception IllegalArgumentException if {@code inputTypes}
      * is {@code null} or has length 0.
      */
     public ImageReaderSpi(String vendorName,
@@ -294,9 +294,9 @@ public abstract class ImageReaderSpi extends ImageReaderWriterSpi {
      * @return {@code true} if it is likely that this stream can
      * be decoded.
      *
-     * @throws IllegalArgumentException if {@code source} is
+     * @exception IllegalArgumentException if {@code source} is
      * {@code null}.
-     * @throws IOException if an I/O error occurs while reading the
+     * @exception IOException if an I/O error occurs while reading the
      * stream.
      */
     public abstract boolean canDecodeInput(Object source) throws IOException;
@@ -312,7 +312,7 @@ public abstract class ImageReaderSpi extends ImageReaderWriterSpi {
      *
      * @return an {@code ImageReader} instance.
      *
-     * @throws IOException if an error occurs during loading,
+     * @exception IOException if an error occurs during loading,
      * or initialization of the reader class, or during instantiation
      * or initialization of the reader object.
      */
@@ -338,9 +338,9 @@ public abstract class ImageReaderSpi extends ImageReaderWriterSpi {
      *
      * @return an {@code ImageReader} instance.
      *
-     * @throws IOException if the attempt to instantiate
+     * @exception IOException if the attempt to instantiate
      * the reader fails.
-     * @throws IllegalArgumentException if the
+     * @exception IllegalArgumentException if the
      * {@code ImageReader}'s constructor throws an
      * {@code IllegalArgumentException} to indicate that the
      * extension object is unsuitable.
@@ -362,7 +362,7 @@ public abstract class ImageReaderSpi extends ImageReaderWriterSpi {
      *
      * @return {@code true} if {@code reader} is recognized.
      *
-     * @throws IllegalArgumentException if {@code reader} is
+     * @exception IllegalArgumentException if {@code reader} is
      * {@code null}.
      */
     public boolean isOwnReader(ImageReader reader) {

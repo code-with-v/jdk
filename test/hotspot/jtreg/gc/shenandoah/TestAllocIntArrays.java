@@ -23,7 +23,7 @@
  */
 
 /*
- * @test id=passive
+ * @test TestAllocIntArrays
  * @summary Acceptance tests: collector can withstand allocation
  * @key randomness
  * @requires vm.gc.Shenandoah
@@ -51,7 +51,7 @@
  */
 
 /*
- * @test id=aggressive
+ * @test TestAllocIntArrays
  * @summary Acceptance tests: collector can withstand allocation
  * @key randomness
  * @requires vm.gc.Shenandoah
@@ -83,7 +83,7 @@
  */
 
 /*
- * @test id=adaptive
+ * @test TestAllocIntArrays
  * @summary Acceptance tests: collector can withstand allocation
  * @key randomness
  * @requires vm.gc.Shenandoah
@@ -100,7 +100,7 @@
  */
 
 /*
- * @test id=static
+ * @test TestAllocIntArrays
  * @summary Acceptance tests: collector can withstand allocation
  * @key randomness
  * @requires vm.gc.Shenandoah
@@ -112,7 +112,7 @@
  */
 
 /*
- * @test id=compact
+ * @test TestAllocIntArrays
  * @summary Acceptance tests: collector can withstand allocation
  * @key randomness
  * @requires vm.gc.Shenandoah
@@ -124,7 +124,7 @@
  */
 
 /*
- * @test id=no-tlab
+ * @test TestAllocIntArrays
  * @summary Acceptance tests: collector can withstand allocation
  * @key randomness
  * @requires vm.gc.Shenandoah
@@ -137,7 +137,7 @@
  */
 
 /*
- * @test id=iu-aggressive
+ * @test TestAllocIntArrays
  * @summary Acceptance tests: collector can withstand allocation
  * @key randomness
  * @requires vm.gc.Shenandoah
@@ -169,7 +169,7 @@
  */
 
 /*
- * @test id=iu
+ * @test TestAllocIntArrays
  * @summary Acceptance tests: collector can withstand allocation
  * @key randomness
  * @requires vm.gc.Shenandoah

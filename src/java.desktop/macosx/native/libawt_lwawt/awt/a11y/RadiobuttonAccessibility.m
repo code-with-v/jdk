@@ -39,7 +39,7 @@
 - (id _Nonnull) accessibilityValue
 {
     AWT_ASSERT_APPKIT_THREAD;
-    return [super accessibilityValue];
+    return [self accessibilityValueAttribute];
 }
 
 @end

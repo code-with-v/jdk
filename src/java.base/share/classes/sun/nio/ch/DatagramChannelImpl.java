@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,7 +27,6 @@ package sun.nio.ch;
 
 import java.io.FileDescriptor;
 import java.io.IOException;
-import java.io.InterruptedIOException;
 import java.io.UncheckedIOException;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
@@ -67,7 +66,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
@@ -160,13 +158,6 @@ class DatagramChannelImpl
 
     // set true/false when socket is already bound and SO_REUSEADDR is emulated
     private boolean isReuseAddress;
-
-    // True if the channel's socket has been forced into non-blocking mode
-    // by a virtual thread. It cannot be reset. When the channel is in
-    // blocking mode and the channel's socket is in non-blocking mode then
-    // operations that don't complete immediately will poll the socket and
-    // preserve the semantics of blocking operations.
-    private volatile boolean forcedNonBlocking;
 
     // -- End of fields protected by stateLock
 
@@ -479,26 +470,6 @@ class DatagramChannelImpl
         return DefaultOptionsHolder.defaultOptions;
     }
 
-    @Override
-    public void park(int event, long nanos) throws IOException {
-        Thread thread = Thread.currentThread();
-        if (thread.isVirtual()) {
-            Poller.poll(getFDVal(), event, nanos, this::isOpen);
-            // DatagramSocket throws when virtual thread interrupted
-            if (!interruptible && thread.isInterrupted()) {
-                throw new InterruptedIOException();
-            }
-        } else {
-            long millis;
-            if (nanos == 0) {
-                millis = -1;
-            } else {
-                millis = TimeUnit.NANOSECONDS.toMillis(nanos);
-            }
-            Net.poll(getFD(), event, millis);
-        }
-    }
-
     /**
      * Marks the beginning of a read operation that might block.
      *
@@ -564,7 +535,6 @@ class DatagramChannelImpl
             SocketAddress sender = null;
             try {
                 SocketAddress remote = beginRead(blocking, false);
-                configureSocketNonBlockingIfVirtualThread();
                 boolean connected = (remote != null);
                 @SuppressWarnings("removal")
                 SecurityManager sm = System.getSecurityManager();
@@ -607,12 +577,17 @@ class DatagramChannelImpl
         assert readLock.isHeldByCurrentThread()
                 && sm != null && remoteAddress == null;
 
-        boolean blocking = isBlocking();
-        for (;;) {
-            int n;
-            ByteBuffer bb = Util.getTemporaryDirectBuffer(dst.remaining());
-            try {
-                n = receive(bb, false);
+        ByteBuffer bb = Util.getTemporaryDirectBuffer(dst.remaining());
+        try {
+            boolean blocking = isBlocking();
+            for (;;) {
+                int n = receive(bb, false);
+                if (blocking) {
+                    while (IOStatus.okayToRetry(n) && isOpen()) {
+                        park(Net.POLLIN);
+                        n = receive(bb, false);
+                    }
+                }
                 if (n >= 0) {
                     // sender address is in socket address buffer
                     InetSocketAddress isa = sourceSocketAddress();
@@ -623,17 +598,14 @@ class DatagramChannelImpl
                         return isa;
                     } catch (SecurityException se) {
                         // ignore datagram
+                        bb.clear();
                     }
+                } else {
+                    return null;
                 }
-            } finally {
-                Util.releaseTemporaryDirectBuffer(bb);
             }
-
-            if (blocking && IOStatus.okayToRetry(n) && isOpen()) {
-                park(Net.POLLIN);
-            } else {
-                return null;
-            }
+        } finally {
+            Util.releaseTemporaryDirectBuffer(bb);
         }
     }
 
@@ -690,7 +662,6 @@ class DatagramChannelImpl
         SocketAddress sender = null;
         try {
             SocketAddress remote = beginRead(true, false);
-            configureSocketNonBlockingIfVirtualThread();
             boolean connected = (remote != null);
             int n = receive(dst, connected);
             while (IOStatus.okayToRetry(n) && isOpen()) {
@@ -748,10 +719,6 @@ class DatagramChannelImpl
         }
     }
 
-    /**
-     * Receives a datagram into the buffer.
-     * @param connected true if the channel is connected
-     */
     private int receive(ByteBuffer dst, boolean connected) throws IOException {
         int pos = dst.position();
         int lim = dst.limit();
@@ -822,7 +789,6 @@ class DatagramChannelImpl
             boolean completed = false;
             try {
                 SocketAddress remote = beginWrite(blocking, false);
-                configureSocketNonBlockingIfVirtualThread();
                 if (remote != null) {
                     // connected
                     if (!target.equals(remote)) {
@@ -971,7 +937,6 @@ class DatagramChannelImpl
             int n = 0;
             try {
                 beginRead(blocking, true);
-                configureSocketNonBlockingIfVirtualThread();
                 n = IOUtil.read(fd, buf, -1, nd);
                 if (blocking) {
                     while (IOStatus.okayToRetry(n) && isOpen()) {
@@ -1001,7 +966,6 @@ class DatagramChannelImpl
             long n = 0;
             try {
                 beginRead(blocking, true);
-                configureSocketNonBlockingIfVirtualThread();
                 n = IOUtil.read(fd, dsts, offset, length, nd);
                 if (blocking) {
                     while (IOStatus.okayToRetry(n)  && isOpen()) {
@@ -1084,7 +1048,6 @@ class DatagramChannelImpl
             int n = 0;
             try {
                 beginWrite(blocking, true);
-                configureSocketNonBlockingIfVirtualThread();
                 n = IOUtil.write(fd, buf, -1, nd);
                 if (blocking) {
                     while (IOStatus.okayToRetry(n) && isOpen()) {
@@ -1114,7 +1077,6 @@ class DatagramChannelImpl
             long n = 0;
             try {
                 beginWrite(blocking, true);
-                configureSocketNonBlockingIfVirtualThread();
                 n = IOUtil.write(fd, srcs, offset, length, nd);
                 if (blocking) {
                     while (IOStatus.okayToRetry(n) && isOpen()) {
@@ -1154,40 +1116,25 @@ class DatagramChannelImpl
         assert readLock.isHeldByCurrentThread() || writeLock.isHeldByCurrentThread();
         synchronized (stateLock) {
             ensureOpen();
-            // do nothing if virtual thread has forced the socket to be non-blocking
-            if (!forcedNonBlocking) {
-                IOUtil.configureBlocking(fd, block);
-            }
+            IOUtil.configureBlocking(fd, block);
         }
     }
 
     /**
-     * Attempts to adjust the blocking mode if the channel is open.
-     * @return {@code true} if the blocking mode was adjusted
+     * Adjusts the blocking mode if the channel is open. readLock or writeLock
+     * must already be held.
+     *
+     * @return {@code true} if the blocking mode was adjusted, {@code false} if
+     *         the blocking mode was not adjusted because the channel is closed
      */
     private boolean tryLockedConfigureBlocking(boolean block) throws IOException {
         assert readLock.isHeldByCurrentThread() || writeLock.isHeldByCurrentThread();
         synchronized (stateLock) {
-            if (!forcedNonBlocking && isOpen()) {
+            if (isOpen()) {
                 IOUtil.configureBlocking(fd, block);
                 return true;
             } else {
                 return false;
-            }
-        }
-    }
-
-    /**
-     * Ensures that the socket is configured non-blocking when on a virtual thread.
-     * @throws IOException if there is an I/O error changing the blocking mode
-     */
-    private void configureSocketNonBlockingIfVirtualThread() throws IOException {
-        assert readLock.isHeldByCurrentThread() || writeLock.isHeldByCurrentThread();
-        if (!forcedNonBlocking && Thread.currentThread().isVirtual()) {
-            synchronized (stateLock) {
-                ensureOpen();
-                IOUtil.configureBlocking(fd, false);
-                forcedNonBlocking = true;
             }
         }
     }
@@ -1316,7 +1263,7 @@ class DatagramChannelImpl
                     // flush any packets already received.
                     boolean blocking = isBlocking();
                     if (blocking) {
-                        lockedConfigureBlocking(false);
+                        IOUtil.configureBlocking(fd, false);
                     }
                     try {
                         ByteBuffer buf = ByteBuffer.allocate(100);
@@ -1325,7 +1272,7 @@ class DatagramChannelImpl
                         }
                     } finally {
                         if (blocking) {
-                            tryLockedConfigureBlocking(true);
+                            IOUtil.configureBlocking(fd, true);
                         }
                     }
                 }
@@ -1428,7 +1375,7 @@ class DatagramChannelImpl
             }
 
             // copy the blocking mode
-            if (!isBlocking() || forcedNonBlocking) {
+            if (!isBlocking()) {
                 IOUtil.configureBlocking(newfd, false);
             }
 
@@ -1785,18 +1732,11 @@ class DatagramChannelImpl
                 long reader = readerThread;
                 long writer = writerThread;
                 if (reader != 0 || writer != 0) {
-                    if (NativeThread.isVirtualThread(reader)
-                            || NativeThread.isVirtualThread(writer)) {
-                        Poller.stopPoll(fdVal);
-                    }
-                    if (NativeThread.isNativeThread(reader)
-                            || NativeThread.isNativeThread(writer)) {
-                        nd.preClose(fd);
-                        if (NativeThread.isNativeThread(reader))
-                            NativeThread.signal(reader);
-                        if (NativeThread.isNativeThread(writer))
-                            NativeThread.signal(writer);
-                    }
+                    nd.preClose(fd);
+                    if (reader != 0)
+                        NativeThread.signal(reader);
+                    if (writer != 0)
+                        NativeThread.signal(writer);
                 }
             }
         }

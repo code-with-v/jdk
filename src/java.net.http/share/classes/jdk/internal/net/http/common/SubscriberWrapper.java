@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -344,7 +344,6 @@ public abstract class SubscriberWrapper
     }
 
     void upstreamWindowUpdate() {
-        if (pushScheduler.isStopped()) return;
         long downstreamQueueSize = outputQ.size();
         long upstreamWindowSize = upstreamWindow.get();
         long n = upstreamWindowUpdate(upstreamWindowSize, downstreamQueueSize);
@@ -380,7 +379,6 @@ public abstract class SubscriberWrapper
     }
 
     private void upstreamRequest(long n) {
-        if (pushScheduler.isStopped()) return;
         if (debug.on()) debug.log("requesting %d", n);
         upstreamWindow.getAndAdd(n);
         upstreamSubscription.request(n);
@@ -492,13 +490,13 @@ public abstract class SubscriberWrapper
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("SubscriberWrapper:")
-          .append(" upstreamCompleted: ").append(upstreamCompleted)
-          .append(" upstreamWindow: ").append(upstreamWindow)
-          .append(" downstreamCompleted: ").append(downstreamCompleted)
-          .append(" completionAcknowledged: ").append(completionAcknowledged)
-          .append(" outputQ size: ").append(outputQ.size())
+          .append(" upstreamCompleted: ").append(Boolean.toString(upstreamCompleted))
+          .append(" upstreamWindow: ").append(upstreamWindow.toString())
+          .append(" downstreamCompleted: ").append(Boolean.toString(downstreamCompleted))
+          .append(" completionAcknowledged: ").append(Boolean.toString(completionAcknowledged))
+          .append(" outputQ size: ").append(Integer.toString(outputQ.size()))
           //.append(" outputQ: ").append(outputQ.toString())
-          .append(" cf: ").append(cf)
+          .append(" cf: ").append(cf.toString())
           .append(" downstreamSubscription: ").append(downstreamSubscription)
           .append(" downstreamSubscriber: ").append(downstreamSubscriber);
 

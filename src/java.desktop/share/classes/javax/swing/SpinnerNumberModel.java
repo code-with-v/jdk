@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -452,11 +452,11 @@ public class SpinnerNumberModel extends AbstractSpinnerModel implements Serializ
      * @see SpinnerModel#addChangeListener
      */
     public void setValue(Object value) {
-        if (!(value instanceof Number number)) {
+        if ((value == null) || !(value instanceof Number)) {
             throw new IllegalArgumentException("illegal value");
         }
-        if (!number.equals(this.value)) {
-            this.value = number;
+        if (!value.equals(this.value)) {
+            this.value = (Number)value;
             fireStateChanged();
         }
     }

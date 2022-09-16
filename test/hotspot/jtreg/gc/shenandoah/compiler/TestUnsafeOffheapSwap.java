@@ -22,7 +22,7 @@
  */
 
 /**
- * @test
+ * @test TestUnsafeOffheapSwap
  * @summary Miscompilation in Unsafe off-heap swap routines
  * @requires vm.gc.Shenandoah
  * @modules java.base/jdk.internal.misc:+open

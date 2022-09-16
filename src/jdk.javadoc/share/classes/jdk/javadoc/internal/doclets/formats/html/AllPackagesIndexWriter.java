@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -76,24 +76,24 @@ public class AllPackagesIndexWriter extends HtmlDocletWriter {
         Content mainContent = new ContentBuilder();
         addPackages(mainContent);
         Content titleContent = contents.allPackagesLabel;
-        var pHeading = HtmlTree.HEADING_TITLE(Headings.PAGE_TITLE_HEADING,
+        Content pHeading = HtmlTree.HEADING_TITLE(Headings.PAGE_TITLE_HEADING,
                 HtmlStyle.title, titleContent);
-        var headerDiv = HtmlTree.DIV(HtmlStyle.header, pHeading);
-        HtmlTree body = getBody(getWindowTitle(label));
-        body.add(new BodyContents()
+        Content headerDiv = HtmlTree.DIV(HtmlStyle.header, pHeading);
+        HtmlTree bodyTree = getBody(getWindowTitle(label));
+        bodyTree.add(new BodyContents()
                 .setHeader(getHeader(PageMode.ALL_PACKAGES))
                 .addMainContent(headerDiv)
                 .addMainContent(mainContent)
                 .setFooter(getFooter()));
-        printHtmlDocument(null, "package index", body);
+        printHtmlDocument(null, "package index", bodyTree);
     }
 
     /**
-     * Add all the packages to the content.
+     * Add all the packages to the content tree.
      *
-     * @param target the content to which the links will be added
+     * @param content HtmlTree content to which the links will be added
      */
-    protected void addPackages(Content target) {
+    protected void addPackages(Content content) {
         Table table = new Table(HtmlStyle.summaryTable)
                 .setCaption(Text.of(contents.packageSummaryLabel.toString()))
                 .setHeader(new TableHeader(contents.packageLabel, contents.descriptionLabel))
@@ -106,6 +106,6 @@ public class AllPackagesIndexWriter extends HtmlDocletWriter {
                 table.addRow(pkg, packageLinkContent, summaryContent);
             }
         }
-        target.add(table);
+        content.add(table);
     }
 }

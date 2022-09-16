@@ -25,7 +25,7 @@ import java.lang.StackWalker.StackFrame;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.Set;
-import jdk.test.whitebox.WhiteBox;
+import sun.hotspot.WhiteBox;
 
 public class LambdaVerification {
     static void verifyCallerIsArchivedLambda(boolean isRuntime) {

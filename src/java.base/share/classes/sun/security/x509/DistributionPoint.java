@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -328,14 +328,16 @@ public class DistributionPoint {
         if (this == obj) {
             return true;
         }
-        if (!(obj instanceof DistributionPoint other)) {
+        if (obj instanceof DistributionPoint == false) {
             return false;
         }
+        DistributionPoint other = (DistributionPoint)obj;
 
-        return Objects.equals(this.fullName, other.fullName)
+        boolean equal = Objects.equals(this.fullName, other.fullName)
                      && Objects.equals(this.relativeName, other.relativeName)
                      && Objects.equals(this.crlIssuer, other.crlIssuer)
                      && Arrays.equals(this.reasonFlags, other.reasonFlags);
+        return equal;
     }
 
     public int hashCode() {

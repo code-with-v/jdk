@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2021, 2022, Oracle and/or its affiliates. All rights reserved.
+ *  Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
  *  DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  *  This code is free software; you can redistribute it and/or modify it
@@ -23,17 +23,25 @@
 
 /*
  * @test id=default_gc
- * @enablePreview
  * @requires ((os.arch == "amd64" | os.arch == "x86_64") & sun.arch.data.model == "64") | os.arch == "aarch64"
  * @library /test/lib
- * @library ../
- * @build jdk.test.whitebox.WhiteBox
- * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
+ * @build sun.hotspot.WhiteBox
+ * @run driver jdk.test.lib.helpers.ClassFileInstaller sun.hotspot.WhiteBox
  *
  * @run main/othervm
  *   -Xbootclasspath/a:.
  *   -XX:+UnlockDiagnosticVMOptions
  *   -XX:+WhiteBoxAPI
+ *   -Djdk.internal.foreign.ProgrammableInvoker.USE_INTRINSICS=true
+ *   --enable-native-access=ALL-UNNAMED
+ *   -Xbatch
+ *   TestAsyncStackWalk
+ *
+ * @run main/othervm
+ *   -Xbootclasspath/a:.
+ *   -XX:+UnlockDiagnosticVMOptions
+ *   -XX:+WhiteBoxAPI
+ *   -Djdk.internal.foreign.ProgrammableInvoker.USE_INTRINSICS=false
  *   --enable-native-access=ALL-UNNAMED
  *   -Xbatch
  *   TestAsyncStackWalk
@@ -41,18 +49,27 @@
 
 /*
  * @test id=zgc
- * @enablePreview
  * @requires (((os.arch == "amd64" | os.arch == "x86_64") & sun.arch.data.model == "64") | os.arch == "aarch64")
  * @requires vm.gc.Z
  * @library /test/lib
- * @library ../
- * @build jdk.test.whitebox.WhiteBox
- * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
+ * @build sun.hotspot.WhiteBox
+ * @run driver jdk.test.lib.helpers.ClassFileInstaller sun.hotspot.WhiteBox
  *
  * @run main/othervm
  *   -Xbootclasspath/a:.
  *   -XX:+UnlockDiagnosticVMOptions
  *   -XX:+WhiteBoxAPI
+ *   -Djdk.internal.foreign.ProgrammableInvoker.USE_INTRINSICS=true
+ *   --enable-native-access=ALL-UNNAMED
+ *   -Xbatch
+ *   -XX:+UseZGC
+ *   TestAsyncStackWalk
+ *
+ * @run main/othervm
+ *   -Xbootclasspath/a:.
+ *   -XX:+UnlockDiagnosticVMOptions
+ *   -XX:+WhiteBoxAPI
+ *   -Djdk.internal.foreign.ProgrammableInvoker.USE_INTRINSICS=false
  *   --enable-native-access=ALL-UNNAMED
  *   -Xbatch
  *   -XX:+UseZGC
@@ -60,42 +77,52 @@
  */
 /*
  * @test id=shenandoah
- * @enablePreview
  * @requires (((os.arch == "amd64" | os.arch == "x86_64") & sun.arch.data.model == "64") | os.arch == "aarch64")
  * @requires vm.gc.Shenandoah
  * @library /test/lib
- * @library ../
- * @build jdk.test.whitebox.WhiteBox
- * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
+ * @build sun.hotspot.WhiteBox
+ * @run driver jdk.test.lib.helpers.ClassFileInstaller sun.hotspot.WhiteBox
  *
  * @run main/othervm
  *   -Xbootclasspath/a:.
  *   -XX:+UnlockDiagnosticVMOptions
  *   -XX:+WhiteBoxAPI
+ *   -Djdk.internal.foreign.ProgrammableInvoker.USE_INTRINSICS=true
+ *   --enable-native-access=ALL-UNNAMED
+ *   -Xbatch
+ *   -XX:+UseShenandoahGC
+ *   TestAsyncStackWalk
+ *
+ * @run main/othervm
+ *   -Xbootclasspath/a:.
+ *   -XX:+UnlockDiagnosticVMOptions
+ *   -XX:+WhiteBoxAPI
+ *   -Djdk.internal.foreign.ProgrammableInvoker.USE_INTRINSICS=false
  *   --enable-native-access=ALL-UNNAMED
  *   -Xbatch
  *   -XX:+UseShenandoahGC
  *   TestAsyncStackWalk
  */
 
-import java.lang.foreign.Addressable;
-import java.lang.foreign.Linker;
-import java.lang.foreign.FunctionDescriptor;
-import java.lang.foreign.MemoryAddress;
+import jdk.incubator.foreign.CLinker;
+import jdk.incubator.foreign.FunctionDescriptor;
+import jdk.incubator.foreign.SymbolLookup;
+import jdk.incubator.foreign.MemoryAddress;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodType;
 
-import java.lang.foreign.MemorySession;
-import jdk.test.whitebox.WhiteBox;
+import jdk.incubator.foreign.ResourceScope;
+import sun.hotspot.WhiteBox;
 
 import static java.lang.invoke.MethodHandles.lookup;
+import static jdk.incubator.foreign.CLinker.C_POINTER;
 import static jdk.test.lib.Asserts.assertTrue;
 
-public class TestAsyncStackWalk extends NativeTestHelper {
+public class TestAsyncStackWalk {
     static final WhiteBox WB = WhiteBox.getWhiteBox();
 
-    static final Linker linker = Linker.nativeLinker();
+    static final CLinker linker = CLinker.getInstance();
 
     static final MethodHandle MH_asyncStackWalk;
     static final MethodHandle MH_m;
@@ -103,8 +130,10 @@ public class TestAsyncStackWalk extends NativeTestHelper {
     static {
         try {
             System.loadLibrary("AsyncStackWalk");
+            SymbolLookup lookup = SymbolLookup.loaderLookup();
             MH_asyncStackWalk = linker.downcallHandle(
-                    findNativeOrThrow("asyncStackWalk"),
+                    lookup.lookup("asyncStackWalk").get(),
+                    MethodType.methodType(void.class, MemoryAddress.class),
                     FunctionDescriptor.ofVoid(C_POINTER));
             MH_m = lookup().findStatic(TestAsyncStackWalk.class, "m", MethodType.methodType(void.class));
         } catch (ReflectiveOperationException e) {
@@ -116,8 +145,8 @@ public class TestAsyncStackWalk extends NativeTestHelper {
     static boolean didStackWalk;
 
     public static void main(String[] args) throws Throwable {
-        try (MemorySession session = MemorySession.openConfined()) {
-            Addressable stub = linker.upcallStub(MH_m, FunctionDescriptor.ofVoid(), session);
+        try (ResourceScope scope = ResourceScope.newConfinedScope()) {
+            MemoryAddress stub = linker.upcallStub(MH_m, FunctionDescriptor.ofVoid(), scope);
             MemoryAddress stubAddress = stub.address();
             invocations = 0;
             didStackWalk = false;
@@ -127,7 +156,7 @@ public class TestAsyncStackWalk extends NativeTestHelper {
     }
 
     static void payload(MemoryAddress cb) throws Throwable {
-        MH_asyncStackWalk.invoke(cb);
+        MH_asyncStackWalk.invokeExact(cb);
     }
 
     static void m() {

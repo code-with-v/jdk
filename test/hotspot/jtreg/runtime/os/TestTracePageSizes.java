@@ -58,7 +58,7 @@
  */
 
 /*
- * @test id=G1
+ * @test id=with-G1
  * @summary Run tests with G1
  * @library /test/lib
  * @build jdk.test.lib.Platform
@@ -70,7 +70,7 @@
 */
 
 /*
- * @test id=Parallel
+ * @test id=with-Parallel
  * @summary Run tests with Parallel
  * @library /test/lib
  * @build jdk.test.lib.Platform
@@ -82,7 +82,7 @@
 */
 
 /*
- * @test id=Serial
+ * @test id=with-Serial
  * @summary Run tests with Serial
  * @library /test/lib
  * @build jdk.test.lib.Platform

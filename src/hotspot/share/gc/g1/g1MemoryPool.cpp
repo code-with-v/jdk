@@ -26,7 +26,6 @@
 #include "gc/g1/g1CollectedHeap.hpp"
 #include "gc/g1/g1MemoryPool.hpp"
 #include "gc/g1/heapRegion.hpp"
-#include "gc/shared/gc_globals.hpp"
 
 G1MemoryPoolSuper::G1MemoryPoolSuper(G1CollectedHeap* g1h,
                                      const char* name,
@@ -37,7 +36,7 @@ G1MemoryPoolSuper::G1MemoryPoolSuper(G1CollectedHeap* g1h,
                       init_size,
                       max_size,
                       support_usage_threshold),
-  _g1mm(g1h->monitoring_support()) {
+  _g1mm(g1h->g1mm()) {
   assert(UseG1GC, "sanity");
 }
 

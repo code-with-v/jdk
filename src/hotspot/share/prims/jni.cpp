@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2021, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2012 Red Hat, Inc.
  * Copyright (c) 2021, Azul Systems, Inc. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
@@ -73,21 +73,18 @@
 #include "prims/jvm_misc.hpp"
 #include "prims/jvmtiExport.hpp"
 #include "prims/jvmtiThreadState.hpp"
-#include "runtime/arguments.hpp"
 #include "runtime/atomic.hpp"
 #include "runtime/fieldDescriptor.inline.hpp"
 #include "runtime/handles.inline.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 #include "runtime/java.hpp"
 #include "runtime/javaCalls.hpp"
-#include "runtime/javaThread.inline.hpp"
 #include "runtime/jfieldIDWorkaround.hpp"
 #include "runtime/jniHandles.inline.hpp"
 #include "runtime/reflection.hpp"
 #include "runtime/safepointVerifiers.hpp"
 #include "runtime/sharedRuntime.hpp"
 #include "runtime/signature.hpp"
-#include "runtime/synchronizer.hpp"
 #include "runtime/thread.inline.hpp"
 #include "runtime/vmOperations.hpp"
 #include "services/memTracker.hpp"
@@ -101,7 +98,7 @@
 #include "jvmci/jvmciCompiler.hpp"
 #endif
 
-static jint CurrentVersion = JNI_VERSION_19;
+static jint CurrentVersion = JNI_VERSION_10;
 
 #if defined(_WIN32) && !defined(USE_VECTORED_EXCEPTION_HANDLING)
 extern LONG WINAPI topLevelExceptionFilter(_EXCEPTION_POINTERS* );
@@ -111,10 +108,10 @@ extern LONG WINAPI topLevelExceptionFilter(_EXCEPTION_POINTERS* );
 // '-return' probe regardless of the return path is taken out of the function.
 // Methods that have multiple return paths use this to avoid having to
 // instrument each return path.  Methods that use CHECK or THROW must use this
-// since those macros can cause an immediate uninstrumented return.
+// since those macros can cause an immedate uninstrumented return.
 //
 // In order to get the return value, a reference to the variable containing
-// the return value must be passed to the constructor of the object, and
+// the return value must be passed to the contructor of the object, and
 // the return value must be set before return (since the mark object has
 // a reference to it).
 //
@@ -552,9 +549,7 @@ JNI_END
 
 static void jni_check_async_exceptions(JavaThread *thread) {
   assert(thread == Thread::current(), "must be itself");
-  if (thread->has_async_exception_condition()) {
-    SafepointMechanism::process_if_requested_with_exit_check(thread, true /* check asyncs */);
-  }
+  thread->check_and_handle_async_exceptions();
 }
 
 JNI_ENTRY_NO_PRESERVE(jthrowable, jni_ExceptionOccurred(JNIEnv *env))
@@ -582,7 +577,7 @@ JNI_ENTRY_NO_PRESERVE(void, jni_ExceptionDescribe(JNIEnv *env))
       if (thread != NULL && thread->threadObj() != NULL) {
         ResourceMark rm(THREAD);
         jio_fprintf(defaultStream::error_stream(),
-        "in thread \"%s\" ", thread->name());
+        "in thread \"%s\" ", thread->get_thread_name());
       }
       if (ex->is_a(vmClasses::Throwable_klass())) {
         JavaValue result(T_VOID);
@@ -644,8 +639,11 @@ JNI_ENTRY(jint, jni_PushLocalFrame(JNIEnv *env, jint capacity))
     HOTSPOT_JNI_PUSHLOCALFRAME_RETURN((uint32_t)JNI_ERR);
     return JNI_ERR;
   }
-
-  thread->push_jni_handle_block();
+  JNIHandleBlock* old_handles = thread->active_handles();
+  JNIHandleBlock* new_handles = JNIHandleBlock::allocate_block(thread);
+  assert(new_handles != NULL, "should not be NULL");
+  new_handles->set_pop_frame_link(old_handles);
+  thread->set_active_handles(new_handles);
   jint ret = JNI_OK;
   HOTSPOT_JNI_PUSHLOCALFRAME_RETURN(ret);
   return ret;
@@ -979,7 +977,7 @@ JNI_ENTRY(jobject, jni_NewObjectA(JNIEnv *env, jclass clazz, jmethodID methodID,
   HOTSPOT_JNI_NEWOBJECTA_ENTRY(env, clazz, (uintptr_t) methodID);
 
   jobject obj = NULL;
-  DT_RETURN_MARK(NewObjectA, jobject, (const jobject&)obj);
+  DT_RETURN_MARK(NewObjectA, jobject, (const jobject)obj);
 
   instanceOop i = InstanceKlass::allocate_instance(JNIHandles::resolve_non_null(clazz), CHECK_NULL);
   obj = JNIHandles::make_local(THREAD, i);
@@ -2236,7 +2234,7 @@ JNI_ENTRY(const char*, jni_GetStringUTFChars(JNIEnv *env, jstring string, jboole
   if (s_value != NULL) {
     size_t length = java_lang_String::utf8_length(java_string, s_value);
     /* JNI Specification states return NULL on OOM */
-    result = AllocateHeap(length + 1, mtInternal, AllocFailStrategy::RETURN_NULL);
+    result = AllocateHeap(length + 1, mtInternal, 0, AllocFailStrategy::RETURN_NULL);
     if (result != NULL) {
       java_lang_String::as_utf8_string(java_string, s_value, result, (int) length + 1);
       if (isCopy != NULL) {
@@ -2720,7 +2718,8 @@ JNI_ENTRY(jint, jni_MonitorEnter(JNIEnv *env, jobject jobj))
 
   Handle obj(thread, JNIHandles::resolve_non_null(jobj));
   ObjectSynchronizer::jni_enter(obj, thread);
-  return JNI_OK;
+  ret = JNI_OK;
+  return ret;
 JNI_END
 
 DT_RETURN_MARK_DECL(MonitorExit, jint
@@ -2738,7 +2737,9 @@ JNI_ENTRY(jint, jni_MonitorExit(JNIEnv *env, jobject jobj))
 
   Handle obj(THREAD, JNIHandles::resolve_non_null(jobj));
   ObjectSynchronizer::jni_exit(obj(), CHECK_(JNI_ERR));
-  return JNI_OK;
+
+  ret = JNI_OK;
+  return ret;
 JNI_END
 
 //
@@ -2822,8 +2823,13 @@ JNI_ENTRY(void*, jni_GetPrimitiveArrayCritical(JNIEnv *env, jarray array, jboole
     *isCopy = JNI_FALSE;
   }
   oop a = lock_gc_or_pin_object(thread, array);
-  assert(a->is_typeArray(), "Primitive array only");
-  BasicType type = TypeArrayKlass::cast(a->klass())->element_type();
+  assert(a->is_array(), "just checking");
+  BasicType type;
+  if (a->is_objArray()) {
+    type = T_OBJECT;
+  } else {
+    type = TypeArrayKlass::cast(a->klass())->element_type();
+  }
   void* ret = arrayOop(a)->base(type);
  HOTSPOT_JNI_GETPRIMITIVEARRAYCRITICAL_RETURN(ret);
   return ret;
@@ -3135,15 +3141,6 @@ JNI_ENTRY(jobject, jni_GetModule(JNIEnv* env, jclass clazz))
   return Modules::get_module(clazz, THREAD);
 JNI_END
 
-JNI_ENTRY(jboolean, jni_IsVirtualThread(JNIEnv* env, jobject obj))
-  oop thread_obj = JNIHandles::resolve_external_guard(obj);
-  if (thread_obj != NULL && thread_obj->is_a(vmClasses::BasicVirtualThread_klass())) {
-    return JNI_TRUE;
-  } else {
-    return JNI_FALSE;
-  }
-JNI_END
-
 
 // Structure containing all jni functions
 struct JNINativeInterface_ jni_NativeInterface = {
@@ -3428,11 +3425,7 @@ struct JNINativeInterface_ jni_NativeInterface = {
 
     // Module features
 
-    jni_GetModule,
-
-    // Virtual threads
-
-    jni_IsVirtualThread
+    jni_GetModule
 };
 
 
@@ -3507,7 +3500,7 @@ static void post_thread_start_event(const JavaThread* jt) {
   assert(jt != NULL, "invariant");
   EventThreadStart event;
   if (event.should_commit()) {
-    event.set_thread(JFR_JVM_THREAD_ID(jt));
+    event.set_thread(JFR_THREAD_ID(jt));
     event.set_parentThread((traceid)0);
 #if INCLUDE_JFR
     if (EventThreadStart::is_stacktrace_enabled()) {
@@ -3657,7 +3650,9 @@ static jint JNI_CreateJavaVM_inner(JavaVM **vm, void **penv, void *args) {
 
     post_thread_start_event(thread);
 
+#ifndef PRODUCT
     if (ReplayCompiles) ciReplay::replay(thread);
+#endif
 
 #ifdef ASSERT
     // Some platforms (like Win*) need a wrapper around these test
@@ -3668,7 +3663,7 @@ static jint JNI_CreateJavaVM_inner(JavaVM **vm, void **penv, void *args) {
 #endif
 
     // Since this is not a JVM_ENTRY we have to set the thread state manually before leaving.
-    ThreadStateTransition::transition_from_vm(thread, _thread_in_native);
+    ThreadStateTransition::transition(thread, _thread_in_vm, _thread_in_native);
     MACOS_AARCH64_ONLY(thread->enable_wx(WXExec));
   } else {
     // If create_vm exits because of a pending exception, exit with that
@@ -3801,7 +3796,7 @@ static jint attach_current_thread(JavaVM *vm, void **penv, void *_args, bool dae
     // If executing from an atexit hook we may be in the VMThread.
     if (t->is_Java_thread()) {
       // If the thread has been attached this operation is a no-op
-      *(JNIEnv**)penv = JavaThread::cast(t)->jni_environment();
+      *(JNIEnv**)penv = t->as_Java_thread()->jni_environment();
       return JNI_OK;
     } else {
       return JNI_ERR;
@@ -3888,8 +3883,11 @@ static jint attach_current_thread(JavaVM *vm, void **penv, void *_args, bool dae
   *(JNIEnv**)penv = thread->jni_environment();
 
   // Now leaving the VM, so change thread_state. This is normally automatically taken care
-  // of in the JVM_ENTRY. But in this situation we have to do it manually.
-  ThreadStateTransition::transition_from_vm(thread, _thread_in_native);
+  // of in the JVM_ENTRY. But in this situation we have to do it manually. Notice, that by
+  // using ThreadStateTransition::transition, we do a callback to the safepoint code if
+  // needed.
+
+  ThreadStateTransition::transition(thread, _thread_in_vm, _thread_in_native);
   MACOS_AARCH64_ONLY(thread->enable_wx(WXExec));
 
   // Perform any platform dependent FPU setup
@@ -3935,7 +3933,7 @@ jint JNICALL jni_DetachCurrentThread(JavaVM *vm)  {
 
   VM_Exit::block_if_vm_exited();
 
-  JavaThread* thread = JavaThread::cast(current);
+  JavaThread* thread = current->as_Java_thread();
   if (thread->has_last_Java_frame()) {
     HOTSPOT_JNI_DETACHCURRENTTHREAD_RETURN((uint32_t) JNI_ERR);
     // Can't detach a thread that's running java, that can't work.
@@ -3983,13 +3981,6 @@ jint JNICALL jni_GetEnv(JavaVM *vm, void **penv, jint version) {
     return ret;
   }
 
-  // No JVM TI with --enable-preview and no continuations support.
-  if (!VMContinuations && Arguments::enable_preview() && JvmtiExport::is_jvmti_version(version)) {
-    *penv = NULL;
-    ret = JNI_EVERSION;
-    return ret;
-  }
-
   if (JniExportedInterface::GetExportedInterface(vm, penv, version, &ret)) {
     return ret;
   }
@@ -4004,7 +3995,7 @@ jint JNICALL jni_GetEnv(JavaVM *vm, void **penv, jint version) {
   Thread* thread = Thread::current_or_null();
   if (thread != NULL && thread->is_Java_thread()) {
     if (Threads::is_supported_jni_version_including_1_1(version)) {
-      *(JNIEnv**)penv = JavaThread::cast(thread)->jni_environment();
+      *(JNIEnv**)penv = thread->as_Java_thread()->jni_environment();
       ret = JNI_OK;
       return ret;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -63,7 +63,8 @@ public class ConsoleCallbackHandler implements CallbackHandler {
         ConfirmationCallback confirmation = null;
 
         for (int i = 0; i < callbacks.length; i++) {
-            if (callbacks[i] instanceof TextOutputCallback tc) {
+            if (callbacks[i] instanceof TextOutputCallback) {
+                TextOutputCallback tc = (TextOutputCallback) callbacks[i];
 
                 String text;
                 switch (tc.getMessageType()) {
@@ -89,7 +90,8 @@ public class ConsoleCallbackHandler implements CallbackHandler {
                     System.err.println(text);
                 }
 
-            } else if (callbacks[i] instanceof NameCallback nc) {
+            } else if (callbacks[i] instanceof NameCallback) {
+                NameCallback nc = (NameCallback) callbacks[i];
 
                 if (nc.getDefaultName() == null) {
                     System.err.print(nc.getPrompt());
@@ -106,7 +108,8 @@ public class ConsoleCallbackHandler implements CallbackHandler {
 
                 nc.setName(result);
 
-            } else if (callbacks[i] instanceof PasswordCallback pc) {
+            } else if (callbacks[i] instanceof PasswordCallback) {
+                PasswordCallback pc = (PasswordCallback) callbacks[i];
 
                 System.err.print(pc.getPrompt());
                 System.err.flush();
@@ -159,8 +162,8 @@ public class ConsoleCallbackHandler implements CallbackHandler {
         }
 
         class OptionInfo {
-            final String name;
-            final int value;
+            String name;
+            int value;
             OptionInfo(String name, int value) {
                 this.name = name;
                 this.value = value;

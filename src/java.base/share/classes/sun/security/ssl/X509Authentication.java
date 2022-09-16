@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,46 +35,52 @@ import java.security.spec.AlgorithmParameterSpec;
 import java.security.spec.ECParameterSpec;
 import java.security.spec.NamedParameterSpec;
 import java.util.AbstractMap.SimpleImmutableEntry;
-import java.util.Arrays;
 import java.util.Map;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLSocket;
 import javax.net.ssl.X509ExtendedKeyManager;
-
 import sun.security.ssl.SupportedGroupsExtension.SupportedGroups;
 
 enum X509Authentication implements SSLAuthentication {
     // Require rsaEncryption public key
-    RSA         ("RSA",         "RSA"),
+    RSA         ("RSA",         new X509PossessionGenerator(
+                                    new String[]{"RSA"})),
 
     // Require RSASSA-PSS public key
-    RSASSA_PSS  ("RSASSA-PSS",  "RSASSA-PSS"),
+    RSASSA_PSS  ("RSASSA-PSS",  new X509PossessionGenerator(
+                                    new String[] {"RSASSA-PSS"})),
 
     // Require rsaEncryption or RSASSA-PSS public key
     //
-    // Note that this is a specific scheme for TLS 1.2. (EC)DHE_RSA cipher
+    // Note that this is a specifical scheme for TLS 1.2. (EC)DHE_RSA cipher
     // suites of TLS 1.2 can use either rsaEncryption or RSASSA-PSS public
     // key for authentication and handshake.
-    RSA_OR_PSS  ("RSA_OR_PSS",  "RSA", "RSASSA-PSS"),
+    RSA_OR_PSS  ("RSA_OR_PSS",  new X509PossessionGenerator(
+                                    new String[] {"RSA", "RSASSA-PSS"})),
 
     // Require DSA public key
-    DSA         ("DSA",         "DSA"),
+    DSA         ("DSA",         new X509PossessionGenerator(
+                                    new String[] {"DSA"})),
 
     // Require EC public key
-    EC          ("EC",          "EC"),
+    EC          ("EC",          new X509PossessionGenerator(
+                                    new String[] {"EC"})),
     // Edwards-Curve key
-    EDDSA       ("EdDSA",       "EdDSA");
+    EDDSA       ("EdDSA",       new X509PossessionGenerator(
+                                    new String[] {"EdDSA"}));
 
-    final String keyAlgorithm;
-    final String[] keyTypes;
+    final String keyType;
+    final SSLPossessionGenerator possessionGenerator;
 
-    X509Authentication(String keyAlgorithm,
-                       String... keyTypes) {
-        this.keyAlgorithm = keyAlgorithm;
-        this.keyTypes = keyTypes;
+    private X509Authentication(String keyType,
+            SSLPossessionGenerator possessionGenerator) {
+        this.keyType = keyType;
+        this.possessionGenerator = possessionGenerator;
     }
 
-    static X509Authentication valueOfKeyAlgorithm(String keyAlgorithm) {
+    static X509Authentication valueOf(SignatureScheme signatureScheme) {
         for (X509Authentication au : X509Authentication.values()) {
-            if (au.keyAlgorithm.equals(keyAlgorithm)) {
+            if (au.keyType.equals(signatureScheme.keyAlgorithm)) {
                 return au;
             }
         }
@@ -84,7 +90,7 @@ enum X509Authentication implements SSLAuthentication {
 
     @Override
     public SSLPossession createPossession(HandshakeContext handshakeContext) {
-        return X509Authentication.createPossession(handshakeContext, keyTypes);
+        return possessionGenerator.createPossession(handshakeContext);
     }
 
     @Override
@@ -188,109 +194,116 @@ enum X509Authentication implements SSLAuthentication {
         }
     }
 
-    public static SSLPossession createPossession(
-            HandshakeContext context, String[] keyTypes) {
-        if (context.sslConfig.isClientMode) {
-            return createClientPossession(
-                    (ClientHandshakeContext) context, keyTypes);
-        } else {
-            return createServerPossession(
-                    (ServerHandshakeContext) context, keyTypes);
-        }
-    }
+    private static final
+            class X509PossessionGenerator implements SSLPossessionGenerator {
+        private final String[] keyTypes;
 
-    // Used by TLS 1.2 and TLS 1.3.
-    private static SSLPossession createClientPossession(
-            ClientHandshakeContext chc, String[] keyTypes) {
-        X509ExtendedKeyManager km = chc.sslContext.getX509KeyManager();
-        String clientAlias = null;
-        if (chc.conContext.transport instanceof SSLSocketImpl socket) {
-            clientAlias = km.chooseClientAlias(
-                    keyTypes,
-                    chc.peerSupportedAuthorities == null ? null :
-                            chc.peerSupportedAuthorities.clone(),
-                    socket);
-        } else if (chc.conContext.transport instanceof SSLEngineImpl engine) {
-            clientAlias = km.chooseEngineClientAlias(
-                    keyTypes,
-                    chc.peerSupportedAuthorities == null ? null :
-                            chc.peerSupportedAuthorities.clone(),
-                    engine);
+        private X509PossessionGenerator(String[] keyTypes) {
+            this.keyTypes = keyTypes;
         }
 
-        if (clientAlias == null) {
-            if (SSLLogger.isOn && SSLLogger.isOn("ssl")) {
-                SSLLogger.finest("No X.509 cert selected for "
-                        + Arrays.toString(keyTypes));
+        @Override
+        public SSLPossession createPossession(HandshakeContext context) {
+            if (context.sslConfig.isClientMode) {
+                for (String keyType : keyTypes) {
+                    SSLPossession poss = createClientPossession(
+                            (ClientHandshakeContext)context, keyType);
+                    if (poss != null) {
+                        return poss;
+                    }
+                }
+            } else {
+                for (String keyType : keyTypes) {
+                    SSLPossession poss = createServerPossession(
+                            (ServerHandshakeContext)context, keyType);
+                    if (poss != null) {
+                        return poss;
+                    }
+                }
             }
+
             return null;
         }
 
-        PrivateKey clientPrivateKey = km.getPrivateKey(clientAlias);
-        if (clientPrivateKey == null) {
-            if (SSLLogger.isOn && SSLLogger.isOn("ssl")) {
-                SSLLogger.finest(
-                        clientAlias + " is not a private key entry");
+        // Used by TLS 1.2 and TLS 1.3.
+        private SSLPossession createClientPossession(
+                ClientHandshakeContext chc, String keyType) {
+            X509ExtendedKeyManager km = chc.sslContext.getX509KeyManager();
+            String clientAlias = null;
+            if (chc.conContext.transport instanceof SSLSocketImpl) {
+                clientAlias = km.chooseClientAlias(
+                        new String[] { keyType },
+                        chc.peerSupportedAuthorities == null ? null :
+                                chc.peerSupportedAuthorities.clone(),
+                        (SSLSocket)chc.conContext.transport);
+            } else if (chc.conContext.transport instanceof SSLEngineImpl) {
+                clientAlias = km.chooseEngineClientAlias(
+                        new String[] { keyType },
+                        chc.peerSupportedAuthorities == null ? null :
+                                chc.peerSupportedAuthorities.clone(),
+                        (SSLEngine)chc.conContext.transport);
             }
-            return null;
-        }
 
-        X509Certificate[] clientCerts = km.getCertificateChain(clientAlias);
-        if ((clientCerts == null) || (clientCerts.length == 0)) {
-            if (SSLLogger.isOn && SSLLogger.isOn("ssl")) {
-                SSLLogger.finest(clientAlias +
+            if (clientAlias == null) {
+                if (SSLLogger.isOn && SSLLogger.isOn("ssl")) {
+                    SSLLogger.finest("No X.509 cert selected for " + keyType);
+                }
+                return null;
+            }
+
+            PrivateKey clientPrivateKey = km.getPrivateKey(clientAlias);
+            if (clientPrivateKey == null) {
+                if (SSLLogger.isOn && SSLLogger.isOn("ssl")) {
+                    SSLLogger.finest(
+                            clientAlias + " is not a private key entry");
+                }
+                return null;
+            }
+
+            X509Certificate[] clientCerts = km.getCertificateChain(clientAlias);
+            if ((clientCerts == null) || (clientCerts.length == 0)) {
+                if (SSLLogger.isOn && SSLLogger.isOn("ssl")) {
+                    SSLLogger.finest(clientAlias +
                         " is a private key entry with no cert chain stored");
+                }
+                return null;
             }
-            return null;
+
+            PublicKey clientPublicKey = clientCerts[0].getPublicKey();
+            if ((!clientPrivateKey.getAlgorithm().equals(keyType))
+                    || (!clientPublicKey.getAlgorithm().equals(keyType))) {
+                if (SSLLogger.isOn && SSLLogger.isOn("ssl")) {
+                    SSLLogger.fine(
+                            clientAlias + " private or public key is not of " +
+                            keyType + " algorithm");
+                }
+                return null;
+            }
+
+            return new X509Possession(clientPrivateKey, clientCerts);
         }
 
-        String privateKeyAlgorithm = clientPrivateKey.getAlgorithm();
-        if (!Arrays.asList(keyTypes).contains(privateKeyAlgorithm)) {
-            if (SSLLogger.isOn && SSLLogger.isOn("ssl")) {
-                SSLLogger.fine(
-                        clientAlias + " private key algorithm " +
-                                privateKeyAlgorithm + " not in request list");
-            }
-            return null;
-        }
-
-        String publicKeyAlgorithm = clientCerts[0].getPublicKey().getAlgorithm();
-        if (!privateKeyAlgorithm.equals(publicKeyAlgorithm)) {
-            if (SSLLogger.isOn && SSLLogger.isOn("ssl")) {
-                SSLLogger.fine(
-                        clientAlias + " private or public key is not of " +
-                                "same algorithm: " +
-                                privateKeyAlgorithm + " vs " +
-                                publicKeyAlgorithm);
-            }
-            return null;
-        }
-
-        return new X509Possession(clientPrivateKey, clientCerts);
-    }
-
-    private static SSLPossession createServerPossession(
-            ServerHandshakeContext shc, String[] keyTypes) {
-        X509ExtendedKeyManager km = shc.sslContext.getX509KeyManager();
-        String serverAlias = null;
-        for (String keyType : keyTypes) {
-            if (shc.conContext.transport instanceof SSLSocketImpl socket) {
+        private SSLPossession createServerPossession(
+                ServerHandshakeContext shc, String keyType) {
+            X509ExtendedKeyManager km = shc.sslContext.getX509KeyManager();
+            String serverAlias = null;
+            if (shc.conContext.transport instanceof SSLSocketImpl) {
                 serverAlias = km.chooseServerAlias(keyType,
                         shc.peerSupportedAuthorities == null ? null :
                                 shc.peerSupportedAuthorities.clone(),
-                        socket);
-            } else if (shc.conContext.transport instanceof SSLEngineImpl engine) {
+                        (SSLSocket)shc.conContext.transport);
+            } else if (shc.conContext.transport instanceof SSLEngineImpl) {
                 serverAlias = km.chooseEngineServerAlias(keyType,
                         shc.peerSupportedAuthorities == null ? null :
                                 shc.peerSupportedAuthorities.clone(),
-                        engine);
+                        (SSLEngine)shc.conContext.transport);
             }
 
             if (serverAlias == null) {
                 if (SSLLogger.isOn && SSLLogger.isOn("ssl")) {
                     SSLLogger.finest("No X.509 cert selected for " + keyType);
                 }
-                continue;
+                return null;
             }
 
             PrivateKey serverPrivateKey = km.getPrivateKey(serverAlias);
@@ -299,7 +312,7 @@ enum X509Authentication implements SSLAuthentication {
                     SSLLogger.finest(
                             serverAlias + " is not a private key entry");
                 }
-                continue;
+                return null;
             }
 
             X509Certificate[] serverCerts = km.getCertificateChain(serverAlias);
@@ -308,7 +321,7 @@ enum X509Authentication implements SSLAuthentication {
                     SSLLogger.finest(
                             serverAlias + " is not a certificate entry");
                 }
-                continue;
+                return null;
             }
 
             PublicKey serverPublicKey = serverCerts[0].getPublicKey();
@@ -317,12 +330,12 @@ enum X509Authentication implements SSLAuthentication {
                 if (SSLLogger.isOn && SSLLogger.isOn("ssl")) {
                     SSLLogger.fine(
                             serverAlias + " private or public key is not of " +
-                                    keyType + " algorithm");
+                            keyType + " algorithm");
                 }
-                continue;
+                return null;
             }
 
-            // For TLS 1.2 and prior versions, the public key of an EC cert
+            // For TLS 1.2 and prior versions, the public key of a EC cert
             // MUST use a curve and point format supported by the client.
             // But for TLS 1.3, signature algorithms are negotiated
             // independently via the "signature_algorithms" extension.
@@ -331,9 +344,9 @@ enum X509Authentication implements SSLAuthentication {
                 if (!(serverPublicKey instanceof ECPublicKey)) {
                     if (SSLLogger.isOn && SSLLogger.isOn("ssl")) {
                         SSLLogger.warning(serverAlias +
-                                " public key is not an instance of ECPublicKey");
+                            " public key is not an instance of ECPublicKey");
                     }
-                    continue;
+                    return null;
                 }
 
                 // For ECC certs, check whether we support the EC domain
@@ -341,25 +354,24 @@ enum X509Authentication implements SSLAuthentication {
                 // ClientHello extension, check against that too for
                 // TLS 1.2 and prior versions.
                 ECParameterSpec params =
-                        ((ECPublicKey) serverPublicKey).getParams();
+                        ((ECPublicKey)serverPublicKey).getParams();
                 NamedGroup namedGroup = NamedGroup.valueOf(params);
                 if ((namedGroup == null) ||
                         (!SupportedGroups.isSupported(namedGroup)) ||
                         ((shc.clientRequestedNamedGroups != null) &&
-                                !shc.clientRequestedNamedGroups.contains(namedGroup))) {
+                        !shc.clientRequestedNamedGroups.contains(namedGroup))) {
 
                     if (SSLLogger.isOn && SSLLogger.isOn("ssl")) {
                         SSLLogger.warning(
-                                "Unsupported named group (" + namedGroup +
-                                        ") used in the " + serverAlias + " certificate");
+                            "Unsupported named group (" + namedGroup +
+                            ") used in the " + serverAlias + " certificate");
                     }
 
-                    continue;
+                    return null;
                 }
             }
 
             return new X509Possession(serverPrivateKey, serverCerts);
         }
-        return null;
     }
 }

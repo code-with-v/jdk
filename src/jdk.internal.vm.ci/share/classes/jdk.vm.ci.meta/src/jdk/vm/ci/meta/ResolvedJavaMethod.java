@@ -85,18 +85,20 @@ public interface ResolvedJavaMethod extends JavaMethod, InvokeTarget, ModifiersP
     boolean isSynthetic();
 
     /**
-     * Checks if the method is a varargs method.
+     * Checks that the method is a
+     * <a href="http://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.6">varargs</a>
+     * method.
      *
      * @return whether the method is a varargs method
-     * @jvms 4.6
      */
     boolean isVarArgs();
 
     /**
-     * Checks if the method is a bridge method.
+     * Checks that the method is a
+     * <a href="http://docs.oracle.com/javase/specs/jvms/se8/html/jvms-4.html#jvms-4.6">bridge</a>
+     * method.
      *
      * @return whether the method is a bridge method
-     * @jvms 4.6
      */
     boolean isBridge();
 

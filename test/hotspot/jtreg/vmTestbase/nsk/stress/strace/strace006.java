@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -74,18 +74,10 @@ public class strace006 {
     static final String[] EXPECTED_METHODS = {
             "java.lang.System.arraycopy",
             "java.lang.Object.wait",
-            "java.lang.Object.wait0",
-            "java.lang.System$2.headStackableScope",
-            "java.lang.Thread.headStackableScopes",
             "java.lang.Thread.exit",
             "java.lang.Thread.yield",
-            "java.lang.Thread.yield0",
-            "java.lang.Thread.clearReferences",
-            "java.lang.Thread.currentCarrierThread",
-            "java.lang.Thread.currentThread",
-            "java.lang.Thread.threadContainer",
-            "jdk.internal.vm.StackableScope.head",
-            "jdk.internal.vm.StackableScope.popAll",
+            "java.lang.ThreadGroup.remove",
+            "java.lang.ThreadGroup.threadTerminated",
             "nsk.stress.strace.strace006Thread.run",
             "nsk.stress.strace.strace006Thread.recursiveMethod1",
             "nsk.stress.strace.strace006Thread.recursiveMethod2"
@@ -249,7 +241,7 @@ public class strace006 {
             return true;
         String name = element.getClassName() + "." + element.getMethodName();
         for (int i = 0; i < EXPECTED_METHODS.length; i++) {
-            if (name.startsWith(EXPECTED_METHODS[i]))
+            if (EXPECTED_METHODS[i].compareTo(name) == 0)
                 return true;
         }
         return false;

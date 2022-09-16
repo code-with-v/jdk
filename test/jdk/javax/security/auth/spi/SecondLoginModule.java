@@ -29,6 +29,11 @@ import java.util.Map;
 
 public class SecondLoginModule implements LoginModule {
 
+    public static boolean isLoaded;
+
+    public SecondLoginModule() {
+        isLoaded = true;
+    }
 
     @Override
     public void initialize(Subject subject, CallbackHandler callbackHandler,

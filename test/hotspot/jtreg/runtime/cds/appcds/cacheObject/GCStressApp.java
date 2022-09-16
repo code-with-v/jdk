@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +25,7 @@
 import java.io.*;
 import java.util.*;
 import jdk.test.lib.Utils;
-import jdk.test.whitebox.WhiteBox;
+import sun.hotspot.WhiteBox;
 
 // All strings in archived classes are shared
 public class GCStressApp {
@@ -62,8 +62,8 @@ public class GCStressApp {
            return;
         }
 
-        if (!wb.areSharedStringsMapped()) {
-          System.out.println("Shared strings are not mapped.");
+        if (wb.areSharedStringsIgnored()) {
+          System.out.println("Shared strings are ignored.");
           return;
         }
 

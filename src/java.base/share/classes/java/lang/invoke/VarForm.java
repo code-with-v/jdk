@@ -109,14 +109,9 @@ final class VarForm {
 
     @ForceInline
     final MemberName getMemberName(int mode) {
-        // Can be simplified by calling getMemberNameOrNull, but written in this
-        // form to improve interpreter/coldpath performance.
-        MemberName mn = memberName_table[mode];
+        MemberName mn = getMemberNameOrNull(mode);
         if (mn == null) {
-            mn = resolveMemberName(mode);
-            if (mn == null) {
-                throw new UnsupportedOperationException();
-            }
+            throw new UnsupportedOperationException();
         }
         return mn;
     }

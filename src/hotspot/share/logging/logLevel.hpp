@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,8 +24,7 @@
 #ifndef SHARE_LOGGING_LOGLEVEL_HPP
 #define SHARE_LOGGING_LOGLEVEL_HPP
 
-#include "memory/allStatic.hpp"
-#include "utilities/debug.hpp"
+#include "memory/allocation.hpp"
 #include "utilities/macros.hpp"
 
 // The list of log levels:

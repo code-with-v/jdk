@@ -43,7 +43,6 @@ public:
   const DependencyType _dependency;
   virtual bool cmp( const Node &n ) const;
   virtual uint size_of() const;
-  const Type* widen_type(const PhaseGVN* phase, const Type* res, BasicType bt) const;
 
   public:
   ConstraintCastNode(Node *n, const Type *t, DependencyType dependency)
@@ -60,15 +59,17 @@ public:
   bool carry_dependency() const { return _dependency != RegularDependency; }
   TypeNode* dominating_cast(PhaseGVN* gvn, PhaseTransform* pt) const;
   static Node* make_cast(int opcode, Node* c, Node *n, const Type *t, DependencyType dependency);
-  static Node* make(Node* c, Node *n, const Type *t, DependencyType dependency, BasicType bt);
+  static Node* make(Node* c, Node *n, const Type *t, BasicType bt);
+  virtual bool operates_on(BasicType bt, bool signed_int) const {
+    assert(bt == T_INT || bt == T_LONG, "unsupported");
+    return false;
+  }
 
 #ifndef PRODUCT
   virtual void dump_spec(outputStream *st) const;
 #endif
 
   static Node* make_cast_for_type(Node* c, Node* in, const Type* type, DependencyType dependency);
-
-  Node* optimize_integer_cast(PhaseGVN* phase, BasicType bt);
 };
 
 //------------------------------CastIINode-------------------------------------
@@ -103,6 +104,10 @@ class CastIINode: public ConstraintCastNode {
     return false;
 #endif
   }
+  virtual bool operates_on(BasicType bt, bool signed_int) const {
+    assert(bt == T_INT || bt == T_LONG, "unsupported");
+    return bt == T_INT;
+  }
 
 #ifndef PRODUCT
   virtual void dump_spec(outputStream* st) const;
@@ -120,9 +125,10 @@ public:
           : ConstraintCastNode(n, t, dependency){
     init_class_id(Class_CastLL);
   }
-
-  virtual const Type* Value(PhaseGVN* phase) const;
-  virtual Node* Ideal(PhaseGVN* phase, bool can_reshape);
+  virtual bool operates_on(BasicType bt, bool signed_int) const {
+    assert(bt == T_INT || bt == T_LONG, "unsupported");
+    return bt == T_LONG;
+  }
   virtual int Opcode() const;
   virtual uint ideal_reg() const { return Op_RegL; }
 };
@@ -134,7 +140,7 @@ public:
     init_class_id(Class_CastFF);
   }
   virtual int Opcode() const;
-  virtual uint ideal_reg() const { return in(1)->ideal_reg(); }
+  virtual uint ideal_reg() const { return Op_RegF; }
 };
 
 class CastDDNode: public ConstraintCastNode {
@@ -144,7 +150,7 @@ public:
     init_class_id(Class_CastDD);
   }
   virtual int Opcode() const;
-  virtual uint ideal_reg() const { return in(1)->ideal_reg(); }
+  virtual uint ideal_reg() const { return Op_RegD; }
 };
 
 class CastVVNode: public ConstraintCastNode {

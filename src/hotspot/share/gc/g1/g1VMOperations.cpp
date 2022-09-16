@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,7 +27,6 @@
 #include "gc/g1/g1ConcurrentMarkThread.inline.hpp"
 #include "gc/g1/g1Policy.hpp"
 #include "gc/g1/g1VMOperations.hpp"
-#include "gc/g1/g1Trace.hpp"
 #include "gc/shared/concurrentGCBreakpoints.hpp"
 #include "gc/shared/gcCause.hpp"
 #include "gc/shared/gcId.hpp"
@@ -37,23 +36,12 @@
 #include "memory/universe.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
 
-bool VM_G1CollectFull::skip_operation() const {
-  // There is a race between the periodic collection task's checks for
-  // wanting a collection and processing its request.  A collection in that
-  // gap should cancel the request.
-  if ((_gc_cause == GCCause::_g1_periodic_collection) &&
-      (G1CollectedHeap::heap()->total_collections() != _gc_count_before)) {
-    return true;
-  }
-  return VM_GC_Operation::skip_operation();
-}
-
 void VM_G1CollectFull::doit() {
   G1CollectedHeap* g1h = G1CollectedHeap::heap();
   GCCauseSetter x(g1h, _gc_cause);
   _gc_succeeded = g1h->do_full_collection(true  /* explicit_gc */,
                                           false /* clear_all_soft_refs */,
-                                          false /* do_maximal_compaction */);
+                                          false /* do_maximum_compaction */);
 }
 
 VM_G1TryInitiateConcMark::VM_G1TryInitiateConcMark(uint gc_count_before,
@@ -86,7 +74,7 @@ void VM_G1TryInitiateConcMark::doit() {
   GCCauseSetter x(g1h, _gc_cause);
 
   // Record for handling by caller.
-  _terminating = g1h->concurrent_mark_is_terminating();
+  _terminating = g1h->_cm_thread->should_terminate();
 
   if (_terminating && GCCause::is_user_requested_gc(_gc_cause)) {
     // When terminating, the request to initiate a concurrent cycle will be
@@ -171,10 +159,10 @@ void VM_G1CollectForAllocation::doit() {
   }
 }
 
-void VM_G1PauseConcurrent::doit() {
+void VM_G1Concurrent::doit() {
   GCIdMark gc_id_mark(_gc_id);
+  GCTraceCPUTime tcpu;
   G1CollectedHeap* g1h = G1CollectedHeap::heap();
-  GCTraceCPUTime tcpu(g1h->concurrent_mark()->gc_tracer_cm());
 
   // GCTraceTime(...) only supports sub-phases, so a more verbose version
   // is needed when we report the top-level pause phase.
@@ -182,31 +170,20 @@ void VM_G1PauseConcurrent::doit() {
   GCTraceTimePauseTimer       timer(_message, g1h->concurrent_mark()->gc_timer_cm());
   GCTraceTimeDriver           t(&logger, &timer);
 
-  TraceCollectorStats tcs(g1h->monitoring_support()->conc_collection_counters());
+  TraceCollectorStats tcs(g1h->g1mm()->conc_collection_counters());
   SvcGCMarker sgcm(SvcGCMarker::CONCURRENT);
   IsGCActiveMark x;
-
-  work();
+  _cl->do_void();
 }
 
-bool VM_G1PauseConcurrent::doit_prologue() {
+bool VM_G1Concurrent::doit_prologue() {
   Heap_lock->lock();
   return true;
 }
 
-void VM_G1PauseConcurrent::doit_epilogue() {
+void VM_G1Concurrent::doit_epilogue() {
   if (Universe::has_reference_pending_list()) {
     Heap_lock->notify_all();
   }
   Heap_lock->unlock();
-}
-
-void VM_G1PauseRemark::work() {
-  G1CollectedHeap* g1h = G1CollectedHeap::heap();
-  g1h->concurrent_mark()->remark();
-}
-
-void VM_G1PauseCleanup::work() {
-  G1CollectedHeap* g1h = G1CollectedHeap::heap();
-  g1h->concurrent_mark()->cleanup();
 }

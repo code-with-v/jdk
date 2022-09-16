@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -200,8 +200,8 @@ public class PKIXParameters implements CertPathParameters {
             throw new InvalidAlgorithmParameterException("the trustAnchors " +
                 "parameter must be non-empty");
         }
-        for (Object trustAnchor : trustAnchors) {
-            if (!(trustAnchor instanceof TrustAnchor)) {
+        for (Iterator<TrustAnchor> i = trustAnchors.iterator(); i.hasNext(); ) {
+            if (!(i.next() instanceof TrustAnchor)) {
                 throw new ClassCastException("all elements of set must be "
                     + "of type java.security.cert.TrustAnchor");
             }
@@ -249,8 +249,9 @@ public class PKIXParameters implements CertPathParameters {
      */
     public void setInitialPolicies(Set<String> initialPolicies) {
         if (initialPolicies != null) {
-            for (Object initialPolicy : initialPolicies) {
-                if (!(initialPolicy instanceof String))
+            for (Iterator<String> i = initialPolicies.iterator();
+                        i.hasNext();) {
+                if (!(i.next() instanceof String))
                     throw new ClassCastException("all elements of set must be "
                         + "of type java.lang.String");
             }
@@ -281,8 +282,8 @@ public class PKIXParameters implements CertPathParameters {
         if (stores == null) {
             this.certStores = new ArrayList<>();
         } else {
-            for (Object store : stores) {
-                if (!(store instanceof CertStore)) {
+            for (Iterator<CertStore> i = stores.iterator(); i.hasNext();) {
+                if (!(i.next() instanceof CertStore)) {
                     throw new ClassCastException("all elements of list must be "
                         + "of type java.security.cert.CertStore");
                 }
@@ -321,10 +322,8 @@ public class PKIXParameters implements CertPathParameters {
     /**
      * Sets the RevocationEnabled flag. If this flag is true, the default
      * revocation checking mechanism of the underlying PKIX service provider
-     * will be used, unless a {@link PKIXRevocationChecker} is passed in
-     * as a {@code CertPathChecker} (see below for further explanation). If
-     * this flag is false, the default revocation checking mechanism will be
-     * disabled (not used).
+     * will be used. If this flag is false, the default revocation checking
+     * mechanism will be disabled (not used).
      * <p>
      * When a {@code PKIXParameters} object is created, this flag is set
      * to true. This setting reflects the most common strategy for checking
@@ -335,11 +334,6 @@ public class PKIXParameters implements CertPathParameters {
      * revocation checking mechanism is to be substituted (by also calling the
      * {@link #addCertPathChecker addCertPathChecker} or {@link
      * #setCertPathCheckers setCertPathCheckers} methods).
-     * <p>
-     * Note that when a {@code PKIXRevocationChecker} is passed in as a
-     * parameter via the {@code addCertPathChecker} or
-     * {@code setCertPathCheckers} methods, it will be used to check
-     * revocation irrespective of the setting of the RevocationEnabled flag.
      *
      * @param val the new value of the RevocationEnabled flag
      */
@@ -350,9 +344,8 @@ public class PKIXParameters implements CertPathParameters {
     /**
      * Checks the RevocationEnabled flag. If this flag is true, the default
      * revocation checking mechanism of the underlying PKIX service provider
-     * will be used, unless a {@link PKIXRevocationChecker} is passed in as
-     * a {@code CertPathChecker}. If this flag is false, the default revocation
-     * checking mechanism will be disabled (not used). See the {@link
+     * will be used. If this flag is false, the default revocation checking
+     * mechanism will be disabled (not used). See the {@link
      * #setRevocationEnabled setRevocationEnabled} method for more details on
      * setting the value of this flag.
      *
@@ -704,7 +697,8 @@ public class PKIXParameters implements CertPathParameters {
 
         /* start with trusted anchor info */
         if (unmodTrustAnchors != null) {
-            sb.append("  Trust Anchors: " + unmodTrustAnchors + "\n");
+            sb.append("  Trust Anchors: " + unmodTrustAnchors.toString()
+                + "\n");
         }
 
         /* now, append initial state information */
@@ -713,13 +707,13 @@ public class PKIXParameters implements CertPathParameters {
                 sb.append("  Initial Policy OIDs: any\n");
             } else {
                 sb.append("  Initial Policy OIDs: ["
-                    + unmodInitialPolicies + "]\n");
+                    + unmodInitialPolicies.toString() + "]\n");
             }
         }
 
         /* now, append constraints on all certificates in the path */
-        sb.append("  Validity Date: " + date + "\n");
-        sb.append("  Signature Provider: " + sigProvider + "\n");
+        sb.append("  Validity Date: " + String.valueOf(date) + "\n");
+        sb.append("  Signature Provider: " + String.valueOf(sigProvider) + "\n");
         sb.append("  Default Revocation Enabled: " + revocationEnabled + "\n");
         sb.append("  Explicit Policy Required: " + explicitPolicyRequired + "\n");
         sb.append("  Policy Mapping Inhibited: " + policyMappingInhibited + "\n");
@@ -727,14 +721,14 @@ public class PKIXParameters implements CertPathParameters {
         sb.append("  Policy Qualifiers Rejected: " + policyQualifiersRejected + "\n");
 
         /* now, append target cert requirements */
-        sb.append("  Target Cert Constraints: " + certSelector + "\n");
+        sb.append("  Target Cert Constraints: " + String.valueOf(certSelector) + "\n");
 
         /* finally, append miscellaneous parameters */
         if (certPathCheckers != null)
             sb.append("  Certification Path Checkers: ["
-                + certPathCheckers + "]\n");
+                + certPathCheckers.toString() + "]\n");
         if (certStores != null)
-            sb.append("  CertStores: [" + certStores + "]\n");
+            sb.append("  CertStores: [" + certStores.toString() + "]\n");
         sb.append("]");
         return sb.toString();
     }

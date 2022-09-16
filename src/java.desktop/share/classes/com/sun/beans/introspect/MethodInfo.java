@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -98,7 +98,10 @@ final class MethodInfo {
 
     /**
      * A comparator that defines a total order so that methods have the same
-     * name and identical signatures appear next to each others.
+     * name and identical signatures appear next to each others. The methods are
+     * sorted in such a way that methods which override each other will sit next
+     * to each other, with the overridden method last - e.g. is Integer getFoo()
+     * placed before Object getFoo().
      **/
     private static final class MethodOrder implements Comparator<Method> {
 
@@ -129,7 +132,18 @@ final class MethodInfo {
             }
             final Class<?> aret = a.getReturnType();
             final Class<?> bret = b.getReturnType();
-            return aret == bret ? 0 : aret.getName().compareTo(bret.getName());
+            if (aret == bret) {
+                return 0;
+            }
+
+            // Super type comes last: Integer, Number, Object
+            if (aret.isAssignableFrom(bret)) {
+                return 1;
+            }
+            if (bret.isAssignableFrom(aret)) {
+                return -1;
+            }
+            return aret.getName().compareTo(bret.getName());
         }
 
         static final MethodOrder instance = new MethodOrder();

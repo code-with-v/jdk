@@ -106,7 +106,7 @@ public class request001a {
     //------------------------------------------------------  section tested
 
                     case 0:
-                          thread2 = JDIThreadFactory.newThread(new Thread3request001a("thread2"));
+                          thread2 = new Thread3request001a("thread2");
                           threadStart(thread2);
                           try {
                               // we should wait here for thread2 completion (see 6671428)
@@ -119,9 +119,9 @@ public class request001a {
 
                           for (int n1 = 0; n1 < threadsN; n1++) {
                               if (n1 < threadsN-1)
-                                  threads[n1] = JDIThreadFactory.newThread(new Thread1request001a(threadNames[n1]));
+                                  threads[n1] =  new Thread1request001a(threadNames[n1]);
                               else
-                                  threads[n1] = JDIThreadFactory.newThread(new Thread2request001a(threadNames[n1]));
+                                  threads[n1] =  new Thread2request001a(threadNames[n1]);
                           }
                           log1("       threads has been created");
 
@@ -183,7 +183,7 @@ public class request001a {
 
     static volatile int n = 0;
 
-    static class Thread1request001a extends NamedTask {
+    static class Thread1request001a extends Thread {
 
         int threadIndex;
 
@@ -214,7 +214,7 @@ public class request001a {
 
     }
 
-    static class Thread2request001a extends NamedTask {
+    static class Thread2request001a extends Thread {
 
         int threadIndex;
 
@@ -249,18 +249,21 @@ public class request001a {
 
     }
 
-    static class Thread3request001a extends NamedTask {
+    static class Thread3request001a extends Thread {
+
+        String tName = null;
 
         public Thread3request001a(String threadName) {
             super(threadName);
+            tName = threadName;
         }
 
         public void run() {
-            log3("  'run': enter  :: threadName == " + getName());
+            log3("  'run': enter  :: threadName == " + tName);
             synchronized (waitnotifyObj) {
                     waitnotifyObj.notify();
             }
-            log3("  'run': exit   :: threadName == " + getName());
+            log3("  'run': exit   :: threadName == " + tName);
         }
     }
 

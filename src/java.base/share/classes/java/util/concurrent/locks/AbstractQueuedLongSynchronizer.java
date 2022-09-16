@@ -195,53 +195,31 @@ public abstract class AbstractQueuedLongSynchronizer
         return U.compareAndSetReference(this, TAIL, c, v);
     }
 
-    /**
-     * Tries to CAS a new dummy node for head.
-     * Returns new tail, or null if OutOfMemory
-     */
-    private Node tryInitializeHead() {
-        for (Node h = null, t;;) {
-            if ((t = tail) != null)
-                return t;
-            else if (head != null)
-                Thread.onSpinWait();
-            else {
-                if (h == null) {
-                    try {
-                        h = new ExclusiveNode();
-                    } catch (OutOfMemoryError oome) {
-                        return null;
-                    }
-                }
-                if (U.compareAndSetReference(this, HEAD, null, h))
-                    return tail = h;
-            }
-        }
+    /** tries once to CAS a new dummy node for head */
+    private void tryInitializeHead() {
+        Node h = new ExclusiveNode();
+        if (U.compareAndSetReference(this, HEAD, null, h))
+            tail = h;
     }
-
 
     /**
      * Enqueues the node unless null. (Currently used only for
      * ConditionNodes; other cases are interleaved with acquires.)
      */
-    final void enqueue(ConditionNode node) {
+    final void enqueue(Node node) {
         if (node != null) {
-            boolean unpark = false;
-            for (Node t;;) {
-                if ((t = tail) == null && (t = tryInitializeHead()) == null) {
-                    unpark = true;             // wake up to spin on OOME
-                    break;
-                }
+            for (;;) {
+                Node t = tail;
                 node.setPrevRelaxed(t);        // avoid unnecessary fence
-                if (casTail(t, node)) {
+                if (t == null)                 // initialize
+                    tryInitializeHead();
+                else if (casTail(t, node)) {
                     t.next = node;
                     if (t.status < 0)          // wake up to clean link
-                        unpark = true;
+                        LockSupport.unpark(node.waiter);
                     break;
                 }
             }
-            if (unpark)
-                LockSupport.unpark(node.waiter);
         }
     }
 
@@ -300,10 +278,7 @@ public abstract class AbstractQueuedLongSynchronizer
          *  Check if node now first
          *    if so, ensure head stable, else ensure valid predecessor
          *  if node is first or not yet enqueued, try acquiring
-         *  else if queue is not initialized, do so by attaching new header node
-         *     resort to spinwait on OOME trying to create node
          *  else if node not yet created, create it
-         *     resort to spinwait on OOME trying to create node
          *  else if not yet enqueued, try once to enqueue
          *  else if woken from park, retry (up to postSpins times)
          *  else if WAITING status not set, set and retry
@@ -346,20 +321,18 @@ public abstract class AbstractQueuedLongSynchronizer
                     return 1;
                 }
             }
-            Node t;
-            if ((t = tail) == null) {           // initialize queue
-                if (tryInitializeHead() == null)
-                    return acquireOnOOME(shared, arg);
-            } else if (node == null) {          // allocate; retry before enqueue
-                try {
-                    node = (shared) ? new SharedNode() : new ExclusiveNode();
-                } catch (OutOfMemoryError oome) {
-                    return acquireOnOOME(shared, arg);
-                }
+            if (node == null) {                 // allocate; retry before enqueue
+                if (shared)
+                    node = new SharedNode();
+                else
+                    node = new ExclusiveNode();
             } else if (pred == null) {          // try to enqueue
                 node.waiter = current;
+                Node t = tail;
                 node.setPrevRelaxed(t);         // avoid unnecessary fence
-                if (!casTail(t, node))
+                if (t == null)
+                    tryInitializeHead();
+                else if (!casTail(t, node))
                     node.setPrevRelaxed(null);  // back out
                 else
                     t.next = node;
@@ -386,22 +359,8 @@ public abstract class AbstractQueuedLongSynchronizer
     }
 
     /**
-     * Spin-waits with backoff; used only upon OOME failures during acquire.
-     */
-    private int acquireOnOOME(boolean shared, long arg) {
-        for (long nanos = 1L;;) {
-            if (shared ? (tryAcquireShared(arg) >= 0) : tryAcquire(arg))
-                return 1;
-            U.park(false, nanos);               // must use Unsafe park to sleep
-            if (nanos < 1L << 30)               // max about 1 second
-                nanos <<= 1;
-        }
-    }
-
-    /**
      * Possibly repeatedly traverses from tail, unsplicing cancelled
-     * nodes until none are found. Unparks nodes that may have been
-     * relinked to be next eligible acquirer.
+     * nodes until none are found.
      */
     private void cleanQueue() {
         for (;;) {                               // restart point
@@ -1109,12 +1068,6 @@ public abstract class AbstractQueuedLongSynchronizer
         private transient ConditionNode lastWaiter;
 
         /**
-         * Fixed delay in nanoseconds between releasing and reacquiring
-         * lock during Condition waits that encounter OutOfMemoryErrors
-         */
-        static final long OOME_COND_WAIT_DELAY = 10L * 1000L * 1000L; // 10 ms
-
-        /**
          * Creates a new {@code ConditionObject} instance.
          */
         public ConditionObject() { }
@@ -1150,7 +1103,7 @@ public abstract class AbstractQueuedLongSynchronizer
             ConditionNode first = firstWaiter;
             if (!isHeldExclusively())
                 throw new IllegalMonitorStateException();
-            else if (first != null)
+            if (first != null)
                 doSignal(first, false);
         }
 
@@ -1165,7 +1118,7 @@ public abstract class AbstractQueuedLongSynchronizer
             ConditionNode first = firstWaiter;
             if (!isHeldExclusively())
                 throw new IllegalMonitorStateException();
-            else if (first != null)
+            if (first != null)
                 doSignal(first, true);
         }
 
@@ -1203,9 +1156,7 @@ public abstract class AbstractQueuedLongSynchronizer
          */
         private boolean canReacquire(ConditionNode node) {
             // check links, not status to avoid enqueue race
-            Node p; // traverse unless known to be bidirectionally linked
-            return node != null && (p = node.prev) != null &&
-                (p.next == node || isEnqueued(node));
+            return node != null && node.prev != null && isEnqueued(node);
         }
 
         /**
@@ -1233,26 +1184,6 @@ public abstract class AbstractQueuedLongSynchronizer
         }
 
         /**
-         * Constructs objects needed for condition wait. On OOME,
-         * releases lock, sleeps, reacquires, and returns null.
-         */
-        private ConditionNode newConditionNode() {
-            long savedState;
-            if (tryInitializeHead() != null) {
-                try {
-                    return new ConditionNode();
-                } catch (OutOfMemoryError oome) {
-                }
-            }
-            // fall through if encountered OutOfMemoryError
-            if (!isHeldExclusively() || !release(savedState = getState()))
-                throw new IllegalMonitorStateException();
-            U.park(false, OOME_COND_WAIT_DELAY);
-            acquireOnOOME(false, savedState);
-            return null;
-        }
-
-        /**
          * Implements uninterruptible condition wait.
          * <ol>
          * <li>Save lock state returned by {@link #getState}.
@@ -1264,9 +1195,7 @@ public abstract class AbstractQueuedLongSynchronizer
          * </ol>
          */
         public final void awaitUninterruptibly() {
-            ConditionNode node = newConditionNode();
-            if (node == null)
-                return;
+            ConditionNode node = new ConditionNode();
             long savedState = enableWait(node);
             LockSupport.setCurrentBlocker(this); // for back-compatibility
             boolean interrupted = false, rejected = false;
@@ -1310,9 +1239,7 @@ public abstract class AbstractQueuedLongSynchronizer
         public final void await() throws InterruptedException {
             if (Thread.interrupted())
                 throw new InterruptedException();
-            ConditionNode node = newConditionNode();
-            if (node == null)
-                return;
+            ConditionNode node = new ConditionNode();
             long savedState = enableWait(node);
             LockSupport.setCurrentBlocker(this); // for back-compatibility
             boolean interrupted = false, cancelled = false, rejected = false;
@@ -1363,9 +1290,7 @@ public abstract class AbstractQueuedLongSynchronizer
                 throws InterruptedException {
             if (Thread.interrupted())
                 throw new InterruptedException();
-            ConditionNode node = newConditionNode();
-            if (node == null)
-                return nanosTimeout - OOME_COND_WAIT_DELAY;
+            ConditionNode node = new ConditionNode();
             long savedState = enableWait(node);
             long nanos = (nanosTimeout < 0L) ? 0L : nanosTimeout;
             long deadline = System.nanoTime() + nanos;
@@ -1409,9 +1334,7 @@ public abstract class AbstractQueuedLongSynchronizer
             long abstime = deadline.getTime();
             if (Thread.interrupted())
                 throw new InterruptedException();
-            ConditionNode node = newConditionNode();
-            if (node == null)
-                return false;
+            ConditionNode node = new ConditionNode();
             long savedState = enableWait(node);
             boolean cancelled = false, interrupted = false;
             while (!canReacquire(node)) {
@@ -1452,9 +1375,7 @@ public abstract class AbstractQueuedLongSynchronizer
             long nanosTimeout = unit.toNanos(time);
             if (Thread.interrupted())
                 throw new InterruptedException();
-            ConditionNode node = newConditionNode();
-            if (node == null)
-                return false;
+            ConditionNode node = new ConditionNode();
             long savedState = enableWait(node);
             long nanos = (nanosTimeout < 0L) ? 0L : nanosTimeout;
             long deadline = System.nanoTime() + nanos;

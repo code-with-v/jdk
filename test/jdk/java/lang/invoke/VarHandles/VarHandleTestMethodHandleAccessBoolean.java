@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,7 +30,6 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
@@ -209,79 +208,43 @@ public class VarHandleTestMethodHandleAccessBoolean extends VarHandleBaseTest {
         }
 
         {
-            MethodHandle mh = hs.get(TestAccessMode.WEAK_COMPARE_AND_SET_PLAIN);
             boolean success = false;
             for (int c = 0; c < WEAK_ATTEMPTS && !success; c++) {
-                success = (boolean) mh.invokeExact(recv, true, false);
-                if (!success) weakDelay();
+                success = (boolean) hs.get(TestAccessMode.WEAK_COMPARE_AND_SET_PLAIN).invokeExact(recv, true, false);
             }
-            assertEquals(success, true, "success weakCompareAndSetPlain boolean");
+            assertEquals(success, true, "weakCompareAndSetPlain boolean");
             boolean x = (boolean) hs.get(TestAccessMode.GET).invokeExact(recv);
-            assertEquals(x, false, "success weakCompareAndSetPlain boolean value");
-        }
-
-        {
-            boolean success = (boolean) hs.get(TestAccessMode.WEAK_COMPARE_AND_SET_PLAIN).invokeExact(recv, true, false);
-            assertEquals(success, false, "failing weakCompareAndSetPlain boolean");
-            boolean x = (boolean) hs.get(TestAccessMode.GET).invokeExact(recv);
-            assertEquals(x, false, "failing weakCompareAndSetPlain boolean value");
-        }
-
-        {
-            MethodHandle mh = hs.get(TestAccessMode.WEAK_COMPARE_AND_SET_ACQUIRE);
-            boolean success = false;
-            for (int c = 0; c < WEAK_ATTEMPTS && !success; c++) {
-                success = (boolean) mh.invokeExact(recv, false, true);
-                if (!success) weakDelay();
-            }
-            assertEquals(success, true, "success weakCompareAndSetAcquire boolean");
-            boolean x = (boolean) hs.get(TestAccessMode.GET).invokeExact(recv);
-            assertEquals(x, true, "success weakCompareAndSetAcquire boolean");
-        }
-
-        {
-            boolean success = (boolean) hs.get(TestAccessMode.WEAK_COMPARE_AND_SET_ACQUIRE).invokeExact(recv, false, false);
-            assertEquals(success, false, "failing weakCompareAndSetAcquire boolean");
-            boolean x = (boolean) hs.get(TestAccessMode.GET).invokeExact(recv);
-            assertEquals(x, true, "failing weakCompareAndSetAcquire boolean value");
-        }
-
-        {
-            MethodHandle mh = hs.get(TestAccessMode.WEAK_COMPARE_AND_SET_RELEASE);
-            boolean success = false;
-            for (int c = 0; c < WEAK_ATTEMPTS && !success; c++) {
-                success = (boolean) mh.invokeExact(recv, true, false);
-                if (!success) weakDelay();
-            }
-            assertEquals(success, true, "success weakCompareAndSetRelease boolean");
-            boolean x = (boolean) hs.get(TestAccessMode.GET).invokeExact(recv);
-            assertEquals(x, false, "success weakCompareAndSetRelease boolean");
-        }
-
-        {
-            boolean success = (boolean) hs.get(TestAccessMode.WEAK_COMPARE_AND_SET_RELEASE).invokeExact(recv, true, false);
-            assertEquals(success, false, "failing weakCompareAndSetRelease boolean");
-            boolean x = (boolean) hs.get(TestAccessMode.GET).invokeExact(recv);
-            assertEquals(x, false, "failing weakCompareAndSetRelease boolean value");
+            assertEquals(x, false, "weakCompareAndSetPlain boolean value");
         }
 
         {
             boolean success = false;
-            MethodHandle mh = hs.get(TestAccessMode.WEAK_COMPARE_AND_SET);
             for (int c = 0; c < WEAK_ATTEMPTS && !success; c++) {
-                success = (boolean) mh.invokeExact(recv, false, true);
-                if (!success) weakDelay();
+                success = (boolean) hs.get(TestAccessMode.WEAK_COMPARE_AND_SET_ACQUIRE).invokeExact(recv, false, true);
             }
-            assertEquals(success, true, "success weakCompareAndSet boolean");
+            assertEquals(success, true, "weakCompareAndSetAcquire boolean");
             boolean x = (boolean) hs.get(TestAccessMode.GET).invokeExact(recv);
-            assertEquals(x, true, "success weakCompareAndSet boolean");
+            assertEquals(x, true, "weakCompareAndSetAcquire boolean");
         }
 
         {
-            boolean success = (boolean) hs.get(TestAccessMode.WEAK_COMPARE_AND_SET).invokeExact(recv, false, false);
-            assertEquals(success, false, "failing weakCompareAndSet boolean");
+            boolean success = false;
+            for (int c = 0; c < WEAK_ATTEMPTS && !success; c++) {
+                success = (boolean) hs.get(TestAccessMode.WEAK_COMPARE_AND_SET_RELEASE).invokeExact(recv, true, false);
+            }
+            assertEquals(success, true, "weakCompareAndSetRelease boolean");
             boolean x = (boolean) hs.get(TestAccessMode.GET).invokeExact(recv);
-            assertEquals(x, true, "failing weakCompareAndSet boolean value");
+            assertEquals(x, false, "weakCompareAndSetRelease boolean");
+        }
+
+        {
+            boolean success = false;
+            for (int c = 0; c < WEAK_ATTEMPTS && !success; c++) {
+                success = (boolean) hs.get(TestAccessMode.WEAK_COMPARE_AND_SET).invokeExact(recv, false, true);
+            }
+            assertEquals(success, true, "weakCompareAndSet boolean");
+            boolean x = (boolean) hs.get(TestAccessMode.GET).invokeExact(recv);
+            assertEquals(x, true, "weakCompareAndSet boolean");
         }
 
         // Compare set and get
@@ -479,80 +442,43 @@ public class VarHandleTestMethodHandleAccessBoolean extends VarHandleBaseTest {
         }
 
         {
-            MethodHandle mh = hs.get(TestAccessMode.WEAK_COMPARE_AND_SET_PLAIN);
             boolean success = false;
             for (int c = 0; c < WEAK_ATTEMPTS && !success; c++) {
-                success = (boolean) mh.invokeExact(true, false);
-                if (!success) weakDelay();
+                success = (boolean) hs.get(TestAccessMode.WEAK_COMPARE_AND_SET_PLAIN).invokeExact(true, false);
             }
-            assertEquals(success, true, "success weakCompareAndSetPlain boolean");
+            assertEquals(success, true, "weakCompareAndSetPlain boolean");
             boolean x = (boolean) hs.get(TestAccessMode.GET).invokeExact();
-            assertEquals(x, false, "success weakCompareAndSetPlain boolean value");
+            assertEquals(x, false, "weakCompareAndSetPlain boolean value");
         }
 
         {
-            boolean success = (boolean) hs.get(TestAccessMode.WEAK_COMPARE_AND_SET_PLAIN).invokeExact(true, false);
-            assertEquals(success, false, "failing weakCompareAndSetPlain boolean");
-            boolean x = (boolean) hs.get(TestAccessMode.GET).invokeExact();
-            assertEquals(x, false, "failing weakCompareAndSetPlain boolean value");
-        }
-
-        {
-            MethodHandle mh = hs.get(TestAccessMode.WEAK_COMPARE_AND_SET_ACQUIRE);
             boolean success = false;
             for (int c = 0; c < WEAK_ATTEMPTS && !success; c++) {
-                success = (boolean) mh.invokeExact(false, true);
-                if (!success) weakDelay();
+                success = (boolean) hs.get(TestAccessMode.WEAK_COMPARE_AND_SET_ACQUIRE).invokeExact(false, true);
             }
-            assertEquals(success, true, "success weakCompareAndSetAcquire boolean");
+            assertEquals(success, true, "weakCompareAndSetAcquire boolean");
             boolean x = (boolean) hs.get(TestAccessMode.GET).invokeExact();
-            assertEquals(x, true, "success weakCompareAndSetAcquire boolean");
+            assertEquals(x, true, "weakCompareAndSetAcquire boolean");
         }
 
         {
-            MethodHandle mh = hs.get(TestAccessMode.WEAK_COMPARE_AND_SET_ACQUIRE);
-            boolean success = (boolean) mh.invokeExact(false, false);
-            assertEquals(success, false, "failing weakCompareAndSetAcquire boolean");
-            boolean x = (boolean) hs.get(TestAccessMode.GET).invokeExact();
-            assertEquals(x, true, "failing weakCompareAndSetAcquire boolean value");
-        }
-
-        {
-            MethodHandle mh = hs.get(TestAccessMode.WEAK_COMPARE_AND_SET_RELEASE);
             boolean success = false;
             for (int c = 0; c < WEAK_ATTEMPTS && !success; c++) {
-                success = (boolean) mh.invokeExact(true, false);
-                if (!success) weakDelay();
+                success = (boolean) hs.get(TestAccessMode.WEAK_COMPARE_AND_SET_RELEASE).invokeExact(true, false);
             }
-            assertEquals(success, true, "success weakCompareAndSetRelease boolean");
+            assertEquals(success, true, "weakCompareAndSetRelease boolean");
             boolean x = (boolean) hs.get(TestAccessMode.GET).invokeExact();
-            assertEquals(x, false, "success weakCompareAndSetRelease boolean");
+            assertEquals(x, false, "weakCompareAndSetRelease boolean");
         }
 
         {
-            boolean success = (boolean) hs.get(TestAccessMode.WEAK_COMPARE_AND_SET_RELEASE).invokeExact(true, false);
-            assertEquals(success, false, "failing weakCompareAndSetRelease boolean");
-            boolean x = (boolean) hs.get(TestAccessMode.GET).invokeExact();
-            assertEquals(x, false, "failing weakCompareAndSetRelease boolean value");
-        }
-
-        {
-            MethodHandle mh = hs.get(TestAccessMode.WEAK_COMPARE_AND_SET);
             boolean success = false;
             for (int c = 0; c < WEAK_ATTEMPTS && !success; c++) {
-                success = (boolean) mh.invokeExact(false, true);
-                if (!success) weakDelay();
+                success = (boolean) hs.get(TestAccessMode.WEAK_COMPARE_AND_SET).invokeExact(false, true);
             }
-            assertEquals(success, true, "success weakCompareAndSet boolean");
+            assertEquals(success, true, "weakCompareAndSet boolean");
             boolean x = (boolean) hs.get(TestAccessMode.GET).invokeExact();
-            assertEquals(x, true, "success weakCompareAndSet boolean");
-        }
-
-        {
-            boolean success = (boolean) hs.get(TestAccessMode.WEAK_COMPARE_AND_SET).invokeExact(false, false);
-            assertEquals(success, false, "failing weakCompareAndSet boolean");
-            boolean x = (boolean) hs.get(TestAccessMode.GET).invokeExact();
-            assertEquals(x, true, "failing weakCompareAndSetRe boolean value");
+            assertEquals(x, true, "weakCompareAndSet boolean");
         }
 
         // Compare set and get
@@ -775,79 +701,43 @@ public class VarHandleTestMethodHandleAccessBoolean extends VarHandleBaseTest {
             }
 
             {
-                MethodHandle mh = hs.get(TestAccessMode.WEAK_COMPARE_AND_SET_PLAIN);
                 boolean success = false;
                 for (int c = 0; c < WEAK_ATTEMPTS && !success; c++) {
-                    success = (boolean) mh.invokeExact(array, i, true, false);
-                    if (!success) weakDelay();
+                    success = (boolean) hs.get(TestAccessMode.WEAK_COMPARE_AND_SET_PLAIN).invokeExact(array, i, true, false);
                 }
-                assertEquals(success, true, "success weakCompareAndSetPlain boolean");
+                assertEquals(success, true, "weakCompareAndSetPlain boolean");
                 boolean x = (boolean) hs.get(TestAccessMode.GET).invokeExact(array, i);
-                assertEquals(x, false, "success weakCompareAndSetPlain boolean value");
+                assertEquals(x, false, "weakCompareAndSetPlain boolean value");
             }
 
             {
-                boolean success = (boolean) hs.get(TestAccessMode.WEAK_COMPARE_AND_SET_PLAIN).invokeExact(array, i, true, false);
-                assertEquals(success, false, "failing weakCompareAndSetPlain boolean");
-                boolean x = (boolean) hs.get(TestAccessMode.GET).invokeExact(array, i);
-                assertEquals(x, false, "failing weakCompareAndSetPlain boolean value");
-            }
-
-            {
-                MethodHandle mh = hs.get(TestAccessMode.WEAK_COMPARE_AND_SET_ACQUIRE);
                 boolean success = false;
                 for (int c = 0; c < WEAK_ATTEMPTS && !success; c++) {
-                    success = (boolean) mh.invokeExact(array, i, false, true);
-                    if (!success) weakDelay();
+                    success = (boolean) hs.get(TestAccessMode.WEAK_COMPARE_AND_SET_ACQUIRE).invokeExact(array, i, false, true);
                 }
-                assertEquals(success, true, "success weakCompareAndSetAcquire boolean");
+                assertEquals(success, true, "weakCompareAndSetAcquire boolean");
                 boolean x = (boolean) hs.get(TestAccessMode.GET).invokeExact(array, i);
-                assertEquals(x, true, "success weakCompareAndSetAcquire boolean");
+                assertEquals(x, true, "weakCompareAndSetAcquire boolean");
             }
 
             {
-                boolean success = (boolean) hs.get(TestAccessMode.WEAK_COMPARE_AND_SET_ACQUIRE).invokeExact(array, i, false, false);
-                assertEquals(success, false, "failing weakCompareAndSetAcquire boolean");
-                boolean x = (boolean) hs.get(TestAccessMode.GET).invokeExact(array, i);
-                assertEquals(x, true, "failing weakCompareAndSetAcquire boolean value");
-            }
-
-            {
-                MethodHandle mh = hs.get(TestAccessMode.WEAK_COMPARE_AND_SET_RELEASE);
                 boolean success = false;
                 for (int c = 0; c < WEAK_ATTEMPTS && !success; c++) {
-                    success = (boolean) mh.invokeExact(array, i, true, false);
-                    if (!success) weakDelay();
+                    success = (boolean) hs.get(TestAccessMode.WEAK_COMPARE_AND_SET_RELEASE).invokeExact(array, i, true, false);
                 }
-                assertEquals(success, true, "success weakCompareAndSetRelease boolean");
+                assertEquals(success, true, "weakCompareAndSetRelease boolean");
                 boolean x = (boolean) hs.get(TestAccessMode.GET).invokeExact(array, i);
-                assertEquals(x, false, "success weakCompareAndSetRelease boolean");
+                assertEquals(x, false, "weakCompareAndSetRelease boolean");
             }
 
             {
-                boolean success = (boolean) hs.get(TestAccessMode.WEAK_COMPARE_AND_SET_ACQUIRE).invokeExact(array, i, true, false);
-                assertEquals(success, false, "failing weakCompareAndSetAcquire boolean");
-                boolean x = (boolean) hs.get(TestAccessMode.GET).invokeExact(array, i);
-                assertEquals(x, false, "failing weakCompareAndSetAcquire boolean value");
-            }
-
-            {
-                MethodHandle mh = hs.get(TestAccessMode.WEAK_COMPARE_AND_SET);
                 boolean success = false;
                 for (int c = 0; c < WEAK_ATTEMPTS && !success; c++) {
-                    success = (boolean) mh.invokeExact(array, i, false, true);
-                    if (!success) weakDelay();
+                    success = (boolean) hs.get(TestAccessMode.WEAK_COMPARE_AND_SET).invokeExact(array, i, false, true);
                 }
-                assertEquals(success, true, "success weakCompareAndSet boolean");
+                assertEquals(success, true, "weakCompareAndSet boolean");
                 boolean x = (boolean) hs.get(TestAccessMode.GET).invokeExact(array, i);
-                assertEquals(x, true, "success weakCompareAndSet boolean");
-            }
-
-            {
-                boolean success = (boolean) hs.get(TestAccessMode.WEAK_COMPARE_AND_SET).invokeExact(array, i, false, false);
-                assertEquals(success, false, "failing weakCompareAndSet boolean");
-                boolean x = (boolean) hs.get(TestAccessMode.GET).invokeExact(array, i);
-                assertEquals(x, true, "failing weakCompareAndSet boolean value");
+                assertEquals(x, true, "weakCompareAndSet boolean");
             }
 
             // Compare set and get

@@ -58,6 +58,7 @@ static void initTemplatePipelineDescriptors() {
     BMTLSDOps*  _dstOps;
     BOOL _stencilMaskGenerationInProgress;
     BOOL _stencilMaskGenerationStarted;
+    BOOL _clipReady;
     MTLOrigin _clipShapeOrigin;
     MTLSize _clipShapeSize;
 }
@@ -72,6 +73,7 @@ static void initTemplatePipelineDescriptors() {
         _dstOps = NULL;
         _stencilMaskGenerationInProgress = NO;
         _stencilMaskGenerationStarted = NO;
+        _clipReady = NO;
     }
     return self;
 }
@@ -187,6 +189,7 @@ static void initTemplatePipelineDescriptors() {
     _stencilMaskGenerationStarted = NO;
     _dstOps = dstOps;
     _clipType = SHAPE_CLIP;
+    _clipReady = NO;
 }
 
 - (void)setMaskGenerationPipelineState:(id<MTLRenderCommandEncoder>)encoder

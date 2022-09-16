@@ -551,7 +551,7 @@ public class BasicToolBarUI extends ToolBarUI implements SwingConstants
      * @deprecated It is recommended that {@link BasicToolBarUI#createFloatingWindow(JToolBar)}
      *             be used instead
      */
-    @Deprecated(since = "17", forRemoval = true)
+    @Deprecated(since = "17")
     protected JFrame createFloatingFrame(JToolBar toolbar) {
         Window window = SwingUtilities.getWindowAncestor(toolbar);
         @SuppressWarnings("serial") // anonymous class
@@ -654,8 +654,8 @@ public class BasicToolBarUI extends ToolBarUI implements SwingConstants
             Container p;
             for(p = toolBar.getParent() ; p != null && !(p instanceof Window) ;
                 p = p.getParent());
-            if (p instanceof Window window)
-                frame = window;
+            if(p != null && p instanceof Window)
+                frame = (Window) p;
         }
         if(floatingToolBar == null) {
             floatingToolBar = createFloatingWindow(toolBar);

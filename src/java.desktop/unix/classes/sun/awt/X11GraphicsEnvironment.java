@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -53,21 +53,17 @@ import sun.java2d.xr.XRSurfaceData;
  * @see GraphicsDevice
  * @see java.awt.GraphicsConfiguration
  */
+@SuppressWarnings("removal")
 public final class X11GraphicsEnvironment extends SunGraphicsEnvironment {
 
     static {
-        initStatic();
-    }
-
-    @SuppressWarnings("removal")
-    private static void initStatic() {
         java.security.AccessController.doPrivileged(
                           new java.security.PrivilegedAction<Object>() {
             public Object run() {
                 System.loadLibrary("awt");
 
                 /*
-                 * Note: The XToolkit object depends on the static initializer
+                 * Note: The MToolkit object depends on the static initializer
                  * of X11GraphicsEnvironment to initialize the connection to
                  * the X11 server.
                  */
@@ -236,7 +232,7 @@ public final class X11GraphicsEnvironment extends SunGraphicsEnvironment {
             throw new AWTError("no screen devices");
         }
         int index = getDefaultScreenNum();
-        mainScreen = 0 < index && index < numScreens ? index : 0;
+        mainScreen = 0 < index && index < screens.length ? index : 0;
 
         for (int id = 0; id < numScreens; ++id) {
             devices.put(id, old.containsKey(id) ? old.remove(id) :
@@ -299,7 +295,6 @@ public final class X11GraphicsEnvironment extends SunGraphicsEnvironment {
             return true;
         }
 
-        @SuppressWarnings("removal")
         String isRemote = java.security.AccessController.doPrivileged(
             new sun.security.action.GetPropertyAction("sun.java2d.remote"));
         if (isRemote != null) {
@@ -322,7 +317,6 @@ public final class X11GraphicsEnvironment extends SunGraphicsEnvironment {
             return true;
         }
 
-        @SuppressWarnings("removal")
         Boolean result = java.security.AccessController.doPrivileged(
             new java.security.PrivilegedAction<Boolean>() {
             public Boolean run() {

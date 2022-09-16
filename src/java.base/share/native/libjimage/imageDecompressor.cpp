@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -30,7 +30,6 @@
  */
 
 #include "jni.h"
-#include "jvm.h"
 #include "imageDecompressor.hpp"
 #include "endian.hpp"
 #ifdef WIN32
@@ -58,14 +57,24 @@ static ZipInflateFully_t ZipInflateFully        = NULL;
  * @return the address of the entry point or NULL
  */
 static void* findEntry(const char* name) {
-    void *addr = JVM_LoadZipLibrary();
+    void *addr = NULL;
+#ifdef WIN32
+    HMODULE handle = GetModuleHandle("zip.dll");
+    if (handle == NULL) {
+      handle = LoadLibrary("zip.dll");
+    }
+    if (handle == NULL) {
+      return NULL;
+    }
+    addr = (void*) GetProcAddress(handle, name);
+    return addr;
+#else
+    addr = dlopen(JNI_LIB_PREFIX "zip" JNI_LIB_SUFFIX, RTLD_GLOBAL|RTLD_LAZY);
     if (addr == NULL) {
         return NULL;
     }
-#ifdef WIN32
-    return (void*) GetProcAddress(static_cast<HMODULE>(addr), name);
-#else
-    return dlsym(addr, name);
+    addr = dlsym(addr, name);
+    return addr;
 #endif
 }
 

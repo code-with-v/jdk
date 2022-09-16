@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,7 +22,7 @@
  *
  */
 
-import jdk.test.whitebox.WhiteBox;
+import sun.hotspot.WhiteBox;
 
 public class LockStringTest extends Thread {
     static String lock;
@@ -31,13 +31,13 @@ public class LockStringTest extends Thread {
 
     public static void main(String[] args) throws Exception {
 
-        if (!wb.areSharedStringsMapped()) {
-            System.out.println("The shared strings are not mapped");
+        if (wb.areSharedStringsIgnored()) {
+            System.out.println("The shared strings are ignored");
             System.out.println("LockStringTest: PASS");
             return;
         }
 
-        if (!wb.isSharedClass(LockStringTest.class)) {
+        if (!wb.isShared(LockStringTest.class)) {
             throw new RuntimeException("Failed: LockStringTest class is not shared.");
         }
 
@@ -57,7 +57,7 @@ public class LockStringTest extends Thread {
         lock = s;
         done = false;
 
-        if (!wb.isSharedInternedString(lock)) {
+        if (!wb.isShared(lock)) {
             throw new RuntimeException("Failed: String \"" + lock + "\" is not shared.");
         }
 

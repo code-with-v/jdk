@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2020 SAP SE. All rights reserved.
- * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -329,7 +328,7 @@ void JNICALL VMInit(jvmtiEnv *jvmti, JNIEnv *env, jthread thr) {
   jvmtiError err;
   jobject agent_thread_name;
   jclass thread_clas;
-  jmethodID thread_ctor;
+  jmethodID thread_ctro;
   jthread agent_thread;
 
   printf("AGENT: VM init event\n");
@@ -341,16 +340,16 @@ void JNICALL VMInit(jvmtiEnv *jvmti, JNIEnv *env, jthread thr) {
   }
 
   thread_clas = env->FindClass("java/lang/Thread");
-  if (thread_clas == NULL) {
+  if (agent_thread_name == NULL) {
     env->FatalError("VMInit: java.lang.Thread class not found\n");
   }
 
-  thread_ctor = env->GetMethodID(thread_clas, "<init>", "(Ljava/lang/String;)V");
-  if (thread_ctor == NULL) {
+  thread_ctro = env->GetMethodID(thread_clas, "<init>", "(Ljava/lang/String;)V");
+  if (thread_ctro == NULL) {
     env->FatalError("VMInit: failed to get ID for the Thread ctor\n");
   }
 
-  agent_thread = (jthread) env->NewObject(thread_clas, thread_ctor, agent_thread_name);
+  agent_thread = (jthread) env->NewObject(thread_clas, thread_ctro, agent_thread_name);
   if (agent_thread == NULL) {
     env->FatalError("VMInit: Failed to allocate thread object\n");
   }

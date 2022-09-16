@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -355,15 +355,15 @@ public class MBeanServerFactory {
      * caller's permissions do not include or imply <code>{@link
      * MBeanServerPermission}("findMBeanServer")</code>.
      */
-    public static synchronized
+    public synchronized static
             ArrayList<MBeanServer> findMBeanServer(String agentId) {
 
         checkPermission("findMBeanServer");
 
         if (agentId == null)
-            return new ArrayList<>(mBeanServerList);
+            return new ArrayList<MBeanServer>(mBeanServerList);
 
-        ArrayList<MBeanServer> result = new ArrayList<>();
+        ArrayList<MBeanServer> result = new ArrayList<MBeanServer>();
         for (MBeanServer mbs : mBeanServerList) {
             String name = mBeanServerId(mbs);
             if (agentId.equals(name))
@@ -429,7 +429,7 @@ public class MBeanServerFactory {
     }
 
     private static final ArrayList<MBeanServer> mBeanServerList =
-            new ArrayList<>();
+            new ArrayList<MBeanServer>();
 
     /**
      * Load the builder class through the context class loader.

@@ -26,7 +26,9 @@
 package com.sun.crypto.provider;
 
 import java.util.Arrays;
+import java.nio.ByteBuffer;
 
+import javax.crypto.MacSpi;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.crypto.spec.PBEKeySpec;
@@ -179,7 +181,10 @@ abstract class PBMAC1Core extends HmacCore {
             s = (PBKDF2KeyImpl)kdf.engineGenerateSecret(pbeSpec);
             derivedKey = s.getEncoded();
         } catch (InvalidKeySpecException ikse) {
-            throw new InvalidKeyException("Cannot construct PBE key", ikse);
+            InvalidKeyException ike =
+                new InvalidKeyException("Cannot construct PBE key");
+            ike.initCause(ikse);
+            throw ike;
         } finally {
             pbeSpec.clearPassword();
             if (s != null) {

@@ -34,7 +34,7 @@ import sun.security.krb5.EncryptedData;
 import sun.security.krb5.Asn1Exception;
 import sun.security.krb5.RealmException;
 import sun.security.util.*;
-import java.util.ArrayList;
+import java.util.Vector;
 import java.io.IOException;
 import java.math.BigInteger;
 
@@ -134,12 +134,13 @@ public class KRBCred {
             if (subsubDer.getTag() != DerValue.tag_SequenceOf) {
                 throw new Asn1Exception(Krb5.ASN1_BAD_ID);
             }
-            ArrayList<Ticket> v = new ArrayList<>();
+            Vector<Ticket> v = new Vector<>();
             while (subsubDer.getData().available() > 0) {
-                v.add(new Ticket(subsubDer.getData().getDerValue()));
+                v.addElement(new Ticket(subsubDer.getData().getDerValue()));
             }
             if (v.size() > 0) {
-                tickets = v.toArray(new Ticket[0]);
+                tickets = new Ticket[v.size()];
+                v.copyInto(tickets);
             }
         } else {
             throw new Asn1Exception(Krb5.ASN1_BAD_ID);

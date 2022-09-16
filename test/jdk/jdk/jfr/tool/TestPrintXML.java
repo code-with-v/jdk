@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -47,7 +47,6 @@ import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
 import org.xml.sax.XMLReader;
-import org.xml.sax.Locator;
 import org.xml.sax.helpers.DefaultHandler;
 
 import jdk.jfr.Timespan;
@@ -106,14 +105,7 @@ public class TestPrintXML {
                 System.out.println();
                 System.out.println("Was (XML)");
                 System.out.println("----------------------");
-                if (xmlEvent.begin > 0 && xmlEvent.end > 0) {
-                    String lines[] = xml.split("\\r?\\n");
-                    for (int i = xmlEvent.begin - 1; i < xmlEvent.end; i++) {
-                        System.out.println(i + " " + lines[i]);
-                    }
-                } else {
-                    System.out.println("Could not locate XML position");
-                }
+                System.out.println(xmlEvent);
                 System.out.println();
                 throw new Exception("Event doesn't match");
             }
@@ -138,13 +130,9 @@ public class TestPrintXML {
                 Object xmlValue = xmlMap.get(name);
                 Object expectedValue = re.getValue(name);
                 if (v.getAnnotation(Timestamp.class) != null) {
-                    if (expectedValue.equals(Long.MIN_VALUE)) { // Missing
-                        expectedValue = OffsetDateTime.MIN;
-                    } else {
-                        // Make instant of OffsetDateTime
-                        xmlValue = OffsetDateTime.parse("" + xmlValue).toInstant().toString();
-                        expectedValue = re.getInstant(name);
-                    }
+                    // Make instant of OffsetDateTime
+                    xmlValue = OffsetDateTime.parse("" + xmlValue).toInstant().toString();
+                    expectedValue = re.getInstant(name);
                 }
                 if (v.getAnnotation(Timespan.class) != null) {
                     expectedValue = re.getDuration(name);
@@ -176,8 +164,6 @@ public class TestPrintXML {
     static class XMLEvent {
         String name;
         private Map<String, Object> values = new HashMap<>();
-        private int begin = -1;
-        private int end = -1;
 
         XMLEvent(String name) {
             this.name = name;
@@ -186,14 +172,9 @@ public class TestPrintXML {
 
     public static final class RecordingHandler extends DefaultHandler {
 
-        private Locator locator;
         private Stack<Object> objects = new Stack<>();
         private Stack<SimpleEntry<String, String>> elements = new Stack<>();
         private List<XMLEvent> events = new ArrayList<>();
-
-        public void setDocumentLocator(Locator locator) {
-            this.locator = locator;
-        }
 
         @Override
         public void startElement(String uri, String localName, String qName, Attributes attrs) throws SAXException {
@@ -206,9 +187,7 @@ public class TestPrintXML {
 
             switch (qName) {
             case "event":
-                XMLEvent event = new XMLEvent(attrs.getValue("type"));
-                event.begin = locator.getLineNumber();
-                objects.push(event);
+                objects.push(new XMLEvent(attrs.getValue("type")));
                 break;
             case "struct":
                 objects.push(new HashMap<String, Object>());
@@ -244,9 +223,7 @@ public class TestPrintXML {
                 String name = element.getKey();
                 Object value = objects.pop();
                 if (objects.isEmpty()) {
-                    XMLEvent event = (XMLEvent) value;
-                    event.end = locator.getLineNumber();
-                    events.add(event);
+                    events.add((XMLEvent) value);
                     return;
                 }
                 if (value instanceof StringBuilder) {

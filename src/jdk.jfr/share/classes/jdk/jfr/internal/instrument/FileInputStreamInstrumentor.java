@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,9 +27,8 @@ package jdk.jfr.internal.instrument;
 
 import java.io.IOException;
 
-import jdk.jfr.events.EventConfigurations;
-import jdk.jfr.events.FileReadEvent;
-import jdk.jfr.internal.event.EventConfiguration;
+import jdk.jfr.events.Handlers;
+import jdk.jfr.internal.handlers.EventHandler;
 
 /**
  * See {@link JITracer} for an explanation of this code.
@@ -45,8 +44,8 @@ final class FileInputStreamInstrumentor {
     @SuppressWarnings("deprecation")
     @JIInstrumentationMethod
     public int read() throws IOException {
-        EventConfiguration eventConfiguration = EventConfigurations.FILE_READ;
-        if (!eventConfiguration.isEnabled()) {
+        EventHandler handler = Handlers.FILE_READ;
+        if (!handler.isEnabled()) {
             return read();
         }
         int result = 0;
@@ -54,7 +53,7 @@ final class FileInputStreamInstrumentor {
         long bytesRead = 0;
         long start = 0;
         try {
-            start = EventConfiguration.timestamp();
+            start = EventHandler.timestamp();
             result = read();
             if (result < 0) {
                 endOfFile = true;
@@ -62,9 +61,9 @@ final class FileInputStreamInstrumentor {
                 bytesRead = 1;
             }
         } finally {
-            long duration = EventConfiguration.timestamp() - start;
-            if (eventConfiguration.shouldCommit(duration)) {
-                FileReadEvent.commit(start, duration, path, bytesRead, endOfFile);
+            long duration = EventHandler.timestamp() - start;
+            if (handler.shouldCommit(duration)) {
+                handler.write(start, duration, path, bytesRead, endOfFile);
             }
         }
         return result;
@@ -73,22 +72,22 @@ final class FileInputStreamInstrumentor {
     @SuppressWarnings("deprecation")
     @JIInstrumentationMethod
     public int read(byte b[]) throws IOException {
-        EventConfiguration eventConfiguration = EventConfigurations.FILE_READ;
-        if (!eventConfiguration.isEnabled()) {
+        EventHandler handler = Handlers.FILE_READ;
+        if (!handler.isEnabled()) {
             return read(b);
         }
         int bytesRead = 0;
         long start = 0;
         try {
-            start = EventConfiguration.timestamp();
+            start = EventHandler.timestamp();
             bytesRead = read(b);
         } finally {
-            long duration = EventConfiguration.timestamp() - start;
-            if (eventConfiguration.shouldCommit(duration)) {
+            long duration = EventHandler.timestamp() - start;
+            if (handler.shouldCommit(duration)) {
                 if (bytesRead < 0) {
-                    FileReadEvent.commit(start, duration, path, 0L, true);
+                    handler.write(start, duration, path, 0L, true);
                 } else {
-                    FileReadEvent.commit(start, duration, path, bytesRead, false);
+                    handler.write(start, duration, path, bytesRead, false);
                 }
             }
         }
@@ -98,22 +97,22 @@ final class FileInputStreamInstrumentor {
     @SuppressWarnings("deprecation")
     @JIInstrumentationMethod
     public int read(byte b[], int off, int len) throws IOException {
-        EventConfiguration eventConfiguration = EventConfigurations.FILE_READ;
-        if (!eventConfiguration.isEnabled()) {
+        EventHandler handler = Handlers.FILE_READ;
+        if (!handler.isEnabled()) {
             return read(b, off, len);
         }
         int bytesRead = 0;
         long start = 0;
         try {
-            start = EventConfiguration.timestamp();
+            start = EventHandler.timestamp();
             bytesRead = read(b, off, len);
         } finally {
-            long duration = EventConfiguration.timestamp() - start;
-            if (eventConfiguration.shouldCommit(duration)) {
+            long duration = EventHandler.timestamp() - start;
+            if (handler.shouldCommit(duration)) {
                 if (bytesRead < 0) {
-                    FileReadEvent.commit(start, duration, path, 0L, true);
+                    handler.write(start, duration, path, 0L, true);
                 } else {
-                    FileReadEvent.commit(start, duration, path, bytesRead, false);
+                    handler.write(start, duration, path, bytesRead, false);
                 }
             }
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -80,7 +80,7 @@ public class CertId {
                   SerialNumber serialNumber) throws IOException {
 
         // compute issuerNameHash
-        MessageDigest md;
+        MessageDigest md = null;
         try {
             md = MessageDigest.getInstance("SHA1");
         } catch (NoSuchAlgorithmException nsae) {
@@ -202,27 +202,34 @@ public class CertId {
         if (this == other) {
             return true;
         }
-        if (!(other instanceof CertId that)) {
+        if (other == null || (!(other instanceof CertId))) {
             return false;
         }
 
-        return hashAlgId.equals(that.getHashAlgorithm()) &&
-                Arrays.equals(issuerNameHash, that.getIssuerNameHash()) &&
-                Arrays.equals(issuerKeyHash, that.getIssuerKeyHash()) &&
-                certSerialNumber.getNumber().equals(that.getSerialNumber());
+        CertId that = (CertId) other;
+        if (hashAlgId.equals(that.getHashAlgorithm()) &&
+            Arrays.equals(issuerNameHash, that.getIssuerNameHash()) &&
+            Arrays.equals(issuerKeyHash, that.getIssuerKeyHash()) &&
+            certSerialNumber.getNumber().equals(that.getSerialNumber())) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     /**
      * Create a string representation of the CertId.
      */
     @Override public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("CertId \n");
+        sb.append("Algorithm: " + hashAlgId.toString() +"\n");
+        sb.append("issuerNameHash \n");
         HexDumpEncoder encoder = new HexDumpEncoder();
-        return "CertId \n" +
-                "Algorithm: " + hashAlgId.toString() + "\n" +
-                "issuerNameHash \n" +
-                encoder.encode(issuerNameHash) +
-                "\nissuerKeyHash: \n" +
-                encoder.encode(issuerKeyHash) +
-                "\n" + certSerialNumber.toString();
+        sb.append(encoder.encode(issuerNameHash));
+        sb.append("\nissuerKeyHash: \n");
+        sb.append(encoder.encode(issuerKeyHash));
+        sb.append("\n" +  certSerialNumber.toString());
+        return sb.toString();
     }
 }

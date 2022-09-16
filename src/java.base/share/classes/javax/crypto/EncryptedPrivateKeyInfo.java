@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2017, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,7 +34,7 @@ import sun.security.util.DerInputStream;
 import sun.security.util.DerOutputStream;
 
 /**
- * This class implements the {@code EncryptedPrivateKeyInfo} type
+ * This class implements the <code>EncryptedPrivateKeyInfo</code> type
  * as defined in PKCS #8.
  * <p>Its ASN.1 definition is as follows:
  *
@@ -58,37 +58,33 @@ import sun.security.util.DerOutputStream;
 public class EncryptedPrivateKeyInfo {
 
     // the "encryptionAlgorithm" field
-    private final AlgorithmId algid;
+    private AlgorithmId algid;
 
     // the algorithm name of the encrypted private key
     private String keyAlg;
 
     // the "encryptedData" field
-    private final byte[] encryptedData;
+    private byte[] encryptedData;
 
     // the ASN.1 encoded contents of this class
-    private byte[] encoded;
+    private byte[] encoded = null;
 
     /**
-     * Constructs (i.e., parses) an {@code EncryptedPrivateKeyInfo} from
+     * Constructs (i.e., parses) an <code>EncryptedPrivateKeyInfo</code> from
      * its ASN.1 encoding.
      * @param encoded the ASN.1 encoding of this object. The contents of
      * the array are copied to protect against subsequent modification.
-     * @exception NullPointerException if the {@code encoded} is
-     * {@code null}.
+     * @exception NullPointerException if the <code>encoded</code> is null.
      * @exception IOException if error occurs when parsing the ASN.1 encoding.
      */
-    public EncryptedPrivateKeyInfo(byte[] encoded) throws IOException {
+    public EncryptedPrivateKeyInfo(byte[] encoded)
+        throws IOException {
         if (encoded == null) {
             throw new NullPointerException("the encoded parameter " +
-                "must be non-null");
+                                           "must be non-null");
         }
-
         this.encoded = encoded.clone();
-        DerValue val = DerValue.wrap(this.encoded);
-        if (val.tag != DerValue.tag_Sequence) {
-            throw new IOException("DER header error: no SEQ tag");
-        }
+        DerValue val = new DerValue(this.encoded);
 
         DerValue[] seq = new DerValue[2];
 
@@ -111,12 +107,12 @@ public class EncryptedPrivateKeyInfo {
     }
 
     /**
-     * Constructs an {@code EncryptedPrivateKeyInfo} from the
+     * Constructs an <code>EncryptedPrivateKeyInfo</code> from the
      * encryption algorithm name and the encrypted data.
      *
-     * <p>Note: This constructor will use {@code null} as the value of the
+     * <p>Note: This constructor will use null as the value of the
      * algorithm parameters. If the encryption algorithm has
-     * parameters whose value is not {@code null}, a different constructor,
+     * parameters whose value is not null, a different constructor,
      * e.g. EncryptedPrivateKeyInfo(AlgorithmParameters, byte[]),
      * should be used.
      *
@@ -125,11 +121,11 @@ public class EncryptedPrivateKeyInfo {
      * Java Security Standard Algorithm Names</a> document
      * for information about standard Cipher algorithm names.
      * @param encryptedData encrypted data. The contents of
-     * {@code encryptedData} are copied to protect against subsequent
+     * <code>encrypedData</code> are copied to protect against subsequent
      * modification when constructing this object.
-     * @exception NullPointerException if {@code algName} or
-     * {@code encryptedData} is {@code null}.
-     * @exception IllegalArgumentException if {@code encryptedData}
+     * @exception NullPointerException if <code>algName</code> or
+     * <code>encryptedData</code> is null.
+     * @exception IllegalArgumentException if <code>encryptedData</code>
      * is empty, i.e. 0-length.
      * @exception NoSuchAlgorithmException if the specified algName is
      * not supported.
@@ -157,23 +153,23 @@ public class EncryptedPrivateKeyInfo {
     }
 
     /**
-     * Constructs an {@code EncryptedPrivateKeyInfo} from the
+     * Constructs an <code>EncryptedPrivateKeyInfo</code> from the
      * encryption algorithm parameters and the encrypted data.
      *
      * @param algParams the algorithm parameters for the encryption
-     * algorithm. {@code algParams.getEncoded()} should return
-     * the ASN.1 encoded bytes of the {@code parameters} field
-     * of the {@code AlgorithmIdentifier} component of the
-     * {@code EncryptedPrivateKeyInfo} type.
+     * algorithm. <code>algParams.getEncoded()</code> should return
+     * the ASN.1 encoded bytes of the <code>parameters</code> field
+     * of the <code>AlgorithmIdentifer</code> component of the
+     * <code>EncryptedPrivateKeyInfo</code> type.
      * @param encryptedData encrypted data. The contents of
-     * {@code encryptedData} are copied to protect against
+     * <code>encrypedData</code> are copied to protect against
      * subsequent modification when constructing this object.
-     * @exception NullPointerException if {@code algParams} or
-     * {@code encryptedData} is {@code null}.
-     * @exception IllegalArgumentException if {@code encryptedData}
+     * @exception NullPointerException if <code>algParams</code> or
+     * <code>encryptedData</code> is null.
+     * @exception IllegalArgumentException if <code>encryptedData</code>
      * is empty, i.e. 0-length.
      * @exception NoSuchAlgorithmException if the specified algName of
-     * the specified {@code algParams} parameter is not supported.
+     * the specified <code>algParams</code> parameter is not supported.
      */
     public EncryptedPrivateKeyInfo(AlgorithmParameters algParams,
         byte[] encryptedData) throws NoSuchAlgorithmException {
@@ -233,23 +229,23 @@ public class EncryptedPrivateKeyInfo {
      * Extract the enclosed PKCS8EncodedKeySpec object from the
      * encrypted data and return it.
      * <br>Note: In order to successfully retrieve the enclosed
-     * PKCS8EncodedKeySpec object, {@code cipher} needs
+     * PKCS8EncodedKeySpec object, <code>cipher</code> needs
      * to be initialized to either Cipher.DECRYPT_MODE or
      * Cipher.UNWRAP_MODE, with the same key and parameters used
      * for generating the encrypted data.
      *
-     * @param cipher the initialized {@code Cipher} object which will be
+     * @param cipher the initialized cipher object which will be
      * used for decrypting the encrypted data.
      * @return the PKCS8EncodedKeySpec object.
-     * @exception NullPointerException if {@code cipher}
-     * is {@code null}.
+     * @exception NullPointerException if <code>cipher</code>
+     * is null.
      * @exception InvalidKeySpecException if the given cipher is
      * inappropriate for the encrypted data or the encrypted
      * data is corrupted and cannot be decrypted.
      */
     public PKCS8EncodedKeySpec getKeySpec(Cipher cipher)
         throws InvalidKeySpecException {
-        byte[] encoded;
+        byte[] encoded = null;
         try {
             encoded = cipher.doFinal(encryptedData);
             checkPKCS8Encoding(encoded);
@@ -265,7 +261,7 @@ public class EncryptedPrivateKeyInfo {
     private PKCS8EncodedKeySpec getKeySpecImpl(Key decryptKey,
         Provider provider) throws NoSuchAlgorithmException,
         InvalidKeyException {
-        byte[] encoded;
+        byte[] encoded = null;
         Cipher c;
         try {
             if (provider == null) {
@@ -292,11 +288,11 @@ public class EncryptedPrivateKeyInfo {
      * encrypted data and return it.
      * @param decryptKey key used for decrypting the encrypted data.
      * @return the PKCS8EncodedKeySpec object.
-     * @exception NullPointerException if {@code decryptKey}
-     * is {@code null}.
+     * @exception NullPointerException if <code>decryptKey</code>
+     * is null.
      * @exception NoSuchAlgorithmException if cannot find appropriate
      * cipher to decrypt the encrypted data.
-     * @exception InvalidKeyException if {@code decryptKey}
+     * @exception InvalidKeyException if <code>decryptKey</code>
      * cannot be used to decrypt the encrypted data or the decryption
      * result is not a valid PKCS8KeySpec.
      *
@@ -314,16 +310,16 @@ public class EncryptedPrivateKeyInfo {
      * Extract the enclosed PKCS8EncodedKeySpec object from the
      * encrypted data and return it.
      * @param decryptKey key used for decrypting the encrypted data.
-     * @param providerName the name of provider whose cipher
+     * @param providerName the name of provider whose Cipher
      * implementation will be used.
      * @return the PKCS8EncodedKeySpec object.
-     * @exception NullPointerException if {@code decryptKey}
-     * or {@code providerName} is {@code null}.
+     * @exception NullPointerException if <code>decryptKey</code>
+     * or <code>providerName</code> is null.
      * @exception NoSuchProviderException if no provider
-     * {@code providerName} is registered.
+     * <code>providerName</code> is registered.
      * @exception NoSuchAlgorithmException if cannot find appropriate
      * cipher to decrypt the encrypted data.
-     * @exception InvalidKeyException if {@code decryptKey}
+     * @exception InvalidKeyException if <code>decryptKey</code>
      * cannot be used to decrypt the encrypted data or the decryption
      * result is not a valid PKCS8KeySpec.
      *
@@ -350,14 +346,14 @@ public class EncryptedPrivateKeyInfo {
      * Extract the enclosed PKCS8EncodedKeySpec object from the
      * encrypted data and return it.
      * @param decryptKey key used for decrypting the encrypted data.
-     * @param provider the name of provider whose cipher implementation
+     * @param provider the name of provider whose Cipher implementation
      * will be used.
      * @return the PKCS8EncodedKeySpec object.
-     * @exception NullPointerException if {@code decryptKey}
-     * or {@code provider} is {@code null}.
+     * @exception NullPointerException if <code>decryptKey</code>
+     * or <code>provider</code> is null.
      * @exception NoSuchAlgorithmException if cannot find appropriate
-     * cipher to decrypt the encrypted data in {@code provider}.
-     * @exception InvalidKeyException if {@code decryptKey}
+     * cipher to decrypt the encrypted data in <code>provider</code>.
+     * @exception InvalidKeyException if <code>decryptKey</code>
      * cannot be used to decrypt the encrypted data or the decryption
      * result is not a valid PKCS8KeySpec.
      *

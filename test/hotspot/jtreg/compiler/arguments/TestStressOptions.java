@@ -23,7 +23,6 @@
 
 /*
  * @test
- * @key stress randomness
  * @bug 8252219 8256535
  * @requires vm.compiler2.enabled
  * @summary Tests that different combinations of stress options and
@@ -54,3 +53,4 @@ public class TestStressOptions {
         System.out.println("Passed");
     }
 }
+

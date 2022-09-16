@@ -36,6 +36,7 @@ import javax.annotation.processing.SupportedAnnotationTypes;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ExecutableElement;
 import javax.lang.model.element.TypeElement;
+import javax.tools.Diagnostic.Kind;
 
 /*
  * @test
@@ -85,7 +86,7 @@ public class ParameterProcessor extends JavacTestingAbstractProcessor {
                         String.format(
                                 "bad parameter names for %s#%s; expected: %s, was: %s",
                                 element, element, expected, actual);
-                messager.printError(message);
+                messager.printMessage(Kind.ERROR, message);
             }
         }
         return false;

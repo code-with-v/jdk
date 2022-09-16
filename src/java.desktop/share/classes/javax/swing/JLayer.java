@@ -316,7 +316,7 @@ public final class JLayer<V extends Component>
      * a {@code JLayer}.
      *
      * @param mgr the specified layout manager
-     * @throws IllegalArgumentException this method is not supported
+     * @exception IllegalArgumentException this method is not supported
      */
     public void setLayout(LayoutManager mgr) {
         if (mgr != null) {

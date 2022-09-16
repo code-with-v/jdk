@@ -142,6 +142,12 @@ public:
   void start();
   void prepare_for_graceful_shutdown();
   bool in_graceful_shutdown();
+
+  char* name() const { return (char*)"ShenandoahControlThread";}
+
+  // Printing
+  void print_on(outputStream* st) const;
+  void print() const;
 };
 
 #endif // SHARE_GC_SHENANDOAH_SHENANDOAHCONTROLTHREAD_HPP

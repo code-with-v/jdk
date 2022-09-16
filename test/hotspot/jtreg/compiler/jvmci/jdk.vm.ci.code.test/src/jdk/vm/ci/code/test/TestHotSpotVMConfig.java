@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,16 +22,13 @@
  */
 package jdk.vm.ci.code.test;
 
-import jdk.vm.ci.aarch64.AArch64;
-import jdk.vm.ci.code.Architecture;
 import jdk.vm.ci.hotspot.HotSpotVMConfigAccess;
 import jdk.vm.ci.hotspot.HotSpotVMConfigStore;
 
 public class TestHotSpotVMConfig extends HotSpotVMConfigAccess {
 
-    public TestHotSpotVMConfig(HotSpotVMConfigStore config, Architecture arch) {
+    public TestHotSpotVMConfig(HotSpotVMConfigStore config) {
         super(config);
-        ropProtection = (arch instanceof AArch64) ? getFieldValue("VM_Version::_rop_protection", Boolean.class) : false;
     }
 
     public final boolean useCompressedOops = getFlag("UseCompressedOops", Boolean.class);
@@ -51,6 +48,4 @@ public class TestHotSpotVMConfig extends HotSpotVMConfigAccess {
 
     public final int maxOopMapStackOffset = getFieldValue("CompilerToVM::Data::_max_oop_map_stack_offset", Integer.class, "int");
     public final int heapWordSize = getConstant("HeapWordSize", Integer.class);
-
-    public final boolean ropProtection;
 }

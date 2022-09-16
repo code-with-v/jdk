@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -170,6 +170,14 @@ public class Pretty extends JCTree.Visitor {
      * Traversal methods
      *************************************************************************/
 
+    /** Exception to propagate IOException through visitXYZ methods */
+    private static class UncheckedIOException extends Error {
+        static final long serialVersionUID = -4032692679158424751L;
+        UncheckedIOException(IOException e) {
+            super(e.getMessage(), e);
+        }
+    }
+
     /** Visitor argument: the current precedence level.
      */
     int prec;
@@ -186,7 +194,9 @@ public class Pretty extends JCTree.Visitor {
                 tree.accept(this);
             }
         } catch (UncheckedIOException ex) {
-            throw ex.getCause();
+            IOException e = new IOException(ex.getMessage());
+            e.initCause(ex);
+            throw e;
         } finally {
             this.prec = prevPrec;
         }
@@ -877,28 +887,6 @@ public class Pretty extends JCTree.Visitor {
         }
     }
 
-    @Override
-    public void visitConstantCaseLabel(JCConstantCaseLabel tree) {
-        try {
-            print(tree.expr);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
-    @Override
-    public void visitPatternCaseLabel(JCPatternCaseLabel tree) {
-        try {
-            print(tree.pat);
-            if (tree.guard != null) {
-                print(" when ");
-                print(tree.guard);
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
     public void visitSwitchExpression(JCSwitchExpression tree) {
         try {
             print("switch ");
@@ -939,16 +927,11 @@ public class Pretty extends JCTree.Visitor {
     }
 
     @Override
-    public void visitRecordPattern(JCRecordPattern tree) {
+    public void visitGuardPattern(JCGuardPattern patt) {
         try {
-            printExpr(tree.deconstructor);
-            print("(");
-            printExprs(tree.nested);
-            print(")");
-            if (tree.var != null) {
-                print(" ");
-                print(tree.var.name);
-            }
+            printExpr(patt.patt);
+            print(" && ");
+            printExpr(patt.expr);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

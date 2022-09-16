@@ -48,7 +48,6 @@ public:
 class ZVirtualMemoryManager {
 private:
   ZMemoryManager _manager;
-  uintptr_t      _reserved;
   bool           _initialized;
 
   // Platform specific implementation
@@ -69,9 +68,6 @@ public:
   ZVirtualMemoryManager(size_t max_capacity);
 
   bool is_initialized() const;
-
-  size_t reserved() const;
-  uintptr_t lowest_available_address() const;
 
   ZVirtualMemory alloc(size_t size, bool force_low_address);
   void free(const ZVirtualMemory& vmem);

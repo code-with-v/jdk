@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -41,8 +41,7 @@ import java.security.spec.KeySpec;
 import java.security.spec.InvalidKeySpecException;
 import java.security.InvalidAlgorithmParameterException;
 
-import static java.nio.charset.StandardCharsets.ISO_8859_1;
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.nio.charset.StandardCharsets.*;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
@@ -63,7 +62,7 @@ import com.sun.security.sasl.util.AbstractSaslImpl;
 /**
  * Utility class for DIGEST-MD5 mechanism. Provides utility methods
  * and contains two inner classes which implement the SecurityCtx
- * interface. The inner classes provide the functionality to allow
+ * interface. The inner classes provide the funtionality to allow
  * for quality-of-protection (QOP) with integrity checking and
  * privacy.
  *
@@ -158,7 +157,7 @@ abstract class DigestMD5Base extends AbstractSaslImpl {
     protected String authzid;       // authzid or canonicalized authzid
 
     /**
-     * Constructs an instance of DigestMD5Base. Calls super constructor
+     * Constucts an instance of DigestMD5Base. Calls super constructor
      * to parse properties for mechanism.
      *
      * @param props A map of property/value pairs
@@ -172,7 +171,7 @@ abstract class DigestMD5Base extends AbstractSaslImpl {
     protected DigestMD5Base(Map<String, ?> props, String className,
         int firstStep, String digestUri, CallbackHandler cbh)
         throws SaslException {
-        super(props, className); // sets QOP, STRENGTH and BUFFER_SIZE
+        super(props, className); // sets QOP, STENGTH and BUFFER_SIZE
 
         step = firstStep;
         this.digestUri = digestUri;
@@ -433,7 +432,9 @@ abstract class DigestMD5Base extends AbstractSaslImpl {
 
                 logger.log(Level.FINE, "DIGEST01:Platform supports {0}", JCE_CIPHER_NAME[i]);
                 ciphers[i] |= CIPHER_MASKS[i];
-            } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
+            } catch (NoSuchAlgorithmException e) {
+                // no implementation found for requested algorithm.
+            } catch (NoSuchPaddingException e) {
                 // no implementation found for requested algorithm.
             }
         }
@@ -1251,7 +1252,7 @@ abstract class DigestMD5Base extends AbstractSaslImpl {
                     "specification used.", e);
             } catch (InvalidAlgorithmParameterException e) {
                 throw new SaslException("DIGEST-MD5: Invalid cipher " +
-                    "algorithm parameter used to create cipher instance", e);
+                    "algorithem parameter used to create cipher instance", e);
             } catch (NoSuchPaddingException e) {
                 throw new SaslException("DIGEST-MD5: Unsupported " +
                     "padding used for chosen cipher", e);

@@ -23,7 +23,7 @@
  */
 
 /*
- * @test
+ * @test TestThreadCountsOverride
  * @summary Test that Shenandoah GC thread counts are overridable
  * @requires vm.gc.Shenandoah
  * @library /test/lib

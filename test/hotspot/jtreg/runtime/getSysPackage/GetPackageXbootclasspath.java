@@ -25,7 +25,6 @@
  * @test
  * @bug 8187436
  * @summary Test that getPackage() works with a class loaded via -Xbootclasspath/a.
- * @requires vm.flagless
  * @library /test/lib
  * @run driver GetPackageXbootclasspath
  */

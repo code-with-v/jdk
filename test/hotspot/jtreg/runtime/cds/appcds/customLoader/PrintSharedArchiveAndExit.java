@@ -30,19 +30,19 @@
  * @requires vm.cds.custom.loaders
  * @library /test/lib /test/hotspot/jtreg/runtime/cds/appcds
  * @compile test-classes/HelloUnload.java test-classes/CustomLoadee.java
- * @build jdk.test.whitebox.WhiteBox jdk.test.lib.classloader.ClassUnloadCommon
+ * @build sun.hotspot.WhiteBox jdk.test.lib.classloader.ClassUnloadCommon
  * @run driver jdk.test.lib.helpers.ClassFileInstaller -jar hello.jar HelloUnload
  *                 jdk.test.lib.classloader.ClassUnloadCommon
  *                 jdk.test.lib.classloader.ClassUnloadCommon$1
  *                 jdk.test.lib.classloader.ClassUnloadCommon$TestFailure
  * @run driver jdk.test.lib.helpers.ClassFileInstaller -jar hello_custom.jar CustomLoadee
- * @run driver jdk.test.lib.helpers.ClassFileInstaller -jar WhiteBox.jar jdk.test.whitebox.WhiteBox
+ * @run driver jdk.test.lib.helpers.ClassFileInstaller -jar WhiteBox.jar sun.hotspot.WhiteBox
  * @run driver PrintSharedArchiveAndExit
  */
 
 import jdk.test.lib.process.OutputAnalyzer;
 import jdk.test.lib.helpers.ClassFileInstaller;
-import jdk.test.whitebox.WhiteBox;
+import sun.hotspot.WhiteBox;
 
 public class PrintSharedArchiveAndExit {
     public static void main(String[] args) throws Exception {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Red Hat, Inc. All rights reserved.
+ * Copyright (c) 2021, Red Hat, Inc. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,7 +26,6 @@
 
 #include "gc/shared/barrierSetNMethod.hpp"
 #include "gc/shared/collectorCounters.hpp"
-#include "gc/shared/continuationGCSupport.inline.hpp"
 #include "gc/shenandoah/shenandoahBreakpoint.hpp"
 #include "gc/shenandoah/shenandoahCollectorPolicy.hpp"
 #include "gc/shenandoah/shenandoahConcurrentGC.hpp"
@@ -51,37 +50,24 @@
 
 // Breakpoint support
 class ShenandoahBreakpointGCScope : public StackObj {
-private:
-  const GCCause::Cause _cause;
 public:
-  ShenandoahBreakpointGCScope(GCCause::Cause cause) : _cause(cause) {
-    if (cause == GCCause::_wb_breakpoint) {
-      ShenandoahBreakpoint::start_gc();
-      ShenandoahBreakpoint::at_before_gc();
-    }
+  ShenandoahBreakpointGCScope() {
+    ShenandoahBreakpoint::at_before_gc();
   }
 
   ~ShenandoahBreakpointGCScope() {
-    if (_cause == GCCause::_wb_breakpoint) {
-      ShenandoahBreakpoint::at_after_gc();
-    }
+    ShenandoahBreakpoint::at_after_gc();
   }
 };
 
 class ShenandoahBreakpointMarkScope : public StackObj {
-private:
-  const GCCause::Cause _cause;
 public:
-  ShenandoahBreakpointMarkScope(GCCause::Cause cause) : _cause(cause) {
-    if (_cause == GCCause::_wb_breakpoint) {
-      ShenandoahBreakpoint::at_after_marking_started();
-    }
+  ShenandoahBreakpointMarkScope() {
+    ShenandoahBreakpoint::at_after_marking_started();
   }
 
   ~ShenandoahBreakpointMarkScope() {
-    if (_cause == GCCause::_wb_breakpoint) {
-      ShenandoahBreakpoint::at_before_marking_completed();
-    }
+    ShenandoahBreakpoint::at_before_marking_completed();
   }
 };
 
@@ -100,7 +86,10 @@ void ShenandoahConcurrentGC::cancel() {
 
 bool ShenandoahConcurrentGC::collect(GCCause::Cause cause) {
   ShenandoahHeap* const heap = ShenandoahHeap::heap();
-  ShenandoahBreakpointGCScope breakpoint_gc_scope(cause);
+  if (cause == GCCause::_wb_breakpoint) {
+    ShenandoahBreakpoint::start_gc();
+  }
+  ShenandoahBreakpointGCScope breakpoint_gc_scope;
 
   // Reset for upcoming marking
   entry_reset();
@@ -109,7 +98,7 @@ bool ShenandoahConcurrentGC::collect(GCCause::Cause cause) {
   vmop_entry_init_mark();
 
   {
-    ShenandoahBreakpointMarkScope breakpoint_mark_scope(cause);
+    ShenandoahBreakpointMarkScope breakpoint_mark_scope;
     // Concurrent mark roots
     entry_mark_roots();
     if (check_cancellation_and_abort(ShenandoahDegenPoint::_degenerated_outside_cycle)) return false;
@@ -507,10 +496,6 @@ public:
   bool is_thread_safe() { return true; }
 };
 
-void ShenandoahConcurrentGC::start_mark() {
-  _mark.start_mark();
-}
-
 void ShenandoahConcurrentGC::op_init_mark() {
   ShenandoahHeap* const heap = ShenandoahHeap::heap();
   assert(ShenandoahSafepoint::is_at_shenandoah_safepoint(), "Should be at safepoint");
@@ -529,8 +514,6 @@ void ShenandoahConcurrentGC::op_init_mark() {
   }
 
   heap->set_concurrent_mark_in_progress(true);
-
-  start_mark();
 
   {
     ShenandoahGCPhase phase(ShenandoahPhaseTimings::init_update_region_states);
@@ -638,17 +621,17 @@ ShenandoahConcurrentEvacThreadClosure::ShenandoahConcurrentEvacThreadClosure(Oop
 }
 
 void ShenandoahConcurrentEvacThreadClosure::do_thread(Thread* thread) {
-  JavaThread* const jt = JavaThread::cast(thread);
+  JavaThread* const jt = thread->as_Java_thread();
   StackWatermarkSet::finish_processing(jt, _oops, StackWatermarkKind::gc);
 }
 
-class ShenandoahConcurrentEvacUpdateThreadTask : public WorkerTask {
+class ShenandoahConcurrentEvacUpdateThreadTask : public AbstractGangTask {
 private:
   ShenandoahJavaThreadsIterator _java_threads;
 
 public:
   ShenandoahConcurrentEvacUpdateThreadTask(uint n_workers) :
-    WorkerTask("Shenandoah Evacuate/Update Concurrent Thread Roots"),
+    AbstractGangTask("Shenandoah Evacuate/Update Concurrent Thread Roots"),
     _java_threads(ShenandoahPhaseTimings::conc_thread_roots, n_workers) {
   }
 
@@ -674,9 +657,7 @@ void ShenandoahConcurrentGC::op_weak_refs() {
   assert(heap->is_concurrent_weak_root_in_progress(), "Only during this phase");
   // Concurrent weak refs processing
   ShenandoahGCWorkerPhase worker_phase(ShenandoahPhaseTimings::conc_weak_refs);
-  if (heap->gc_cause() == GCCause::_wb_breakpoint) {
-    ShenandoahBreakpoint::at_after_reference_processing_started();
-  }
+  ShenandoahBreakpoint::at_after_reference_processing_started();
   heap->ref_processor()->process_references(ShenandoahPhaseTimings::conc_weak_refs, heap->workers(), true /* concurrent */);
 }
 
@@ -705,13 +686,13 @@ void ShenandoahEvacUpdateCleanupOopStorageRootsClosure::do_oop(oop* p) {
   if (!CompressedOops::is_null(obj)) {
     if (!_mark_context->is_marked(obj)) {
       shenandoah_assert_correct(p, obj);
-      ShenandoahHeap::atomic_clear_oop(p, obj);
+      Atomic::cmpxchg(p, obj, oop(NULL));
     } else if (_evac_in_progress && _heap->in_collection_set(obj)) {
       oop resolved = ShenandoahBarrierSet::resolve_forwarded_not_null(obj);
       if (resolved == obj) {
         resolved = _heap->evacuate_object(obj, _thread);
       }
-      ShenandoahHeap::atomic_update_oop(resolved, p, obj);
+      Atomic::cmpxchg(p, obj, resolved);
       assert(_heap->cancelled_gc() ||
              _mark_context->is_marked(resolved) && !_heap->in_collection_set(resolved),
              "Sanity");
@@ -739,21 +720,21 @@ public:
 
 // This task not only evacuates/updates marked weak roots, but also "NULL"
 // dead weak roots.
-class ShenandoahConcurrentWeakRootsEvacUpdateTask : public WorkerTask {
+class ShenandoahConcurrentWeakRootsEvacUpdateTask : public AbstractGangTask {
 private:
   ShenandoahVMWeakRoots<true /*concurrent*/> _vm_roots;
 
   // Roots related to concurrent class unloading
-  ShenandoahClassLoaderDataRoots<true /* concurrent */>
+  ShenandoahClassLoaderDataRoots<true /* concurrent */, true /* single thread*/>
                                              _cld_roots;
   ShenandoahConcurrentNMethodIterator        _nmethod_itr;
   ShenandoahPhaseTimings::Phase              _phase;
 
 public:
   ShenandoahConcurrentWeakRootsEvacUpdateTask(ShenandoahPhaseTimings::Phase phase) :
-    WorkerTask("Shenandoah Evacuate/Update Concurrent Weak Roots"),
+    AbstractGangTask("Shenandoah Evacuate/Update Concurrent Weak Roots"),
     _vm_roots(phase),
-    _cld_roots(phase, ShenandoahHeap::heap()->workers()->active_workers(), false /*heap iteration*/),
+    _cld_roots(phase, ShenandoahHeap::heap()->workers()->active_workers()),
     _nmethod_itr(ShenandoahCodeRoots::table()),
     _phase(phase) {
     if (ShenandoahHeap::heap()->unload_classes()) {
@@ -834,7 +815,7 @@ void ShenandoahConcurrentGC::op_class_unloading() {
 class ShenandoahEvacUpdateCodeCacheClosure : public NMethodClosure {
 private:
   BarrierSetNMethod* const                  _bs;
-  ShenandoahEvacuateUpdateMetadataClosure   _cl;
+  ShenandoahEvacuateUpdateMetadataClosure<> _cl;
 
 public:
   ShenandoahEvacUpdateCodeCacheClosure() :
@@ -853,20 +834,19 @@ public:
   }
 };
 
-class ShenandoahConcurrentRootsEvacUpdateTask : public WorkerTask {
+class ShenandoahConcurrentRootsEvacUpdateTask : public AbstractGangTask {
 private:
   ShenandoahPhaseTimings::Phase                 _phase;
   ShenandoahVMRoots<true /*concurrent*/>        _vm_roots;
-  ShenandoahClassLoaderDataRoots<true /*concurrent*/>
-                                                _cld_roots;
+  ShenandoahClassLoaderDataRoots<true /*concurrent*/, false /*single threaded*/> _cld_roots;
   ShenandoahConcurrentNMethodIterator           _nmethod_itr;
 
 public:
   ShenandoahConcurrentRootsEvacUpdateTask(ShenandoahPhaseTimings::Phase phase) :
-    WorkerTask("Shenandoah Evacuate/Update Concurrent Strong Roots"),
+    AbstractGangTask("Shenandoah Evacuate/Update Concurrent Strong Roots"),
     _phase(phase),
     _vm_roots(phase),
-    _cld_roots(phase, ShenandoahHeap::heap()->workers()->active_workers(), false /*heap iteration*/),
+    _cld_roots(phase, ShenandoahHeap::heap()->workers()->active_workers()),
     _nmethod_itr(ShenandoahCodeRoots::table()) {
     if (!ShenandoahHeap::heap()->unload_classes()) {
       MutexLocker mu(CodeCache_lock, Mutex::_no_safepoint_check_flag);
@@ -893,7 +873,7 @@ public:
       }
 
       {
-        ShenandoahEvacuateUpdateMetadataClosure cl;
+        ShenandoahEvacuateUpdateMetadataClosure<> cl;
         CLDToOopClosure clds(&cl, ClassLoaderData::_claim_strong);
         _cld_roots.cld_do(&clds, worker_id);
       }
@@ -954,7 +934,7 @@ ShenandoahUpdateThreadClosure::ShenandoahUpdateThreadClosure() :
 
 void ShenandoahUpdateThreadClosure::do_thread(Thread* thread) {
   if (thread->is_Java_thread()) {
-    JavaThread* jt = JavaThread::cast(thread);
+    JavaThread* jt = thread->as_Java_thread();
     ResourceMark rm;
     jt->oops_do(&_cl, NULL);
   }

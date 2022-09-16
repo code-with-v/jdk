@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2004, 2010, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,6 +28,7 @@ package sun.tools.jstat;
 import java.util.*;
 import java.io.*;
 import sun.jvmstat.monitor.*;
+import sun.jvmstat.monitor.event.*;
 import java.util.regex.PatternSyntaxException;
 
 /**
@@ -55,7 +56,7 @@ public class JStatLogger {
 
         // get the set of all monitors
         List<Monitor> items = monitoredVm.findByPattern(names);
-        items.sort(comparator);
+        Collections.sort(items, comparator);
 
         for (Monitor m: items) {
             if (!(m.isSupported() || showUnsupported)) {
@@ -75,7 +76,7 @@ public class JStatLogger {
 
         // get the set of all monitors
         List<Monitor> items = monitoredVm.findByPattern(names);
-        items.sort(comparator);
+        Collections.sort(items, comparator);
 
         printList(items, verbose, showUnsupported, out);
     }

@@ -567,7 +567,8 @@ public class XEmbedCanvasPeer extends XCanvasPeer implements WindowFocusListener
         // Find the top-level and see if it is XEmbed client. If so, ask him to
         // register the accelerator
         XWindowPeer parent = getToplevelXWindow();
-        if (parent instanceof XEmbeddedFramePeer embedded) {
+        if (parent != null && parent instanceof XEmbeddedFramePeer) {
+            XEmbeddedFramePeer embedded = (XEmbeddedFramePeer)parent;
             embedded.registerAccelerator(stroke);
         }
     }
@@ -576,7 +577,8 @@ public class XEmbedCanvasPeer extends XCanvasPeer implements WindowFocusListener
         // Find the top-level and see if it is XEmbed client. If so, ask him to
         // register the accelerator
         XWindowPeer parent = getToplevelXWindow();
-        if (parent instanceof XEmbeddedFramePeer embedded) {
+        if (parent != null && parent instanceof XEmbeddedFramePeer) {
+            XEmbeddedFramePeer embedded = (XEmbeddedFramePeer)parent;
             embedded.unregisterAccelerator(stroke);
         }
     }

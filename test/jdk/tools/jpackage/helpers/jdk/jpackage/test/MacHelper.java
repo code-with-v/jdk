@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,14 +24,11 @@ package jdk.jpackage.test;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -42,7 +39,6 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
-import jdk.jpackage.internal.IOUtils;
 import jdk.jpackage.test.Functional.ThrowingConsumer;
 import jdk.jpackage.test.Functional.ThrowingSupplier;
 import jdk.jpackage.test.PackageTest.PackageHandlers;
@@ -50,7 +46,7 @@ import jdk.jpackage.internal.RetryExecutor;
 import org.xml.sax.SAXException;
 import org.w3c.dom.NodeList;
 
-public final class MacHelper {
+public class MacHelper {
 
     public static void withExplodedDmg(JPackageCommand cmd,
             ThrowingConsumer<Path> consumer) {
@@ -66,16 +62,11 @@ public final class MacHelper {
 
         final Path mountPoint = Path.of(plist.queryValue("mount-point"));
         try {
-            // code here used to copy just <runtime name> or <app name>.app
-            // We now have option to include arbitrary content, so we copy
-            // everything in the mounted image.
-            String[] children = mountPoint.toFile().list();
-            for (String child : children) {
-                Path childPath = mountPoint.resolve(child);
-                TKit.trace(String.format("Exploded [%s] in [%s] directory",
-                        cmd.outputBundle(), childPath));
-                ThrowingConsumer.toConsumer(consumer).accept(childPath);
-            }
+            Path dmgImage = mountPoint.resolve(cmd.name() +
+                    (cmd.isRuntime() ? "" : ".app"));
+            TKit.trace(String.format("Exploded [%s] in [%s] directory",
+                    cmd.outputBundle(), dmgImage));
+            ThrowingConsumer.toConsumer(consumer).accept(dmgImage);
         } finally {
             String cmdline[] = {
                 "/usr/bin/hdiutil",
@@ -176,66 +167,41 @@ public final class MacHelper {
         pkg.installHandler = cmd -> {
             cmd.verifyIsOfType(PackageType.MAC_PKG);
             Executor.of("sudo", "/usr/sbin/installer", "-allowUntrusted", "-pkg")
-                    .addArgument(cmd.outputBundle())
-                    .addArguments("-target", "/")
-                    .execute();
+            .addArgument(cmd.outputBundle())
+            .addArguments("-target", "/")
+            .execute();
         };
         pkg.unpackHandler = (cmd, destinationDir) -> {
             cmd.verifyIsOfType(PackageType.MAC_PKG);
-
-            var dataDir = destinationDir.resolve("data");
-
             Executor.of("pkgutil", "--expand")
-                    .addArgument(cmd.outputBundle())
-                    .addArgument(dataDir) // We need non-existing folder
-                    .execute();
+            .addArgument(cmd.outputBundle())
+            .addArgument(destinationDir.resolve("data")) // We need non-existing folder
+            .execute();
 
             final Path unpackRoot = destinationDir.resolve("unpacked");
 
-            // Unpack all ".pkg" files from $dataDir folder in $unpackDir folder
-            try (var dataListing = Files.list(dataDir)) {
-                dataListing.filter(file -> {
-                    return ".pkg".equals(IOUtils.getSuffix(file.getFileName()));
-                }).forEach(ThrowingConsumer.toConsumer(pkgDir -> {
-                    // Installation root of the package is stored in
-                    // /pkg-info@install-location attribute in $pkgDir/PackageInfo xml file
-                    var doc = createDocumentBuilder().parse(
-                            new ByteArrayInputStream(Files.readAllBytes(
-                                    pkgDir.resolve("PackageInfo"))));
-                    var xPath = XPathFactory.newInstance().newXPath();
-
-                    final String installRoot = (String) xPath.evaluate(
-                            "/pkg-info/@install-location", doc,
-                            XPathConstants.STRING);
-
-                    final Path unpackDir = unpackRoot.resolve(
-                            TKit.removeRootFromAbsolutePath(Path.of(installRoot)));
-
-                    Files.createDirectories(unpackDir);
-
-                    Executor.of("tar", "-C")
-                            .addArgument(unpackDir)
-                            .addArgument("-xvf")
-                            .addArgument(pkgDir.resolve("Payload"))
-                            .execute();
-                }));
+            Path installDir = TKit.removeRootFromAbsolutePath(
+                    getInstallationDirectory(cmd)).getParent();
+            final Path unpackDir = unpackRoot.resolve(installDir);
+            try {
+                Files.createDirectories(unpackDir);
             } catch (IOException ex) {
                 throw new RuntimeException(ex);
             }
 
+            Executor.of("tar", "-C")
+            .addArgument(unpackDir)
+            .addArgument("-xvf")
+            .addArgument(Path.of(destinationDir.toString(), "data",
+                                 cmd.name() + "-app.pkg", "Payload"))
+            .execute();
             return unpackRoot;
         };
         pkg.uninstallHandler = cmd -> {
             cmd.verifyIsOfType(PackageType.MAC_PKG);
-
-            if (Files.exists(getUninstallCommand(cmd))) {
-                Executor.of("sudo", "/bin/sh",
-                        getUninstallCommand(cmd).toString()).execute();
-            } else {
-                Executor.of("sudo", "rm", "-rf")
-                        .addArgument(cmd.appInstallationDirectory())
-                        .execute();
-            }
+            Executor.of("sudo", "rm", "-rf")
+            .addArgument(cmd.appInstallationDirectory())
+            .execute();
         };
 
         return pkg;
@@ -249,37 +215,13 @@ public final class MacHelper {
 
     static Path getInstallationDirectory(JPackageCommand cmd) {
         cmd.verifyIsOfType(PackageType.MAC);
-        return Path.of(cmd.getArgumentValue("--install-dir",
-                () -> cmd.isRuntime() ? "/Library/Java/JavaVirtualMachines" : "/Applications")).resolve(
-                        cmd.name() + (cmd.isRuntime() ? "" : ".app"));
-    }
-
-    static Path getUninstallCommand(JPackageCommand cmd) {
-        cmd.verifyIsOfType(PackageType.MAC_PKG);
-        return cmd.pathToUnpackedPackageFile(Path.of(
-                "/Library/Application Support", getPackageName(cmd),
-                "uninstall.command"));
-    }
-
-    static Path getServicePlistFilePath(JPackageCommand cmd, String launcherName) {
-        cmd.verifyIsOfType(PackageType.MAC_PKG);
-        return cmd.pathToUnpackedPackageFile(
-                Path.of("/Library/LaunchDaemons").resolve(
-                        getServicePListFileName(getPackageId(cmd),
-                                Optional.ofNullable(launcherName).orElseGet(
-                                        cmd::name))));
+        return Path.of(cmd.getArgumentValue("--install-dir", () -> "/Applications"))
+                .resolve(cmd.name() + (cmd.isRuntime() ? "" : ".app"));
     }
 
     private static String getPackageName(JPackageCommand cmd) {
-        return cmd.getArgumentValue("--mac-package-name", cmd::installerName);
-    }
-
-    private static String getPackageId(JPackageCommand cmd) {
-        return cmd.getArgumentValue("--mac-package-identifier", () -> {
-            return cmd.getArgumentValue("--main-class", cmd::name, className -> {
-                return JavaAppDesc.parse(className).packageName();
-            });
-        });
+        return cmd.getArgumentValue("--mac-package-name",
+                () -> cmd.installerName());
     }
 
     public static final class PListWrapper {
@@ -327,52 +269,25 @@ public final class MacHelper {
             return values;
         }
 
-        private PListWrapper(String xml) throws ParserConfigurationException,
+        PListWrapper(String xml) throws ParserConfigurationException,
                 SAXException, IOException {
             doc = createDocumentBuilder().parse(new ByteArrayInputStream(
                     xml.getBytes(StandardCharsets.UTF_8)));
         }
 
-        private final org.w3c.dom.Document doc;
-    }
-
-    private static DocumentBuilder createDocumentBuilder() throws
+        private static DocumentBuilder createDocumentBuilder() throws
                 ParserConfigurationException {
-        DocumentBuilderFactory dbf = DocumentBuilderFactory.newDefaultInstance();
-        dbf.setFeature(
-                "http://apache.org/xml/features/nonvalidating/load-external-dtd",
-                false);
-        return dbf.newDocumentBuilder();
-    }
-
-    private static String getServicePListFileName(String packageName,
-            String launcherName) {
-        try {
-            return getServicePListFileName.invoke(null, packageName,
-                    launcherName).toString();
-        } catch (InvocationTargetException | IllegalAccessException ex) {
-            throw new RuntimeException(ex);
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newDefaultInstance();
+            dbf.setFeature(
+                    "http://apache.org/xml/features/nonvalidating/load-external-dtd",
+                    false);
+            return dbf.newDocumentBuilder();
         }
-    }
 
-    private static Method initGetServicePListFileName() {
-        try {
-            return Class.forName(
-                    "jdk.jpackage.internal.MacLaunchersAsServices").getMethod(
-                            "getServicePListFileName", String.class, String.class);
-        } catch (ClassNotFoundException ex) {
-            if (TKit.isOSX()) {
-                throw new RuntimeException(ex);
-            } else {
-                return null;
-            }
-        } catch (NoSuchMethodException ex) {
-            throw new RuntimeException(ex);
-        }
+        private final org.w3c.dom.Document doc;
     }
 
     static final Set<Path> CRITICAL_RUNTIME_FILES = Set.of(Path.of(
             "Contents/Home/lib/server/libjvm.dylib"));
 
-    private final static Method getServicePListFileName = initGetServicePListFileName();
 }

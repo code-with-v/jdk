@@ -25,6 +25,7 @@
  * @test
  * @requires vm.jvmci
  * @library ../../../../../
+ * @ignore 8249621
  * @modules jdk.internal.vm.ci/jdk.vm.ci.meta
  *          jdk.internal.vm.ci/jdk.vm.ci.runtime
  *          java.base/jdk.internal.misc
@@ -104,17 +105,6 @@ public class TestResolvedJavaMethod extends MethodUniverse {
                 assertTrue(codeSize == 0);
             } else if (!m.isNative()) {
                 assertTrue(codeSize > 0);
-            }
-        }
-    }
-
-    @Test
-    public void equalsTest() {
-        for (ResolvedJavaMethod m : methods.values()) {
-            for (ResolvedJavaMethod that : methods.values()) {
-                boolean expect = m == that;
-                boolean actual = m.equals(that);
-                assertEquals(expect, actual);
             }
         }
     }
@@ -219,20 +209,14 @@ public class TestResolvedJavaMethod extends MethodUniverse {
         }
         for (Map.Entry<Constructor<?>, ResolvedJavaMethod> e : constructors.entrySet()) {
             ResolvedJavaMethod m = e.getValue();
-            boolean expect = m.canBeStaticallyBound();
-            boolean actual = canBeStaticallyBound(e.getKey());
-            assertEquals(m.toString(), expect, actual);
+            assertEquals(m.canBeStaticallyBound(), canBeStaticallyBound(e.getKey()));
         }
     }
 
     private static boolean canBeStaticallyBound(Member method) {
         int modifiers = method.getModifiers();
-        return (Modifier.isFinal(modifiers) ||
-                Modifier.isPrivate(modifiers) ||
-                Modifier.isStatic(modifiers) ||
-                method instanceof Constructor ||
-                Modifier.isFinal(method.getDeclaringClass().getModifiers())) &&
-                !Modifier.isAbstract(modifiers);
+        return (Modifier.isFinal(modifiers) || Modifier.isPrivate(modifiers) || Modifier.isStatic(modifiers) || Modifier.isFinal(method.getDeclaringClass().getModifiers())) &&
+                        !Modifier.isAbstract(modifiers);
     }
 
     private static String methodWithExceptionHandlers(String p1, Object o2) {
@@ -272,8 +256,7 @@ public class TestResolvedJavaMethod extends MethodUniverse {
             StackTraceElement expected = e.getStackTrace()[0];
             ResolvedJavaMethod method = metaAccess.lookupJavaMethod(getClass().getDeclaredMethod("nullPointerExceptionOnFirstLine", Object.class, String.class));
             StackTraceElement actual = method.asStackTraceElement(0);
-            // JVMCI StackTraceElements omit the class loader and module info
-            assertEquals(expected.toString(), actual.toString());
+            assertEquals(expected, actual);
         }
     }
 

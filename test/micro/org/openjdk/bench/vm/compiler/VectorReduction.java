@@ -31,9 +31,6 @@ import java.util.Random;
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @State(Scope.Thread)
-@Warmup(iterations = 4, time = 2, timeUnit = TimeUnit.SECONDS)
-@Measurement(iterations = 4, time = 2, timeUnit = TimeUnit.SECONDS)
-@Fork(value = 3)
 public abstract class VectorReduction {
     @Param({"512"})
     public int COUNT;
@@ -122,14 +119,14 @@ public abstract class VectorReduction {
         }
     }
 
-    @Fork(value = 2, jvmArgsPrepend = {
+    @Fork(value = 1, jvmArgsPrepend = {
         "-XX:+UseSuperWord"
     })
     public static class WithSuperword extends VectorReduction {
 
     }
 
-    @Fork(value = 2, jvmArgsPrepend = {
+    @Fork(value = 1, jvmArgsPrepend = {
         "-XX:-UseSuperWord"
     })
     public static class NoSuperword extends VectorReduction {

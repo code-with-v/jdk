@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +25,6 @@
 
 package java.util.jar;
 
-import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Collection;
@@ -69,7 +68,7 @@ public class Attributes implements Map<Object,Object>, Cloneable {
      * Constructs a new, empty Attributes object with default size.
      */
     public Attributes() {
-        this(16);
+        this(11);
     }
 
     /**
@@ -79,7 +78,7 @@ public class Attributes implements Map<Object,Object>, Cloneable {
      * @param size the initial number of attributes
      */
     public Attributes(int size) {
-        map = LinkedHashMap.newLinkedHashMap(size);
+        map = new LinkedHashMap<>(size);
     }
 
     /**
@@ -367,7 +366,7 @@ public class Attributes implements Map<Object,Object>, Cloneable {
 
     int read(Manifest.FastInputStream is, byte[] lbuf, String filename, int lineNumber) throws IOException {
         String name = null, value;
-        ByteArrayOutputStream fullLine = new ByteArrayOutputStream();
+        byte[] lastline = null;
 
         int len;
         while ((len = is.readLine(lbuf)) != -1) {
@@ -393,12 +392,15 @@ public class Attributes implements Map<Object,Object>, Cloneable {
                                 + Manifest.getErrorPosition(filename, lineNumber) + ")");
                 }
                 lineContinued = true;
-                fullLine.write(lbuf, 1, len - 1);
+                byte[] buf = new byte[lastline.length + len - 1];
+                System.arraycopy(lastline, 0, buf, 0, lastline.length);
+                System.arraycopy(lbuf, 1, buf, lastline.length, len - 1);
                 if (is.peek() == ' ') {
+                    lastline = buf;
                     continue;
                 }
-                value = fullLine.toString(UTF_8.INSTANCE);
-                fullLine.reset();
+                value = new String(buf, 0, buf.length, UTF_8.INSTANCE);
+                lastline = null;
             } else {
                 while (lbuf[i++] != ':') {
                     if (i >= len) {
@@ -412,8 +414,8 @@ public class Attributes implements Map<Object,Object>, Cloneable {
                 }
                 name = new String(lbuf, 0, i - 2, UTF_8.INSTANCE);
                 if (is.peek() == ' ') {
-                    fullLine.reset();
-                    fullLine.write(lbuf, i, len - i);
+                    lastline = new byte[len - i];
+                    System.arraycopy(lbuf, i, lastline, 0, len - i);
                     continue;
                 }
                 value = new String(lbuf, i, len - i, UTF_8.INSTANCE);

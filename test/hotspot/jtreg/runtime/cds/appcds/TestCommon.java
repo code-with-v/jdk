@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -146,19 +146,6 @@ public class TestCommon extends CDSTestUtils {
     {
         CDSOptions opts = new CDSOptions();
         opts.setArchiveName(baseArchiveName);
-        opts.addSuffix(cmdLineSuffix);
-        opts.addSuffix("-Djava.class.path=");
-        OutputAnalyzer out = CDSTestUtils.createArchive(opts);
-        CDSTestUtils.checkBaseDump(out);
-        return out;
-    }
-
-    public static OutputAnalyzer dumpBaseArchive(String baseArchiveName, String classList[], String ... cmdLineSuffix)
-        throws Exception
-    {
-        CDSOptions opts = new CDSOptions();
-        opts.setArchiveName(baseArchiveName);
-        opts.setClassList(classList);
         opts.addSuffix(cmdLineSuffix);
         opts.addSuffix("-Djava.class.path=");
         OutputAnalyzer out = CDSTestUtils.createArchive(opts);
@@ -411,7 +398,10 @@ public class TestCommon extends CDSTestUtils {
     public static OutputAnalyzer runWithArchive(AppCDSOptions opts)
         throws Exception {
 
-        ArrayList<String> cmd = opts.getRuntimePrefix();
+        ArrayList<String> cmd = new ArrayList<String>();
+
+        for (String p : opts.prefix) cmd.add(p);
+
         cmd.add("-Xshare:" + opts.xShareMode);
         cmd.add("-showversion");
         cmd.add("-XX:SharedArchiveFile=" + getCurrentArchiveName());
@@ -421,8 +411,6 @@ public class TestCommon extends CDSTestUtils {
             cmd.add("-cp");
             cmd.add(opts.appJar);
         }
-
-        CDSTestUtils.addVerifyArchivedFields(cmd);
 
         for (String s : opts.suffix) cmd.add(s);
 
@@ -466,7 +454,7 @@ public class TestCommon extends CDSTestUtils {
 
     public static Result runWithoutCDS(String... suffix) throws Exception {
         AppCDSOptions opts = (new AppCDSOptions());
-        opts.addSuffix(suffix).setXShareMode("off");
+        opts.addSuffix(suffix).setXShareMode("off");;
         return new Result(opts, runWithArchive(opts));
     }
 

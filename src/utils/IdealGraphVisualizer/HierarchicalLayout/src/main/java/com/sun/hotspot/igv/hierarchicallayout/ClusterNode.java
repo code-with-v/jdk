@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2015, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -51,34 +51,14 @@ public class ClusterNode implements Vertex {
     private boolean dirty;
     private boolean root;
     private String name;
-    private final int border;
-    private final Dimension nodeOffset;
-    private final int headerVerticalSpace;
-    private final Dimension emptySize;
+    public static final int BORDER = 20;
 
-    public ClusterNode(Cluster cluster, String name, int border,
-                       Dimension nodeOffset, int headerVerticalSpace,
-                       Dimension emptySize) {
+    public ClusterNode(Cluster cluster, String name) {
         this.subNodes = new HashSet<Vertex>();
         this.subEdges = new HashSet<Link>();
         this.cluster = cluster;
         position = new Point(0, 0);
         this.name = name;
-        this.border = border;
-        this.nodeOffset = nodeOffset;
-        this.headerVerticalSpace = headerVerticalSpace;
-        this.emptySize = emptySize;
-        if (emptySize.width > 0 || emptySize.height > 0) {
-            updateSize();
-        }
-    }
-
-    public ClusterNode(Cluster cluster, String name) {
-        this(cluster, name, 20, new Dimension(0, 0), 0, new Dimension(0, 0));
-    }
-
-    public String getName() {
-        return name;
     }
 
     public void addSubNode(Vertex v) {
@@ -108,11 +88,6 @@ public class ClusterNode implements Vertex {
             public Vertex getVertex() {
                 return widget;
             }
-
-            @Override
-            public String toString() {
-                return "ClusterInput(" + name + ")";
-            }
         };
 
         outputSlot = new Port() {
@@ -124,19 +99,13 @@ public class ClusterNode implements Vertex {
             public Vertex getVertex() {
                 return widget;
             }
-
-            @Override
-            public String toString() {
-                return "ClusterOutput(" + name + ")";
-            }
         };
     }
 
     private void calculateSize() {
 
-        if (subNodes.isEmpty()) {
-            size = emptySize;
-            return;
+        if (subNodes.size() == 0) {
+            size = new Dimension(0, 0);
         }
 
         int minX = Integer.MAX_VALUE;
@@ -165,12 +134,11 @@ public class ClusterNode implements Vertex {
             }
         }
 
-        size = new Dimension(maxX - minX, maxY - minY + headerVerticalSpace);
+        size = new Dimension(maxX - minX, maxY - minY);
 
         // Normalize coordinates
         for (Vertex n : subNodes) {
-            n.setPosition(new Point(n.getPosition().x - minX + nodeOffset.width,
-                                    n.getPosition().y - minY + nodeOffset.height + headerVerticalSpace));
+            n.setPosition(new Point(n.getPosition().x - minX, n.getPosition().y - minY));
         }
 
         for (Link l : subEdges) {
@@ -183,8 +151,8 @@ public class ClusterNode implements Vertex {
 
         }
 
-        size.width += 2 * border;
-        size.height += 2 * border;
+        size.width += 2 * BORDER;
+        size.height += 2 * BORDER;
     }
 
     public Port getInputSlot() {
@@ -209,7 +177,7 @@ public class ClusterNode implements Vertex {
         this.position = pos;
         for (Vertex n : subNodes) {
             Point cur = new Point(n.getPosition());
-            cur.translate(pos.x + border, pos.y + border);
+            cur.translate(pos.x + BORDER, pos.y + BORDER);
             n.setPosition(cur);
         }
 
@@ -219,7 +187,7 @@ public class ClusterNode implements Vertex {
             for (Point p : arr) {
                 if (p != null) {
                     Point p2 = new Point(p);
-                    p2.translate(pos.x + border, pos.y + border);
+                    p2.translate(pos.x + BORDER, pos.y + BORDER);
                     newArr.add(p2);
                 } else {
                     newArr.add(null);
@@ -248,10 +216,6 @@ public class ClusterNode implements Vertex {
 
     public boolean isRoot() {
         return root;
-    }
-
-    public int getBorder() {
-        return border;
     }
 
     public int compareTo(Vertex o) {

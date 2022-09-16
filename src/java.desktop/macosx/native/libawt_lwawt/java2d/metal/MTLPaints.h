@@ -63,17 +63,7 @@
 @end
 
 @interface MTLColorPaint : MTLPaint
-+ (void)setPipelineState:(id <MTLRenderCommandEncoder>)encoder
-                 context:(MTLContext *)mtlc
-           renderOptions:(const RenderOptions *)renderOptions
-    pipelineStateStorage:(MTLPipelineStatesStorage *)pipelineStateStorage
-                  rpDesc:(MTLRenderPipelineDescriptor *)rpDesc
-              vertShader:(NSString *)vertShader
-              fragShader:(NSString *)fragShader
-                   color:(jint)color;
-
 - (id)initWithColor:(jint)color;
-
 @property (nonatomic, readonly) jint color;
 @end
 

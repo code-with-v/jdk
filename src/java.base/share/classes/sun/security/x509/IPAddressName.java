@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -69,7 +69,7 @@ import sun.security.util.DerValue;
  */
 public class IPAddressName implements GeneralNameInterface {
     private byte[] address;
-    private final boolean isIPv4;
+    private boolean isIPv4;
     private String name;
 
     /**
@@ -211,7 +211,8 @@ public class IPAddressName implements GeneralNameInterface {
             byte[] maskArray = bitArray.toByteArray();
 
             // copy mask bytes into mask portion of address
-            System.arraycopy(maskArray, 0, address, MASKSIZE, MASKSIZE);
+            for (int i = 0; i < MASKSIZE; i++)
+                address[MASKSIZE+i] = maskArray[i];
         }
     }
 
@@ -277,7 +278,8 @@ public class IPAddressName implements GeneralNameInterface {
 
                 // copy subdomain into new array and convert to BitArray
                 byte[] maskBytes = new byte[16];
-                System.arraycopy(address, 16, maskBytes, 0, 16);
+                for (int i=16; i < 32; i++)
+                    maskBytes[i-16] = address[i];
                 BitArray ba = new BitArray(16*8, maskBytes);
                 // Find first zero bit
                 int i=0;
@@ -314,9 +316,10 @@ public class IPAddressName implements GeneralNameInterface {
         if (this == obj)
             return true;
 
-        if (!(obj instanceof IPAddressName otherName))
+        if (!(obj instanceof IPAddressName))
             return false;
 
+        IPAddressName otherName = (IPAddressName)obj;
         byte[] other = otherName.address;
 
         if (other.length != address.length)
@@ -396,7 +399,7 @@ public class IPAddressName implements GeneralNameInterface {
             constraintType = NAME_DIFF_TYPE;
         else if (inputName.getType() != NAME_IP)
             constraintType = NAME_DIFF_TYPE;
-        else if (inputName.equals(this))
+        else if (((IPAddressName)inputName).equals(this))
             constraintType = NAME_MATCH;
         else {
             IPAddressName otherName = (IPAddressName)inputName;

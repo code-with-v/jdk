@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,7 +26,7 @@
 package sun.net.dns;
 
 import java.util.List;
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.StringTokenizer;
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -37,7 +37,7 @@ import java.io.IOException;
  * and Linux.
  */
 
-public final class ResolverConfigurationImpl
+public class ResolverConfigurationImpl
     extends ResolverConfiguration
 {
     // Lock helds whilst loading configuration or checking
@@ -56,11 +56,11 @@ public final class ResolverConfigurationImpl
     // Parse /etc/resolv.conf to get the values for a particular
     // keyword.
     //
-    private ArrayList<String> resolvconf(String keyword,
+    private LinkedList<String> resolvconf(String keyword,
                                           int maxperkeyword,
                                           int maxkeywords)
     {
-        ArrayList<String> ll = new ArrayList<>();
+        LinkedList<String> ll = new LinkedList<>();
 
         try {
             BufferedReader in =
@@ -111,8 +111,8 @@ public final class ResolverConfigurationImpl
         return ll;
     }
 
-    private ArrayList<String> searchlist;
-    private ArrayList<String> nameservers;
+    private LinkedList<String> searchlist;
+    private LinkedList<String> nameservers;
 
 
     // Load DNS configuration from OS
@@ -133,7 +133,7 @@ public final class ResolverConfigurationImpl
         nameservers =
             java.security.AccessController.doPrivileged(
                 new java.security.PrivilegedAction<>() {
-                    public ArrayList<String> run() {
+                    public LinkedList<String> run() {
                         // typically MAXNS is 3 but we've picked 5 here
                         // to allow for additional servers if required.
                         return resolvconf("nameserver", 1, 5);
@@ -151,16 +151,16 @@ public final class ResolverConfigurationImpl
     // obtain search list or local domain
 
     @SuppressWarnings("removal")
-    private ArrayList<String> getSearchList() {
+    private LinkedList<String> getSearchList() {
 
-        ArrayList<String> sl;
+        LinkedList<String> sl;
 
         // first try the search keyword in /etc/resolv.conf
 
         sl = java.security.AccessController.doPrivileged(
                  new java.security.PrivilegedAction<>() {
-                    public ArrayList<String> run() {
-                        ArrayList<String> ll;
+                    public LinkedList<String> run() {
+                        LinkedList<String> ll;
 
                         // first try search keyword (max 6 domains)
                         ll = resolvconf("search", 6, 1);
@@ -183,8 +183,8 @@ public final class ResolverConfigurationImpl
 
         sl = java.security.AccessController.doPrivileged(
                  new java.security.PrivilegedAction<>() {
-                    public ArrayList<String> run() {
-                        ArrayList<String> ll;
+                    public LinkedList<String> run() {
+                        LinkedList<String> ll;
 
                         ll = resolvconf("domain", 1, 1);
                         if (ll.size() > 0) {
@@ -201,7 +201,7 @@ public final class ResolverConfigurationImpl
         // no local domain so try fallback (RPC) domain or
         // hostName
 
-        sl = new ArrayList<>();
+        sl = new LinkedList<>();
         String domain = fallbackDomain0();
         if (domain != null && !domain.isEmpty()) {
             sl.add(domain);

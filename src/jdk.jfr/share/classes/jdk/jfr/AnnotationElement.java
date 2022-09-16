@@ -46,7 +46,22 @@ import jdk.jfr.internal.Utils;
  * <p>
  * The following example shows how {@code AnnotationElement} can be used to dynamically define events.
  *
- * {@snippet class="Snippets" region="AnnotationElementOverview"}
+ * <pre>{@literal
+ *   List<AnnotationElement> typeAnnotations = new ArrayList<>();
+ *   typeAnnotations.add(new AnnotationElement(Name.class, "com.example.HelloWorld"));
+ *   typeAnnotations.add(new AnnotationElement(Label.class, "Hello World"));
+ *   typeAnnotations.add(new AnnotationElement(Description.class, "Helps programmer getting started"));
+ *
+ *   List<AnnotationElement> fieldAnnotations = new ArrayList<>();
+ *   fieldAnnotations.add(new AnnotationElement(Label.class, "Message"));
+ *
+ *   List<ValueDescriptor> fields = new ArrayList<>();
+ *   fields.add(new ValueDescriptor(String.class, "message", fieldAnnotations));
+ *
+ *   EventFactory f = EventFactory.create(typeAnnotations, fields);
+ *   Event event = f.newEvent();
+ *   event.commit();
+ * }</pre>
  *
  * @since 9
  */
@@ -112,8 +127,8 @@ public final class AnnotationElement {
      *         signatures in the {@code annotationType}
      */
     public AnnotationElement(Class<? extends Annotation> annotationType, Map<String, Object> values) {
-        Objects.requireNonNull(annotationType, "annotationType");
-        Objects.requireNonNull(values, "values");
+        Objects.requireNonNull(annotationType);
+        Objects.requireNonNull(values);
         Utils.checkRegisterPermission();
         // copy values to avoid modification after validation
         HashMap<String, Object> map = new HashMap<>(values);
@@ -292,7 +307,7 @@ public final class AnnotationElement {
      *         not exist in the annotation
      */
     public Object getValue(String name) {
-        Objects.requireNonNull(name, "name");
+        Objects.requireNonNull(name);
         int index = type.indexOf(name);
         if (index != -1) {
             return annotationValues.get(index);
@@ -314,7 +329,7 @@ public final class AnnotationElement {
      * @return {@code true} if method exists, {@code false} otherwise
      */
     public boolean hasValue(String name) {
-        Objects.requireNonNull(name, "name");
+        Objects.requireNonNull(name);
         return type.indexOf(name) != -1;
     }
 
@@ -385,4 +400,5 @@ public final class AnnotationElement {
     boolean isInBoot() {
         return inBootClassLoader;
     }
+
 }

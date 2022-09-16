@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,7 +36,7 @@ import java.util.Set;
 import jdk.jfr.SettingControl;
 import jdk.jfr.internal.settings.JDKSettingControl;
 
-final class Control {
+public final class Control {
     @SuppressWarnings("removal")
     private final AccessControlContext context;
     private static final int CACHE_SIZE = 5;
@@ -75,7 +75,7 @@ final class Control {
     public String getValue() {
         if (context == null) {
             // VM events requires no access control context
-            return delegate.getValue();
+            return getValue();
         } else {
             return AccessController.doPrivileged(new PrivilegedAction<String>() {
                 @Override
@@ -171,9 +171,5 @@ final class Control {
 
     final String getLastValue() {
         return lastValue;
-    }
-
-    final SettingControl getSettingControl() {
-        return delegate;
     }
 }

@@ -56,7 +56,6 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package jdk.internal.org.objectweb.asm.commons;
 
 import java.util.AbstractMap;
@@ -131,7 +130,7 @@ public class JSRInlinerAdapter extends MethodNode implements Opcodes {
             final String signature,
             final String[] exceptions) {
         this(
-                /* latest api = */ Opcodes.ASM9,
+                /* latest api = */ Opcodes.ASM8,
                 methodVisitor,
                 access,
                 name,
@@ -146,8 +145,9 @@ public class JSRInlinerAdapter extends MethodNode implements Opcodes {
     /**
       * Constructs a new {@link JSRInlinerAdapter}.
       *
-      * @param api the ASM API version implemented by this visitor. Must be one of the {@code
-      *     ASM}<i>x</i> values in {@link Opcodes}.
+      * @param api the ASM API version implemented by this visitor. Must be one of {@link
+      *     Opcodes#ASM4}, {@link Opcodes#ASM5}, {@link Opcodes#ASM6}, {@link Opcodes#ASM7} or {@link
+      *     Opcodes#ASM8}.
       * @param methodVisitor the method visitor to send the resulting inlined method code to, or <code>
       *     null</code>.
       * @param access the method's access flags (see {@link Opcodes}). This parameter also indicates if
@@ -600,4 +600,3 @@ public class JSRInlinerAdapter extends MethodNode implements Opcodes {
         }
     }
 }
-

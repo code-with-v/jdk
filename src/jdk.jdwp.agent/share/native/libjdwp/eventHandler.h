@@ -76,7 +76,6 @@ void eventHandler_reset(jbyte sessionID);
 void eventHandler_lock(void);
 void eventHandler_unlock(void);
 
-jboolean eventHandler_synthesizeUnloadEvent(char *signature, JNIEnv *env);
 
 jclass getMethodClass(jvmtiEnv *jvmti_env, jmethodID method);
 

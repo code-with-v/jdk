@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,11 +25,12 @@
 #ifndef OS_LINUX_OS_LINUX_HPP
 #define OS_LINUX_OS_LINUX_HPP
 
-#include "runtime/os.hpp"
+// Linux_OS defines the interface to Linux operating systems
 
-// os::Linux defines the interface to Linux operating systems
+// Information about the protection of the page at address '0' on this os.
+static bool zero_page_read_protected() { return true; }
 
-class os::Linux {
+class Linux {
   friend class CgroupSubsystem;
   friend class os;
   friend class OSContainer;
@@ -55,8 +56,11 @@ class os::Linux {
 
   static julong _physical_memory;
   static pthread_t _main_thread;
+  static int _page_size;
 
   static julong available_memory();
+  static julong physical_memory() { return _physical_memory; }
+  static void set_physical_memory(julong phys_mem) { _physical_memory = phys_mem; }
   static int active_processor_count();
 
   static void initialize_system_info();
@@ -116,7 +120,6 @@ class os::Linux {
   static bool _stack_is_executable;
   static void *dlopen_helper(const char *name, char *ebuf, int ebuflen);
   static void *dll_load_in_vmthread(const char *name, char *ebuf, int ebuflen);
-  static const char *dll_path(void* lib);
 
   static void init_thread_fpu_state();
   static int  get_fpu_control_word();
@@ -129,8 +132,8 @@ class os::Linux {
   static address   initial_thread_stack_bottom(void)                { return _initial_thread_stack_bottom; }
   static uintptr_t initial_thread_stack_size(void)                  { return _initial_thread_stack_size; }
 
-  static julong physical_memory() { return _physical_memory; }
-  static julong host_swap();
+  static int page_size(void)                                        { return _page_size; }
+  static void set_page_size(int val)                                { _page_size = val; }
 
   static intptr_t* ucontext_get_sp(const ucontext_t* uc);
   static intptr_t* ucontext_get_fp(const ucontext_t* uc);
@@ -153,7 +156,6 @@ class os::Linux {
 
   // Stack overflow handling
   static bool manually_expand_stack(JavaThread * t, address addr);
-  static void expand_stack_to(address bottom);
 
   // fast POSIX clocks support
   static void fast_thread_clock_init(void);
@@ -172,29 +174,13 @@ class os::Linux {
   // Return the namespace pid if so, otherwise -1.
   static int get_namespace_pid(int vmid);
 
-  // Output structure for query_process_memory_info()
-  struct meminfo_t {
-    ssize_t vmsize;     // current virtual size
-    ssize_t vmpeak;     // peak virtual size
-    ssize_t vmrss;      // current resident set size
-    ssize_t vmhwm;      // peak resident set size
-    ssize_t vmswap;     // swapped out
-    ssize_t rssanon;    // resident set size (anonymous mappings, needs 4.5)
-    ssize_t rssfile;    // resident set size (file mappings, needs 4.5)
-    ssize_t rssshmem;   // resident set size (shared mappings, needs 4.5)
-  };
-
-  // Attempts to query memory information about the current process and return it in the output structure.
-  // May fail (returns false) or succeed (returns true) but not all output fields are available; unavailable
-  // fields will contain -1.
-  static bool query_process_memory_info(meminfo_t* info);
-
   // Stack repair handling
 
   // none present
 
  private:
   static void numa_init();
+  static void expand_stack_to(address bottom);
 
   typedef int (*sched_getcpu_func_t)(void);
   typedef int (*numa_node_to_cpus_func_t)(int node, unsigned long *buffer, int bufferlen);
@@ -424,8 +410,6 @@ class os::Linux {
   static const GrowableArray<int>* numa_nindex_to_node() {
     return _nindex_to_node;
   }
-
-  static void* resolve_function_descriptor(void* p);
 };
 
 #endif // OS_LINUX_OS_LINUX_HPP

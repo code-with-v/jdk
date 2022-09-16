@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -135,8 +135,8 @@ public class RSAKeyFactory extends KeyFactorySpi {
     }
 
     /*
-     * Single test entry point for all the mechanisms in the SunRsaSign
-     * provider (RSA*KeyImpls).  All the tests are the same.
+     * Single test entry point for all of the mechanisms in the SunRsaSign
+     * provider (RSA*KeyImpls).  All of the tests are the same.
      *
      * For compatibility, we round up to the nearest byte here:
      * some Key impls might pass in a value within a byte of the
@@ -257,7 +257,8 @@ public class RSAKeyFactory extends KeyFactorySpi {
     // internal implementation of translateKey() for public keys. See JCA doc
     private PublicKey translatePublicKey(PublicKey key)
             throws InvalidKeyException {
-        if (key instanceof RSAPublicKey rsaKey) {
+        if (key instanceof RSAPublicKey) {
+            RSAPublicKey rsaKey = (RSAPublicKey)key;
             try {
                 return new RSAPublicKeyImpl(
                     type, rsaKey.getParams(),
@@ -277,7 +278,8 @@ public class RSAKeyFactory extends KeyFactorySpi {
     // internal implementation of translateKey() for private keys. See JCA doc
     private PrivateKey translatePrivateKey(PrivateKey key)
             throws InvalidKeyException {
-        if (key instanceof RSAPrivateCrtKey rsaKey) {
+        if (key instanceof RSAPrivateCrtKey) {
+            RSAPrivateCrtKey rsaKey = (RSAPrivateCrtKey)key;
             try {
                 return new RSAPrivateCrtKeyImpl(
                     type, rsaKey.getParams(),
@@ -294,7 +296,8 @@ public class RSAKeyFactory extends KeyFactorySpi {
                 // catch providers that incorrectly implement RSAPrivateCrtKey
                 throw new InvalidKeyException("Invalid key", e);
             }
-        } else if (key instanceof RSAPrivateKey rsaKey) {
+        } else if (key instanceof RSAPrivateKey) {
+            RSAPrivateKey rsaKey = (RSAPrivateKey)key;
             try {
                 return new RSAPrivateKeyImpl(
                     type, rsaKey.getParams(),
@@ -323,7 +326,8 @@ public class RSAKeyFactory extends KeyFactorySpi {
         if (keySpec instanceof X509EncodedKeySpec) {
             return RSAPublicKeyImpl.newKey(type, "X.509",
                     ((X509EncodedKeySpec)keySpec).getEncoded());
-        } else if (keySpec instanceof RSAPublicKeySpec rsaSpec) {
+        } else if (keySpec instanceof RSAPublicKeySpec) {
+            RSAPublicKeySpec rsaSpec = (RSAPublicKeySpec)keySpec;
             try {
                 return new RSAPublicKeyImpl(
                     type, rsaSpec.getParams(),
@@ -349,7 +353,8 @@ public class RSAKeyFactory extends KeyFactorySpi {
             } finally {
                 Arrays.fill(encoded, (byte)0);
             }
-        } else if (keySpec instanceof RSAPrivateCrtKeySpec rsaSpec) {
+        } else if (keySpec instanceof RSAPrivateCrtKeySpec) {
+            RSAPrivateCrtKeySpec rsaSpec = (RSAPrivateCrtKeySpec)keySpec;
             try {
                 return new RSAPrivateCrtKeyImpl(
                     type, rsaSpec.getParams(),
@@ -365,7 +370,8 @@ public class RSAKeyFactory extends KeyFactorySpi {
             } catch (ProviderException e) {
                 throw new InvalidKeySpecException(e);
             }
-        } else if (keySpec instanceof RSAPrivateKeySpec rsaSpec) {
+        } else if (keySpec instanceof RSAPrivateKeySpec) {
+            RSAPrivateKeySpec rsaSpec = (RSAPrivateKeySpec)keySpec;
             try {
                 return new RSAPrivateKeyImpl(
                     type, rsaSpec.getParams(),
@@ -392,7 +398,8 @@ public class RSAKeyFactory extends KeyFactorySpi {
         } catch (InvalidKeyException e) {
             throw new InvalidKeySpecException(e);
         }
-        if (key instanceof RSAPublicKey rsaKey) {
+        if (key instanceof RSAPublicKey) {
+            RSAPublicKey rsaKey = (RSAPublicKey)key;
             if (keySpec.isAssignableFrom(RSA_PUB_KEYSPEC_CLS)) {
                 return keySpec.cast(new RSAPublicKeySpec(
                     rsaKey.getModulus(),
@@ -416,7 +423,8 @@ public class RSAKeyFactory extends KeyFactorySpi {
                 }
             } else if (keySpec.isAssignableFrom(RSA_PRIVCRT_KEYSPEC_CLS)) {
                 // All supported keyspecs (other than PKCS8_KEYSPEC_CLS) descend from RSA_PRIVCRT_KEYSPEC_CLS
-                if (key instanceof RSAPrivateCrtKey crtKey) {
+                if (key instanceof RSAPrivateCrtKey) {
+                    RSAPrivateCrtKey crtKey = (RSAPrivateCrtKey)key;
                     return keySpec.cast(new RSAPrivateCrtKeySpec(
                         crtKey.getModulus(),
                         crtKey.getPublicExponent(),

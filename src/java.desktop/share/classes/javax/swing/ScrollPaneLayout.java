@@ -230,7 +230,7 @@ public class ScrollPaneLayout
      *
      * @param s the component identifier
      * @param c the component to be added
-     * @throws IllegalArgumentException if <code>s</code> is an invalid key
+     * @exception IllegalArgumentException if <code>s</code> is an invalid key
      */
     public void addLayoutComponent(String s, Component c)
     {
@@ -328,7 +328,7 @@ public class ScrollPaneLayout
      * with the Swing 1.0.2 (and earlier) versions of this class.
      *
      * @param x an integer giving the display policy
-     * @throws IllegalArgumentException if <code>x</code> is an invalid
+     * @exception IllegalArgumentException if <code>x</code> is an invalid
      *          vertical scroll bar policy, as listed above
      */
     public void setVerticalScrollBarPolicy(int x) {
@@ -366,7 +366,7 @@ public class ScrollPaneLayout
      * with the Swing 1.0.2 (and earlier) versions of this class.
      *
      * @param x an int giving the display policy
-     * @throws IllegalArgumentException if <code>x</code> is not a valid
+     * @exception IllegalArgumentException if <code>x</code> is not a valid
      *          horizontal scrollbar policy, as listed above
      */
     public void setHorizontalScrollBarPolicy(int x) {

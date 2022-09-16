@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2018, Oracle and/or its affiliates. All rights reserved.
  */
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -56,7 +56,7 @@ import org.w3c.dom.Node;
  * @xerces.internal
  *
  * @since  PR-DOM-Level-1-19980818.
- * @LastModified: June 2022
+ * @LastModified: Jan 2018
  */
 public class NamedNodeMapImpl
     implements NamedNodeMap, Serializable {
@@ -79,7 +79,6 @@ public class NamedNodeMapImpl
     protected final static short HASDEFAULTS  = 0x1<<2;
 
     /** Nodes. */
-    @SuppressWarnings("serial") // Type of field is not Serializable
     protected List<Node> nodes;
 
     protected NodeImpl ownerNode; // the node this map belongs to
@@ -197,7 +196,7 @@ public class NamedNodeMapImpl
         } else {
             i = -1 - i; // Insert point (may be end of list)
             if (null == nodes) {
-                nodes = new ArrayList<>();
+                nodes = new ArrayList<>(5);
             }
             nodes.add(i, arg);
         }
@@ -247,7 +246,7 @@ public class NamedNodeMapImpl
             } else {
                 i = -1 - i; // Insert point (may be end of list)
                 if (null == nodes) {
-                    nodes = new ArrayList<>();
+                    nodes = new ArrayList<>(5);
                 }
                 nodes.add(i, arg);
             }
@@ -562,7 +561,7 @@ public class NamedNodeMapImpl
             else {
                 i = -1 - i; // Insert point (may be end of list)
                 if (null == nodes) {
-                    nodes = new ArrayList<>();
+                    nodes = new ArrayList<>(5);
                 }
                 nodes.add(i, arg);
             }

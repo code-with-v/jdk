@@ -333,3 +333,4 @@ final class HotSpotJDKReflection extends HotSpotJVMCIReflection {
         }
     }
 }
+

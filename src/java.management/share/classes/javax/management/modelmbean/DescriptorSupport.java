@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -81,7 +81,7 @@ import sun.reflect.misc.ReflectUtil;
  *
  * @since 1.5
  */
-@SuppressWarnings("serial")  // serialVersionUID not constant
+@SuppressWarnings({"removal","serial"})  // serialVersionUID not constant
 public class DescriptorSupport
          implements javax.management.Descriptor
 {
@@ -119,8 +119,16 @@ public class DescriptorSupport
     private static final ObjectStreamField[] serialPersistentFields;
     private static final String serialForm;
     static {
-        serialForm = getForm();
-        boolean compat = "1.0".equals(serialForm);  // serialForm may be null
+        String form = null;
+        boolean compat = false;
+        try {
+            GetPropertyAction act = new GetPropertyAction("jmx.serial.form");
+            form = AccessController.doPrivileged(act);
+            compat = "1.0".equals(form);  // form may be null
+        } catch (Exception e) {
+            // OK: No compat with 1.0
+        }
+        serialForm = form;
         if (compat) {
             serialPersistentFields = oldSerialPersistentFields;
             serialVersionUID = oldSerialVersionUID;
@@ -129,19 +137,6 @@ public class DescriptorSupport
             serialVersionUID = newSerialVersionUID;
         }
     }
-
-    @SuppressWarnings("removal")
-    private static String getForm() {
-        String form = null;
-        try {
-            GetPropertyAction act = new GetPropertyAction("jmx.serial.form");
-            return  AccessController.doPrivileged(act);
-        } catch (Exception e) {
-            // OK: No compat with 1.0
-            return null;
-        }
-    }
-
     //
     // END Serialization compatibility stuff
 
@@ -493,7 +488,8 @@ public class DescriptorSupport
     }
 
     private void init(Map<String, ?> initMap) {
-        descriptorMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        descriptorMap =
+                new TreeMap<String, Object>(String.CASE_INSENSITIVE_ORDER);
         if (initMap != null)
             descriptorMap.putAll(initMap);
     }
@@ -1061,7 +1057,7 @@ public class DescriptorSupport
         "\f&#12;",
     };
     private static final Map<String,Character> entityToCharMap =
-        new HashMap<>();
+        new HashMap<String,Character>();
     private static final String[] charToEntityMap;
 
     static {
@@ -1318,18 +1314,18 @@ public class DescriptorSupport
          */
         SortedMap<String, Object> startMap = descriptorMap;
         if (startMap.containsKey("targetObject")) {
-            startMap = new TreeMap<>(descriptorMap);
+            startMap = new TreeMap<String, Object>(descriptorMap);
             startMap.remove("targetObject");
         }
 
         final HashMap<String, Object> descriptor;
         if (compat || "1.2.0".equals(serialForm) ||
                 "1.2.1".equals(serialForm)) {
-            descriptor = new HashMap<>();
+            descriptor = new HashMap<String, Object>();
             for (Map.Entry<String, Object> entry : startMap.entrySet())
                 descriptor.put(entry.getKey().toLowerCase(), entry.getValue());
         } else
-            descriptor = new HashMap<>(startMap);
+            descriptor = new HashMap<String, Object>(startMap);
 
         fields.put("descriptor", descriptor);
         out.writeFields();

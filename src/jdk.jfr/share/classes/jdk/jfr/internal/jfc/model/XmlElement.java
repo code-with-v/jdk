@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,7 @@
  */
 package jdk.jfr.internal.jfc.model;
 
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -62,7 +63,7 @@ class XmlElement {
         return attributes;
     }
 
-    final void validate() throws JFCModelException {
+    final void validate() throws ParseException {
         validateAttributes();
         validateChildConstraints();
         validateChildren();
@@ -178,35 +179,35 @@ class XmlElement {
         return producers.get(0).evaluate();
     }
 
-    protected void validateAttributes() throws JFCModelException {
+    protected void validateAttributes() throws ParseException {
         for (String key : attributes()) {
             if (!attributes.containsKey(key)) {
-                throw new JFCModelException("Missing mandatory attribute '" + key + "'");
+                throw new ParseException("Missing mandatory attribute '" + key + "'", 0);
             }
         }
     }
 
-    private void validateChildren() throws JFCModelException {
+    private void validateChildren() throws ParseException {
         for (XmlElement child : elements) {
             child.validate();
         }
     }
 
-    protected void validateChildConstraints() throws JFCModelException {
+    protected void validateChildConstraints() throws ParseException {
         for (Constraint c : constraints()) {
             validateConstraint(c);
         }
     }
 
-    private final void validateConstraint(Constraint c) throws JFCModelException {
+    private final void validateConstraint(Constraint c) throws ParseException {
         int count = count(c.type());
         if (count < c.min()) {
             String elementName = Utilities.elementName(c.type());
-            throw new JFCModelException("Missing mandatory element <" + elementName + ">");
+            throw new ParseException("Missing mandatory element <" + elementName + ">", 0);
         }
         if (count > c.max()) {
             String elementName = Utilities.elementName(c.type());
-            throw new JFCModelException("Too many elements of type <" + elementName + ">");
+            throw new ParseException("Too many elements of type <" + elementName + ">", 0);
         }
     }
 

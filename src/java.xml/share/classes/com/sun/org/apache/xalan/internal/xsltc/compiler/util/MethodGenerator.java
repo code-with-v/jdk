@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  */
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -67,7 +67,6 @@ import com.sun.org.apache.xalan.internal.xsltc.compiler.XSLTC;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -76,7 +75,7 @@ import java.util.Stack;
 /**
  * @author Jacek Ambroziak
  * @author Santiago Pericas-Geertsen
- * @LastModified: Sep 2021
+ * @LastModified: July 2019
  */
 public class MethodGenerator extends MethodGen
     implements com.sun.org.apache.xalan.internal.xsltc.compiler.Constants {
@@ -284,7 +283,7 @@ public class MethodGenerator extends MethodGen
         /**
          * Maps a name to a {@link LocalVariableGen}
          */
-        protected Map<String, Object> _nameToLVGMap = new LinkedHashMap<>();
+        protected Map<String, Object> _nameToLVGMap = new HashMap<>();
 
         /**
          * Registers a {@link org.apache.bcel.generic.LocalVariableGen}
@@ -1331,8 +1330,8 @@ public class MethodGenerator extends MethodGen
         // to local variables in the outlined method.
         HashMap<LocalVariableGen, LocalVariableGen> localVarMap = new HashMap<>();
 
-        HashMap<LocalVariableGen, InstructionHandle> revisedLocalVarStart = new LinkedHashMap<>();
-        HashMap<LocalVariableGen, InstructionHandle> revisedLocalVarEnd = new LinkedHashMap<>();
+        HashMap<LocalVariableGen, InstructionHandle> revisedLocalVarStart = new HashMap<>();
+        HashMap<LocalVariableGen, InstructionHandle> revisedLocalVarEnd = new HashMap<>();
 
         // Pass 1: Make copies of all instructions, append them to the new list
         // and associate old instruction references with the new ones, i.e.,

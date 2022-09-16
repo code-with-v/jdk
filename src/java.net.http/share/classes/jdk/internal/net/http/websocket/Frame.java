@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -215,11 +215,7 @@ final class Frame {
             if (value) {
                 firstChar |=  0b10000000_00000000;
             } else {
-                // Explicit cast required:
-                // The negation "~" sets the high order bits
-                // so the value becomes more than 16 bits and the
-                // compiler will emit a warning if not cast
-                firstChar &= (char) ~0b10000000_00000000;
+                firstChar &= ~0b10000000_00000000;
             }
             return this;
         }
@@ -228,8 +224,7 @@ final class Frame {
             if (value) {
                 firstChar |=  0b01000000_00000000;
             } else {
-                // Explicit cast required - see fin() above
-                firstChar &= (char) ~0b01000000_00000000;
+                firstChar &= ~0b01000000_00000000;
             }
             return this;
         }
@@ -238,8 +233,7 @@ final class Frame {
             if (value) {
                 firstChar |=  0b00100000_00000000;
             } else {
-                // Explicit cast required - see fin() above
-                firstChar &= (char) ~0b00100000_00000000;
+                firstChar &= ~0b00100000_00000000;
             }
             return this;
         }
@@ -248,8 +242,7 @@ final class Frame {
             if (value) {
                 firstChar |=  0b00010000_00000000;
             } else {
-                // Explicit cast required - see fin() above
-                firstChar &= (char) ~0b00010000_00000000;
+                firstChar &= ~0b00010000_00000000;
             }
             return this;
         }
@@ -266,7 +259,7 @@ final class Frame {
             payloadLen = value;
             firstChar &= 0b11111111_10000000; // Clear previous payload length leftovers
             if (payloadLen < 126) {
-                firstChar |= (char) payloadLen;
+                firstChar |= payloadLen;
             } else if (payloadLen < 65536) {
                 firstChar |= 126;
             } else {
@@ -283,8 +276,7 @@ final class Frame {
         }
 
         HeaderWriter noMask() {
-            // Explicit cast required: see fin() above
-            firstChar &= (char) ~0b00000000_10000000;
+            firstChar &= ~0b00000000_10000000;
             mask = false;
             return this;
         }

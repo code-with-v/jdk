@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,8 @@
 
 #ifndef SHARE_SERVICES_VIRTUALMEMORYTRACKER_HPP
 #define SHARE_SERVICES_VIRTUALMEMORYTRACKER_HPP
+
+#if INCLUDE_NMT
 
 #include "memory/allocation.hpp"
 #include "memory/metaspace.hpp" // For MetadataType
@@ -339,7 +341,7 @@ class ReservedMemoryRegion : public VirtualMemoryRegion {
     return *this;
   }
 
-  const char* flag_name() const { return NMTUtil::flag_to_name(_flag); }
+  const char* flag_name() { return NMTUtil::flag_to_name(_flag); }
 
  private:
   // The committed region contains the uncommitted region, subtract the uncommitted
@@ -369,6 +371,9 @@ class VirtualMemoryTracker : AllStatic {
  public:
   static bool initialize(NMT_TrackingLevel level);
 
+  // Late phase initialization
+  static bool late_initialize(NMT_TrackingLevel level);
+
   static bool add_reserved_region (address base_addr, size_t size, const NativeCallStack& stack, MEMFLAGS flag = mtNone);
 
   static bool add_committed_region      (address base_addr, size_t size, const NativeCallStack& stack);
@@ -385,9 +390,7 @@ class VirtualMemoryTracker : AllStatic {
   // Walk virtual memory data structure for creating baseline, etc.
   static bool walk_virtual_memory(VirtualMemoryWalker* walker);
 
-  // If p is contained within a known memory region, print information about it to the
-  // given stream and return true; false otherwise.
-  static bool print_containing_region(const void* p, outputStream* st);
+  static bool transition(NMT_TrackingLevel from, NMT_TrackingLevel to);
 
   // Snapshot current thread stacks
   static void snapshot_thread_stacks();
@@ -396,5 +399,6 @@ class VirtualMemoryTracker : AllStatic {
   static SortedLinkedList<ReservedMemoryRegion, compare_reserved_region_base>* _reserved_regions;
 };
 
-#endif // SHARE_SERVICES_VIRTUALMEMORYTRACKER_HPP
+#endif // INCLUDE_NMT
 
+#endif // SHARE_SERVICES_VIRTUALMEMORYTRACKER_HPP

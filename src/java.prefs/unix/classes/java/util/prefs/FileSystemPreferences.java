@@ -24,7 +24,6 @@
  */
 
 package java.util.prefs;
-
 import java.util.*;
 import java.io.*;
 import java.security.AccessController;
@@ -47,14 +46,10 @@ import sun.util.logging.PlatformLogger;
  * @see     Preferences
  * @since   1.4
  */
+@SuppressWarnings("removal")
 class FileSystemPreferences extends AbstractPreferences {
 
     static {
-        loadPrefsLib();
-    }
-
-    @SuppressWarnings("removal")
-    private static void loadPrefsLib() {
         PrivilegedAction<Void> load = () -> {
             System.loadLibrary("prefs");
             return null;
@@ -65,7 +60,6 @@ class FileSystemPreferences extends AbstractPreferences {
     /**
      * Sync interval in seconds.
      */
-    @SuppressWarnings("removal")
     private static final int SYNC_INTERVAL = Math.max(1,
         AccessController.doPrivileged((PrivilegedAction<Integer>) () ->
              Integer.getInteger("java.util.prefs.syncInterval", 30)));
@@ -117,7 +111,6 @@ class FileSystemPreferences extends AbstractPreferences {
         return root;
     }
 
-    @SuppressWarnings("removal")
     private static void setupUserRoot() {
         AccessController.doPrivileged(new PrivilegedAction<Void>() {
             public Void run() {
@@ -185,7 +178,6 @@ class FileSystemPreferences extends AbstractPreferences {
         return root;
     }
 
-    @SuppressWarnings("removal")
     private static void setupSystemRoot() {
         AccessController.doPrivileged(new PrivilegedAction<Void>() {
             public Void run() {
@@ -299,8 +291,8 @@ class FileSystemPreferences extends AbstractPreferences {
      * A temporary file used for saving changes to preferences.  As part of
      * the sync operation, changes are first saved into this file, and then
      * atomically renamed to prefsFile.  This results in an atomic state
-     * change from one valid set of preferences to another.
-     * The file-lock is held for the duration of this transformation.
+     * change from one valid set of preferences to another.  The
+     * the file-lock is held for the duration of this transformation.
      */
     private final File tmpFile;
 
@@ -386,12 +378,12 @@ class FileSystemPreferences extends AbstractPreferences {
     /**
      * Represents a change to a preference.
      */
-    private abstract static class Change {
+    private abstract class Change {
         /**
          * Reapplies the change to prefsCache.
          */
         abstract void replay();
-    }
+    };
 
     /**
      * Represents a preference put.
@@ -427,7 +419,7 @@ class FileSystemPreferences extends AbstractPreferences {
     /**
      * Represents the creation of this node.
      */
-    private static class NodeCreate extends Change {
+    private class NodeCreate extends Change {
         /**
          * Performs no action, but the presence of this object in changeLog
          * will force the node and its ancestors to be made permanent at the
@@ -453,11 +445,6 @@ class FileSystemPreferences extends AbstractPreferences {
     private static Timer syncTimer = new Timer(true); // Daemon Thread
 
     static {
-        addShutdownHook();
-    }
-
-    @SuppressWarnings("removal")
-    private static void addShutdownHook() {
         // Add periodic timer task to periodically sync cached prefs
         syncTimer.schedule(new TimerTask() {
             public void run() {
@@ -526,7 +513,6 @@ class FileSystemPreferences extends AbstractPreferences {
      * parent node and name.  This constructor, called from childSpi,
      * is used to make every node except for the two //roots.
      */
-    @SuppressWarnings("removal")
     private FileSystemPreferences(FileSystemPreferences parent, String name) {
         super(parent, name);
         isUserNode = parent.isUserNode;
@@ -596,7 +582,6 @@ class FileSystemPreferences extends AbstractPreferences {
      * fails, a BackingStoreException is thrown and both prefsCache and
      * lastSyncTime are unaffected by the call.
      */
-    @SuppressWarnings("removal")
     private void loadCache() throws BackingStoreException {
         try {
             AccessController.doPrivileged(
@@ -644,7 +629,6 @@ class FileSystemPreferences extends AbstractPreferences {
      * and lastSyncTime will be unaffected by this call.  This call will
      * NEVER leave prefsFile in a corrupt state.
      */
-    @SuppressWarnings("removal")
     private void writeBackCache() throws BackingStoreException {
         try {
             AccessController.doPrivileged(
@@ -678,7 +662,6 @@ class FileSystemPreferences extends AbstractPreferences {
         return prefsCache.keySet().toArray(new String[prefsCache.size()]);
     }
 
-    @SuppressWarnings("removal")
     protected String[] childrenNamesSpi() {
         return AccessController.doPrivileged(
             new PrivilegedAction<String[]>() {
@@ -717,7 +700,6 @@ class FileSystemPreferences extends AbstractPreferences {
     /**
      * Called with file lock held (in addition to node locks).
      */
-    @SuppressWarnings("removal")
     protected void removeNodeSpi() throws BackingStoreException {
         try {
             AccessController.doPrivileged(
@@ -752,7 +734,6 @@ class FileSystemPreferences extends AbstractPreferences {
         }
     }
 
-    @SuppressWarnings("removal")
     public synchronized void sync() throws BackingStoreException {
         boolean userNode = isUserNode();
         boolean shared;
@@ -802,7 +783,6 @@ class FileSystemPreferences extends AbstractPreferences {
         }
     }
 
-    @SuppressWarnings("removal")
     protected void syncSpi() throws BackingStoreException {
         try {
             AccessController.doPrivileged(

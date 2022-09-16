@@ -245,7 +245,6 @@ public class ExceptionsTest extends KullaTesting {
                 new ExceptionInfo(ExceptionInInitializerError.class, null,
                         new StackTraceElement("java.lang.Class", "forName0",  "Class.java", -2),
                         new StackTraceElement("java.lang.Class", "forName", "Class.java", -2),
-                        new StackTraceElement("java.lang.Class", "forName", "Class.java", -2),
                         newStackTraceElement("", "", se.snippet(), 1)));
     }
 

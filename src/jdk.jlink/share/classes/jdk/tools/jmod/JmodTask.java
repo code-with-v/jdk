@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -59,15 +59,9 @@ import java.util.jar.JarOutputStream;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipException;
 import java.util.zip.ZipFile;
-import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 
 import jdk.internal.jmod.JmodFile;
 import jdk.internal.jmod.JmodFile.Section;
@@ -166,12 +160,7 @@ public class JmodTask {
         boolean dryrun;
         List<PathMatcher> excludes;
         Path extractDir;
-        LocalDateTime date;
     }
-
-    // Valid --date range
-    static final ZonedDateTime DATE_MIN = ZonedDateTime.parse("1980-01-01T00:00:02Z");
-    static final ZonedDateTime DATE_MAX = ZonedDateTime.parse("2099-12-31T23:59:59Z");
 
     public int run(String[] args) {
 
@@ -438,7 +427,7 @@ public class JmodTask {
         Path target = options.jmodFile;
         Path tempTarget = jmodTempFilePath(target);
         try {
-            try (JmodOutputStream jos = JmodOutputStream.newOutputStream(tempTarget, options.date)) {
+            try (JmodOutputStream jos = JmodOutputStream.newOutputStream(tempTarget)) {
                 jmod.write(jos);
             }
             Files.move(tempTarget, target);
@@ -683,13 +672,15 @@ public class JmodTask {
          * Returns the set of packages in the given directory tree.
          */
         Set<String> findPackages(Path dir) {
-            try (Stream<Path> stream = Files.find(dir, Integer.MAX_VALUE,
-                                  (path, attrs) -> attrs.isRegularFile(),
-                                  FileVisitOption.FOLLOW_LINKS)) {
-                return stream.map(dir::relativize)
+            try {
+                return Files.find(dir, Integer.MAX_VALUE,
+                                  ((path, attrs) -> attrs.isRegularFile()),
+                                  FileVisitOption.FOLLOW_LINKS)
+                        .map(dir::relativize)
                         .filter(path -> isResource(path.toString()))
                         .map(path -> toPackageName(path))
                         .filter(pkg -> pkg.length() > 0)
+                        .distinct()
                         .collect(Collectors.toSet());
             } catch (IOException ioe) {
                 throw new UncheckedIOException(ioe);
@@ -704,6 +695,7 @@ public class JmodTask {
                      .filter(e -> !e.isDirectory() && isResource(e.getName()))
                      .map(e -> toPackageName(e))
                      .filter(pkg -> pkg.length() > 0)
+                     .distinct()
                      .collect(Collectors.toSet());
         }
 
@@ -775,10 +767,6 @@ public class JmodTask {
         void processSection(JmodOutputStream out, Section section, Path path)
             throws IOException
         {
-            // Keep a sorted set of files to be processed, so that the jmod
-            // content is reproducible as Files.walkFileTree order is not defined
-            SortedMap<String, Path> filesToProcess = new TreeMap<String, Path>();
-
             Files.walkFileTree(path, Set.of(FileVisitOption.FOLLOW_LINKS),
                 Integer.MAX_VALUE, new SimpleFileVisitor<Path>() {
                     @Override
@@ -794,21 +782,14 @@ public class JmodTask {
                             if (out.contains(section, name)) {
                                 warning("warn.ignore.duplicate.entry", name, section);
                             } else {
-                                filesToProcess.put(name, file);
+                                try (InputStream in = Files.newInputStream(file)) {
+                                    out.writeEntry(in, section, name);
+                                }
                             }
                         }
                         return FileVisitResult.CONTINUE;
                     }
                 });
-
-            // Process files in sorted order for deterministic jmod content
-            for (Map.Entry<String, Path> entry : filesToProcess.entrySet()) {
-                String name = entry.getKey();
-                Path   file = entry.getValue();
-                try (InputStream in = Files.newInputStream(file)) {
-                    out.writeEntry(in, section, name);
-                }
-            }
         }
 
         boolean matches(Path path, List<PathMatcher> matchers) {
@@ -909,7 +890,7 @@ public class JmodTask {
             // filter modules resolved from the system module finder
             this.modules = config.modules().stream()
                 .map(ResolvedModule::name)
-                .filter(mn -> roots.contains(mn) && system.find(mn).isEmpty())
+                .filter(mn -> roots.contains(mn) && !system.find(mn).isPresent())
                 .collect(Collectors.toSet());
 
             this.hashesBuilder = new ModuleHashesBuilder(config, modules);
@@ -992,11 +973,7 @@ public class JmodTask {
                         if (e.getName().equals(MODULE_INFO)) {
                             // what about module-info.class in versioned entries?
                             ZipEntry ze = new ZipEntry(e.getName());
-                            if (options.date != null) {
-                                ze.setTimeLocal(options.date);
-                            } else {
-                                ze.setTime(System.currentTimeMillis());
-                            }
+                            ze.setTime(System.currentTimeMillis());
                             jos.putNextEntry(ze);
                             recordHashes(in, jos, moduleHashes);
                             jos.closeEntry();
@@ -1024,7 +1001,7 @@ public class JmodTask {
         {
 
             try (JmodFile jf = new JmodFile(target);
-                 JmodOutputStream jos = JmodOutputStream.newOutputStream(tempTarget, options.date))
+                 JmodOutputStream jos = JmodOutputStream.newOutputStream(tempTarget))
             {
                 jf.stream().forEach(e -> {
                     try (InputStream in = jf.getInputStream(e.section(), e.name())) {
@@ -1064,7 +1041,7 @@ public class JmodTask {
      * Specific subclasses should do whatever validation is required on the
      * individual path elements, if any.
      */
-    abstract static class AbstractPathConverter implements ValueConverter<List<Path>> {
+    static abstract class AbstractPathConverter implements ValueConverter<List<Path>> {
         @Override
         public List<Path> convert(String value) {
             List<Path> paths = new ArrayList<>();
@@ -1157,26 +1134,6 @@ public class JmodTask {
         @Override public Class<Version> valueType() { return Version.class; }
 
         @Override public String valuePattern() { return "module-version"; }
-    }
-
-    static class DateConverter implements ValueConverter<LocalDateTime> {
-        @Override
-        public LocalDateTime convert(String value) {
-            try {
-                ZonedDateTime date = ZonedDateTime.parse(value, DateTimeFormatter.ISO_ZONED_DATE_TIME)
-                                                          .withZoneSameInstant(ZoneOffset.UTC);
-                if (date.isBefore(DATE_MIN) || date.isAfter(DATE_MAX)) {
-                    throw new CommandException("err.date.out.of.range", value);
-                }
-                return date.toLocalDateTime();
-            } catch (DateTimeParseException x) {
-                throw new CommandException("err.invalid.date", value, x.getMessage());
-            }
-        }
-
-        @Override public Class<LocalDateTime> valueType() { return LocalDateTime.class; }
-
-        @Override public String valuePattern() { return "date"; }
     }
 
     static class WarnIfResolvedReasonConverter
@@ -1414,11 +1371,6 @@ public class JmodTask {
         OptionSpec<Void> version
                 = parser.accepts("version", getMessage("main.opt.version"));
 
-        OptionSpec<LocalDateTime> date
-                = parser.accepts("date", getMessage("main.opt.date"))
-                        .withRequiredArg()
-                        .withValuesConvertedBy(new DateConverter());
-
         NonOptionArgumentSpec<String> nonOptions
                 = parser.nonOptions();
 
@@ -1462,8 +1414,6 @@ public class JmodTask {
                 options.manPages = getLastElement(opts.valuesOf(manPages));
             if (opts.has(legalNotices))
                 options.legalNotices = getLastElement(opts.valuesOf(legalNotices));
-            if (opts.has(date))
-                options.date = opts.valueOf(date);
             if (opts.has(modulePath)) {
                 Path[] dirs = getLastElement(opts.valuesOf(modulePath)).toArray(new Path[0]);
                 options.moduleFinder = ModulePath.of(Runtime.version(), true, dirs);
@@ -1601,7 +1551,7 @@ public class JmodTask {
         return System.getProperty("java.version");
     }
 
-    static String getMessage(String key, Object... args) {
+    private static String getMessage(String key, Object... args) {
         try {
             return MessageFormat.format(ResourceBundleHelper.bundle.getString(key), args);
         } catch (MissingResourceException e) {

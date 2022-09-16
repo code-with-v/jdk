@@ -27,7 +27,7 @@
  * @library /test/lib
  * @modules java.base/jdk.internal.misc
  *          java.instrument
- * @requires vm.jvmti & (vm.opt.TieredStopAtLevel == null | vm.opt.TieredStopAtLevel == 4)
+ * @requires vm.jvmti
  * @build compiler.profiling.spectrapredefineclass_classloaders.Agent
  *        compiler.profiling.spectrapredefineclass_classloaders.Test
  *        compiler.profiling.spectrapredefineclass_classloaders.A

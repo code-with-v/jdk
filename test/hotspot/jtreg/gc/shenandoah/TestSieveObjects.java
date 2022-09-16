@@ -23,7 +23,7 @@
  */
 
 /*
- * @test id=passive
+ * @test TestSieveObjects
  * @summary Acceptance tests: collector can deal with retained objects
  * @key randomness
  * @requires vm.gc.Shenandoah
@@ -51,7 +51,7 @@
  */
 
 /*
- * @test id=aggressive
+ * @test TestSieveObjects
  * @summary Acceptance tests: collector can deal with retained objects
  * @key randomness
  * @requires vm.gc.Shenandoah
@@ -73,7 +73,7 @@
  */
 
 /*
- * @test id=adaptive
+ * @test TestSieveObjects
  * @summary Acceptance tests: collector can deal with retained objects
  * @key randomness
  * @requires vm.gc.Shenandoah
@@ -91,7 +91,7 @@
  */
 
 /*
- * @test id=static
+ * @test TestSieveObjects
  * @summary Acceptance tests: collector can deal with retained objects
  * @key randomness
  * @requires vm.gc.Shenandoah
@@ -103,7 +103,7 @@
  */
 
 /*
- * @test id=compact
+ * @test TestSieveObjects
  * @summary Acceptance tests: collector can deal with retained objects
  * @key randomness
  * @requires vm.gc.Shenandoah
@@ -115,7 +115,7 @@
  */
 
 /*
- * @test id=no-tlab
+ * @test TestSieveObjects
  * @summary Acceptance tests: collector can deal with retained objects
  * @key randomness
  * @requires vm.gc.Shenandoah
@@ -128,7 +128,7 @@
  */
 
 /*
- * @test id=iu-aggressive
+ * @test TestSieveObjects
  * @summary Acceptance tests: collector can deal with retained objects
  * @key randomness
  * @requires vm.gc.Shenandoah
@@ -150,7 +150,7 @@
  */
 
 /*
- * @test id=iu
+ * @test TestSieveObjects
  * @summary Acceptance tests: collector can deal with retained objects
  * @key randomness
  * @requires vm.gc.Shenandoah

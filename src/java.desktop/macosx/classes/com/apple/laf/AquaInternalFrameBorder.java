@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -378,7 +378,9 @@ public class AquaInternalFrameBorder implements Border, UIResource {
         final int x = inX;
         final int y = inY;
         final int w = inW;
-        final int h = inH;
+        int h = inH;
+
+        h = metrics.titleBarHeight + inH;
 
         // paint the background
         titleBarPainter.state.set(frame.isSelected() ? State.ACTIVE : State.INACTIVE);

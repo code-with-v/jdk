@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,10 +25,9 @@
  * @test
  * @bug 8187305
  * @summary Tests logging of shared library loads and unloads.
- * @requires vm.flagless
  * @library /test/lib
- * @build jdk.test.whitebox.WhiteBox
- * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
+ * @build sun.hotspot.WhiteBox
+ * @run driver jdk.test.lib.helpers.ClassFileInstaller sun.hotspot.WhiteBox
  * @run main LoadLibraryTest
  */
 
@@ -36,7 +35,7 @@ import jdk.test.lib.process.ProcessTools;
 import jdk.test.lib.process.OutputAnalyzer;
 import jtreg.SkippedException;
 
-import jdk.test.whitebox.WhiteBox;
+import sun.hotspot.WhiteBox;
 import jdk.test.lib.classloader.ClassUnloadCommon;
 
 public class LoadLibraryTest {
@@ -123,7 +122,6 @@ public class LoadLibraryTest {
             "-XX:+WhiteBoxAPI", "-Xmn8m", "-Xlog:library=info",
             "-Djava.library.path=" + System.getProperty("java.library.path"),
             "-XX:+UnlockDiagnosticVMOptions", "-XX:+WhiteBoxAPI",
-            "-Xlog:class+loader+constraints",
             "LoadLibraryTest$LoadLibrary", System.getProperty("test.classes"));
 
         OutputAnalyzer output = new OutputAnalyzer(pb.start());

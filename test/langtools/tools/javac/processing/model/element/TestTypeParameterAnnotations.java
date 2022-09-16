@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2015, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -148,19 +148,19 @@ public class TestTypeParameterAnnotations<@Foo1 @Bar1 @Baz1 T1, T2, @Foo2 @Bar2 
     }
 
     void note(String msg) {
-        messager.printNote(msg);
+        messager.printMessage(Diagnostic.Kind.NOTE, msg);
     }
 
     void note(String msg, Element e) {
-        messager.printNote(msg, e);
+        messager.printMessage(Diagnostic.Kind.NOTE, msg, e);
     }
 
     void error(String msg, Element e) {
-        messager.printError(msg, e);
+        messager.printMessage(Diagnostic.Kind.ERROR, msg, e);
     }
 
     void error(String msg) {
-        messager.printError(msg);
+        messager.printMessage(Diagnostic.Kind.ERROR, msg);
     }
 
     Class<? extends Annotation>[] ALL_ANNOTATIONS = new Class[] {

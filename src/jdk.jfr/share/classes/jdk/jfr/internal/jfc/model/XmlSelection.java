@@ -36,15 +36,7 @@ final class XmlSelection extends XmlInput {
         for (XmlOption option : getOptions()) {
             sj.add(option.getName());
         }
-        StringBuilder sb = new StringBuilder();
-        sb.append(getName());
-        sb.append("=");
-        sb.append(sj.toString());
-        XmlOption selected = getSelected();
-        if (selected != null) {
-            sb.append("  (").append(selected.getName()).append(")");
-        }
-        return sb.toString();
+        return getName() + "=" + sj.toString();
     }
 
     @Override

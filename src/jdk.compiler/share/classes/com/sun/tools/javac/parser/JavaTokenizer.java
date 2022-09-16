@@ -60,7 +60,7 @@ public class JavaTokenizer extends UnicodeReader {
     private static final boolean scannerDebug = false;
 
     /**
-     * Sentinel for non-value.
+     * Sentinal for non-value.
      */
     private int NOT_FOUND = -1;
 

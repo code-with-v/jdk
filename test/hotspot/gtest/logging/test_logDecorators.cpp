@@ -25,7 +25,6 @@
 #include "jvm.h"
 #include "logging/logDecorators.hpp"
 #include "unittest.hpp"
-#include "runtime/os.hpp" // malloc
 
 static LogDecorators::Decorator decorator_array[] = {
 #define DECORATOR(name, abbr) LogDecorators::name##_decorator,
@@ -80,10 +79,10 @@ TEST(LogDecorators, from_and_to_name) {
     EXPECT_EQ(decorator, decorator2);
 
     // Test case insensitivity
-    char* name_cpy = os::strdup(name, mtTest);
+    char* name_cpy = strdup(name);
     name_cpy[0] = toupper(name_cpy[0]);
     decorator2 = LogDecorators::from_string(name_cpy);
-    os::free(name_cpy);
+    free(name_cpy);
     EXPECT_EQ(decorator, decorator2);
   }
 }
@@ -100,10 +99,10 @@ TEST(LogDecorators, from_and_to_abbr) {
     ASSERT_EQ(decorator, decorator2);
 
     // Test case insensitivity
-    char* abbr_cpy = os::strdup(abbr);
+    char* abbr_cpy = strdup(abbr);
     abbr_cpy[0] = toupper(abbr_cpy[0]);
     decorator2 = LogDecorators::from_string(abbr_cpy);
-    os::free(abbr_cpy);
+    free(abbr_cpy);
     EXPECT_EQ(decorator, decorator2);
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,6 +29,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -82,7 +83,13 @@ import static javax.tools.DocumentationTool.Location.TAGLET_PATH;
 
 /**
  * Manages the {@code Taglet}s used by doclets.
+ *
+ *  <p><b>This is NOT part of any supported API.
+ *  If you write code that depends on this, you do so at your own risk.
+ *  This code and its internal interfaces are subject to change or
+ *  deletion without notice.</b>
  */
+
 public class TagletManager {
 
     /**
@@ -227,7 +234,7 @@ public class TagletManager {
                 }
                 sfm.setLocation(TAGLET_PATH, paths);
             } else if (!sfm.hasLocation(TAGLET_PATH)) {
-                sfm.setLocation(TAGLET_PATH, List.of());
+                sfm.setLocation(TAGLET_PATH, Collections.emptyList());
             }
         } else if (tagletPath != null) {
             messages.error("doclet.not_standard_file_manager");
@@ -243,22 +250,23 @@ public class TagletManager {
      * @param fileManager the file manager to load classes and resources
      */
     public void addCustomTag(String classname, JavaFileManager fileManager) {
-        ClassLoader tagClassLoader = fileManager.getClassLoader(TAGLET_PATH);
-        if (configuration.workArounds.accessInternalAPI()) {
-            Module thisModule = getClass().getModule();
-            Module tagletLoaderUnnamedModule = tagClassLoader.getUnnamedModule();
-            List<String> pkgs = List.of(
-                    "jdk.javadoc.doclet",
-                    "jdk.javadoc.internal.doclets.toolkit",
-                    "jdk.javadoc.internal.doclets.formats.html");
-            pkgs.forEach(p -> thisModule.addOpens(p, tagletLoaderUnnamedModule));
-        }
         try {
+            ClassLoader tagClassLoader;
+            tagClassLoader = fileManager.getClassLoader(TAGLET_PATH);
+            if (configuration.workArounds.accessInternalAPI()) {
+                Module thisModule = getClass().getModule();
+                Module tagletLoaderUnnamedModule = tagClassLoader.getUnnamedModule();
+                List<String> pkgs = List.of(
+                        "jdk.javadoc.doclet",
+                        "jdk.javadoc.internal.doclets.toolkit",
+                        "jdk.javadoc.internal.doclets.formats.html");
+                pkgs.forEach(p -> thisModule.addOpens(p, tagletLoaderUnnamedModule));
+            }
             Class<? extends jdk.javadoc.doclet.Taglet> customTagClass =
                     tagClassLoader.loadClass(classname).asSubclass(jdk.javadoc.doclet.Taglet.class);
             jdk.javadoc.doclet.Taglet instance = customTagClass.getConstructor().newInstance();
             registerTaglet(instance);
-        } catch (ReflectiveOperationException | ExceptionInInitializerError | ClassCastException exc) {
+        } catch (ReflectiveOperationException exc) {
             messages.error("doclet.Error_taglet_not_registered", exc.getClass().getName(),
                     classname);
         }
@@ -311,15 +319,16 @@ public class TagletManager {
         if (tagName == null || locations == null) {
             return;
         }
-        // remove + put in both branches below move the tag to the back of the map's ordering
-        Taglet tag = allTaglets.remove(tagName);
+        Taglet tag = allTaglets.get(tagName);
         if (tag == null || header != null) {
+            allTaglets.remove(tagName);
             allTaglets.put(tagName, new SimpleTaglet(tagName, header, locations));
             if (Utils.toLowerCase(locations).indexOf('x') == -1) {
                 checkTagName(tagName);
             }
         } else {
-            // Move existing tag to the back
+            //Move to back
+            allTaglets.remove(tagName);
             allTaglets.put(tagName, tag);
         }
     }
@@ -349,12 +358,16 @@ public class TagletManager {
     }
 
     /**
-     * Given a series of {@code DocTree}s, check for misuse and spelling mistakes.
+     * Given a series of {@code DocTree}s, check for spelling mistakes.
      *
      * @param element the tags holder
      * @param trees the trees containing the comments
+     * @param inlineTrees true if the trees are inline and false otherwise
      */
-    public void checkTags(Element element, Iterable<? extends DocTree> trees) {
+    public void checkTags(Element element, Iterable<? extends DocTree> trees, boolean inlineTrees) {
+        if (trees == null) {
+            return;
+        }
         CommentHelper ch = utils.getCommentHelper(element);
         for (DocTree tag : trees) {
             String name = tag.getKind().tagName;
@@ -376,67 +389,72 @@ public class TagletManager {
             final Taglet taglet = allTaglets.get(name);
             // Check and verify tag usage
             if (taglet != null) {
-                if (taglet instanceof SimpleTaglet st && !st.enabled) {
-                    // taglet has been disabled
+                if (inlineTrees && !taglet.isInlineTag()) {
+                    printTagMisuseWarn(ch, taglet, tag, "inline");
+                }
+                // nothing more to do
+                if (element == null) {
                     return;
                 }
 
-                new SimpleElementVisitor14<Void, Void>() {
-                    @Override
-                    public Void visitModule(ModuleElement e, Void p) {
-                        if (!taglet.inModule()) {
-                            printTagMisuseWarn(utils.getCommentHelper(e), taglet, tag, "module");
+                if (!inlineTrees) {
+                    new SimpleElementVisitor14<Void, Void>() {
+                        @Override
+                        public Void visitModule(ModuleElement e, Void p) {
+                            if (!taglet.inModule()) {
+                                printTagMisuseWarn(utils.getCommentHelper(e), taglet, tag, "module");
+                            }
+                            return null;
                         }
-                        return null;
-                    }
 
-                    @Override
-                    public Void visitPackage(PackageElement e, Void p) {
-                        if (!taglet.inPackage()) {
-                            printTagMisuseWarn(utils.getCommentHelper(e), taglet, tag, "package");
+                        @Override
+                        public Void visitPackage(PackageElement e, Void p) {
+                            if (!taglet.inPackage()) {
+                                printTagMisuseWarn(utils.getCommentHelper(e), taglet, tag, "package");
+                            }
+                            return null;
                         }
-                        return null;
-                    }
 
-                    @Override
-                    public Void visitType(TypeElement e, Void p) {
-                        if (!taglet.inType()) {
-                            printTagMisuseWarn(utils.getCommentHelper(e), taglet, tag, "class");
+                        @Override
+                        public Void visitType(TypeElement e, Void p) {
+                            if (!taglet.inType()) {
+                                printTagMisuseWarn(utils.getCommentHelper(e), taglet, tag, "class");
+                            }
+                            return null;
                         }
-                        return null;
-                    }
 
-                    @Override
-                    public Void visitExecutable(ExecutableElement e, Void p) {
-                        if (utils.isConstructor(e) && !taglet.inConstructor()) {
-                            printTagMisuseWarn(utils.getCommentHelper(e), taglet, tag, "constructor");
-                        } else if (!taglet.inMethod()) {
-                            printTagMisuseWarn(utils.getCommentHelper(e), taglet, tag, "method");
+                        @Override
+                        public Void visitExecutable(ExecutableElement e, Void p) {
+                            if (utils.isConstructor(e) && !taglet.inConstructor()) {
+                                printTagMisuseWarn(utils.getCommentHelper(e), taglet, tag, "constructor");
+                            } else if (!taglet.inMethod()) {
+                                printTagMisuseWarn(utils.getCommentHelper(e), taglet, tag, "method");
+                            }
+                            return null;
                         }
-                        return null;
-                    }
 
-                    @Override
-                    public Void visitVariable(VariableElement e, Void p) {
-                        if (utils.isField(e) && !taglet.inField()) {
-                            printTagMisuseWarn(utils.getCommentHelper(e), taglet, tag, "field");
+                        @Override
+                        public Void visitVariable(VariableElement e, Void p) {
+                            if (utils.isField(e) && !taglet.inField()) {
+                                printTagMisuseWarn(utils.getCommentHelper(e), taglet, tag, "field");
+                            }
+                            return null;
                         }
-                        return null;
-                    }
 
-                    @Override
-                    public Void visitUnknown(Element e, Void p) {
-                        if (utils.isOverviewElement(e) && !taglet.inOverview()) {
-                            printTagMisuseWarn(utils.getCommentHelper(e), taglet, tag, "overview");
+                        @Override
+                        public Void visitUnknown(Element e, Void p) {
+                            if (utils.isOverviewElement(e) && !taglet.inOverview()) {
+                                printTagMisuseWarn(utils.getCommentHelper(e), taglet, tag, "overview");
+                            }
+                            return null;
                         }
-                        return null;
-                    }
 
-                    @Override
-                    protected Void defaultAction(Element e, Void p) {
-                        return null;
-                    }
-                }.visit(element);
+                        @Override
+                        protected Void defaultAction(Element e, Void p) {
+                            return null;
+                        }
+                    }.visit(element);
+                }
             }
         }
     }
@@ -473,13 +491,22 @@ public class TagletManager {
         if (taglet.inMethod()) {
             locationsSet.add("method");
         }
+        if (taglet.isInlineTag()) {
+            locationsSet.add("inline text");
+        }
         if (locationsSet.isEmpty()) {
             //This known tag is excluded.
             return;
         }
-        var combined_locations = String.join(", ", locationsSet);
+        StringBuilder combined_locations = new StringBuilder();
+        for (String location: locationsSet) {
+            if (combined_locations.length() > 0) {
+                combined_locations.append(", ");
+            }
+            combined_locations.append(location);
+        }
         messages.warning(ch.getDocTreePath(tag), "doclet.tag_misuse",
-            "@" + taglet.getName(), holderType, combined_locations);
+            "@" + taglet.getName(), holderType, combined_locations.toString());
     }
 
     /**
@@ -628,7 +655,6 @@ public class TagletManager {
         addStandardTaglet(new ValueTaglet());
         addStandardTaglet(new LiteralTaglet());
         addStandardTaglet(new CodeTaglet());
-        addStandardTaglet(new SnippetTaglet());
         addStandardTaglet(new IndexTaglet());
         addStandardTaglet(new SummaryTaglet());
         addStandardTaglet(new SystemPropertyTaglet());

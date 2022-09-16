@@ -21,7 +21,6 @@
 
 package com.sun.org.apache.xerces.internal.impl;
 
-import static com.sun.org.apache.xerces.internal.impl.Constants.XML_VERSION_1_1;
 import com.sun.org.apache.xerces.internal.impl.XMLScanner.NameType;
 import com.sun.org.apache.xerces.internal.impl.msg.XMLMessageFormatter;
 import com.sun.org.apache.xerces.internal.util.XML11Char;
@@ -41,7 +40,7 @@ import java.io.IOException;
  * @author Michael Glavassevich, IBM
  * @author Neil Graham, IBM
  *
- * @LastModified: Aug 2021
+ * @LastModified: Apr 2021
  */
 
 public class XML11EntityScanner
@@ -114,10 +113,10 @@ public class XML11EntityScanner
             if (fCurrentEntity.position == fCurrentEntity.count) {
                 invokeListeners(1);
                 fCurrentEntity.ch[0] = (char)c;
-                load(1, true, false);
+                load(1, false, false);
                 offset = 0;
             }
-            if (c == '\r' && external && fCurrentEntity.position < fCurrentEntity.count) {
+            if (c == '\r' && external) {
                 int cc = fCurrentEntity.ch[fCurrentEntity.position++];
                 if (cc != '\n' && cc != 0x85) {
                     fCurrentEntity.position--;
@@ -762,12 +761,71 @@ public class XML11EntityScanner
         }
 
         // normalize newlines
-        if (normalizeNewlines(XML_VERSION_1_1, content, false, false, null)) {
-            return -1;
+        int offset = fCurrentEntity.position;
+        int c = fCurrentEntity.ch[offset];
+        int newlines = 0;
+        boolean counted = false;
+        boolean external = fCurrentEntity.isExternal();
+        if (c == '\n' || ((c == '\r' || c == 0x85 || c == 0x2028) && external)) {
+            do {
+                c = fCurrentEntity.ch[fCurrentEntity.position++];
+                if ((c == '\r' ) && external) {
+                    newlines++;
+                    fCurrentEntity.lineNumber++;
+                    fCurrentEntity.columnNumber = 1;
+                    if (fCurrentEntity.position == fCurrentEntity.count) {
+                        checkEntityLimit(null, fCurrentEntity, offset, newlines);
+                        offset = 0;
+                        fCurrentEntity.baseCharOffset += (fCurrentEntity.position - fCurrentEntity.startPosition);
+                        fCurrentEntity.position = newlines;
+                        fCurrentEntity.startPosition = newlines;
+                        if (load(newlines, false, true)) {
+                            counted = true;
+                            break;
+                        }
+                    }
+                    int cc = fCurrentEntity.ch[fCurrentEntity.position];
+                    if (cc == '\n' || cc == 0x85) {
+                        fCurrentEntity.position++;
+                        offset++;
+                    }
+                    /*** NEWLINE NORMALIZATION ***/
+                    else {
+                        newlines++;
+                    }
+                }
+                else if (c == '\n' || ((c == 0x85 || c == 0x2028) && external)) {
+                    newlines++;
+                    fCurrentEntity.lineNumber++;
+                    fCurrentEntity.columnNumber = 1;
+                    if (fCurrentEntity.position == fCurrentEntity.count) {
+                        checkEntityLimit(null, fCurrentEntity, offset, newlines);
+                        offset = 0;
+                        fCurrentEntity.baseCharOffset += (fCurrentEntity.position - fCurrentEntity.startPosition);
+                        fCurrentEntity.position = newlines;
+                        fCurrentEntity.startPosition = newlines;
+                        if (load(newlines, false, true)) {
+                            counted = true;
+                            break;
+                        }
+                    }
+                }
+                else {
+                    fCurrentEntity.position--;
+                    break;
+                }
+            } while (fCurrentEntity.position < fCurrentEntity.count - 1);
+            for (int i = offset; i < fCurrentEntity.position; i++) {
+                fCurrentEntity.ch[i] = '\n';
+            }
+            int length = fCurrentEntity.position - offset;
+            if (fCurrentEntity.position == fCurrentEntity.count - 1) {
+                checkEntityLimit(null, fCurrentEntity, offset, length);
+                content.setValues(fCurrentEntity.ch, offset, length);
+                return -1;
+            }
         }
 
-        int c;
-        boolean external = fCurrentEntity.isExternal();
         // inner loop, scanning for content
         if (external) {
             while (fCurrentEntity.position < fCurrentEntity.count) {
@@ -855,12 +913,65 @@ public class XML11EntityScanner
         }
 
         // normalize newlines
-        if (normalizeNewlines(XML_VERSION_1_1, content, false, true, null)) {
-            return -1;
+        int offset = fCurrentEntity.position;
+        int c = fCurrentEntity.ch[offset];
+        int newlines = 0;
+        boolean external = fCurrentEntity.isExternal();
+        if (c == '\n' || ((c == '\r' || c == 0x85 || c == 0x2028) && external)) {
+            do {
+                c = fCurrentEntity.ch[fCurrentEntity.position++];
+                if ((c == '\r' ) && external) {
+                    newlines++;
+                    fCurrentEntity.lineNumber++;
+                    fCurrentEntity.columnNumber = 1;
+                    if (fCurrentEntity.position == fCurrentEntity.count) {
+                        offset = 0;
+                        fCurrentEntity.baseCharOffset += (fCurrentEntity.position - fCurrentEntity.startPosition);
+                        fCurrentEntity.position = newlines;
+                        fCurrentEntity.startPosition = newlines;
+                        if (load(newlines, false, true)) {
+                            break;
+                        }
+                    }
+                    int cc = fCurrentEntity.ch[fCurrentEntity.position];
+                    if (cc == '\n' || cc == 0x85) {
+                        fCurrentEntity.position++;
+                        offset++;
+                    }
+                    /*** NEWLINE NORMALIZATION ***/
+                    else {
+                        newlines++;
+                    }
+                }
+                else if (c == '\n' || ((c == 0x85 || c == 0x2028) && external)) {
+                    newlines++;
+                    fCurrentEntity.lineNumber++;
+                    fCurrentEntity.columnNumber = 1;
+                    if (fCurrentEntity.position == fCurrentEntity.count) {
+                        offset = 0;
+                        fCurrentEntity.baseCharOffset += (fCurrentEntity.position - fCurrentEntity.startPosition);
+                        fCurrentEntity.position = newlines;
+                        fCurrentEntity.startPosition = newlines;
+                        if (load(newlines, false, true)) {
+                            break;
+                        }
+                    }
+                }
+                else {
+                    fCurrentEntity.position--;
+                    break;
+                }
+            } while (fCurrentEntity.position < fCurrentEntity.count - 1);
+            for (int i = offset; i < fCurrentEntity.position; i++) {
+                fCurrentEntity.ch[i] = '\n';
+            }
+            int length = fCurrentEntity.position - offset;
+            if (fCurrentEntity.position == fCurrentEntity.count - 1) {
+                content.setValues(fCurrentEntity.ch, offset, length);
+                return -1;
+            }
         }
 
-        int c;
-        boolean external = fCurrentEntity.isExternal();
         // scan literal value
         if (external) {
             while (fCurrentEntity.position < fCurrentEntity.count) {
@@ -877,7 +988,7 @@ public class XML11EntityScanner
                 c = fCurrentEntity.ch[fCurrentEntity.position++];
                 // In internal entities control characters are allowed to appear unescaped.
                 if ((c == quote && !fCurrentEntity.literal)
-                    || c == '%' || !XML11Char.isXML11InternalEntityContent(c) || c == '\r') {
+                    || c == '%' || !XML11Char.isXML11InternalEntityContent(c)) {
                     fCurrentEntity.position--;
                     break;
                 }
@@ -982,11 +1093,66 @@ public class XML11EntityScanner
             }
 
             // normalize newlines
-            if (normalizeNewlines(XML_VERSION_1_1, buffer, true, false, NameType.COMMENT)) {
-                return true;
+            int offset = fCurrentEntity.position;
+            int c = fCurrentEntity.ch[offset];
+            int newlines = 0;
+            if (c == '\n' || ((c == '\r' || c == 0x85 || c == 0x2028) && external)) {
+                do {
+                    c = fCurrentEntity.ch[fCurrentEntity.position++];
+                    if ((c == '\r' ) && external) {
+                        newlines++;
+                        fCurrentEntity.lineNumber++;
+                        fCurrentEntity.columnNumber = 1;
+                        if (fCurrentEntity.position == fCurrentEntity.count) {
+                            offset = 0;
+                            fCurrentEntity.baseCharOffset += (fCurrentEntity.position - fCurrentEntity.startPosition);
+                            fCurrentEntity.position = newlines;
+                            fCurrentEntity.startPosition = newlines;
+                            if (load(newlines, false, true)) {
+                                break;
+                            }
+                        }
+                        int cc = fCurrentEntity.ch[fCurrentEntity.position];
+                        if (cc == '\n' || cc == 0x85) {
+                            fCurrentEntity.position++;
+                            offset++;
+                        }
+                        /*** NEWLINE NORMALIZATION ***/
+                        else {
+                            newlines++;
+                        }
+                    }
+                    else if (c == '\n' || ((c == 0x85 || c == 0x2028) && external)) {
+                        newlines++;
+                        fCurrentEntity.lineNumber++;
+                        fCurrentEntity.columnNumber = 1;
+                        if (fCurrentEntity.position == fCurrentEntity.count) {
+                            offset = 0;
+                            fCurrentEntity.baseCharOffset += (fCurrentEntity.position - fCurrentEntity.startPosition);
+                            fCurrentEntity.position = newlines;
+                            fCurrentEntity.startPosition = newlines;
+                            fCurrentEntity.count = newlines;
+                            if (load(newlines, false, true)) {
+                                break;
+                            }
+                        }
+                    }
+                    else {
+                        fCurrentEntity.position--;
+                        break;
+                    }
+                } while (fCurrentEntity.position < fCurrentEntity.count - 1);
+                for (int i = offset; i < fCurrentEntity.position; i++) {
+                    fCurrentEntity.ch[i] = '\n';
+                }
+                int length = fCurrentEntity.position - offset;
+                if (fCurrentEntity.position == fCurrentEntity.count - 1) {
+                    checkEntityLimit(NameType.COMMENT, fCurrentEntity, offset, length);
+                    buffer.append(fCurrentEntity.ch, offset, length);
+                    return true;
+                }
             }
 
-            int c;
             // iterate over buffer looking for delimiter
             OUTER: while (fCurrentEntity.position < fCurrentEntity.count) {
                 c = fCurrentEntity.ch[fCurrentEntity.position++];
@@ -1085,6 +1251,22 @@ public class XML11EntityScanner
         }
         else if (c == '\n' && ((cc == 0x2028 || cc == 0x85) && fCurrentEntity.isExternal())) {
             fCurrentEntity.position++;
+            fCurrentEntity.lineNumber++;
+            fCurrentEntity.columnNumber = 1;
+            checkEntityLimit(nt, fCurrentEntity, offset, fCurrentEntity.position - offset);
+            return true;
+        }
+        else if (c == '\n' && (cc == '\r' ) && fCurrentEntity.isExternal()) {
+            // handle newlines
+            if (fCurrentEntity.position == fCurrentEntity.count) {
+                invokeListeners(1);
+                fCurrentEntity.ch[0] = (char)cc;
+                load(1, false, false);
+            }
+            int ccc = fCurrentEntity.ch[++fCurrentEntity.position];
+            if (ccc == '\n' || ccc == 0x85) {
+                fCurrentEntity.position++;
+            }
             fCurrentEntity.lineNumber++;
             fCurrentEntity.columnNumber = 1;
             checkEntityLimit(nt, fCurrentEntity, offset, fCurrentEntity.position - offset);

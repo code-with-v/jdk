@@ -39,8 +39,7 @@ public class TypeAnnotationReflection {
         testReturnType();
         testNested();
         testArray();
-        testRunException(TestClassException.class.getDeclaredMethod("foo", (Class<?>[])null));
-        testRunException(Outer2.TestClassException2.class.getDeclaredConstructor(Outer2.class));
+        testRunException();
         testClassTypeVarBounds();
         testMethodTypeVarBounds();
         testFields();
@@ -143,8 +142,9 @@ public class TypeAnnotationReflection {
         check(((TypeAnno)annos[0]).value().equals("return4"));
     }
 
-    private static void testRunException(Executable e) throws Exception {
-        AnnotatedType[] ts = e.getAnnotatedExceptionTypes();
+    private static void testRunException() throws Exception {
+        Method m = TestClassException.class.getDeclaredMethod("foo", (Class<?>[])null);
+        AnnotatedType[] ts = m.getAnnotatedExceptionTypes();
         check(ts.length == 3);
 
         AnnotatedType t;
@@ -621,15 +621,6 @@ abstract class TestClassException {
                                                                  NullPointerException,
                                              @TypeAnno("AIOOBE") ArrayIndexOutOfBoundsException {
         return null;
-    }
-}
-
-class Outer2 {
-    abstract class TestClassException2 {
-        public TestClassException2() throws
-                @TypeAnno("RE") @TypeAnno2("RE2") RuntimeException,
-                NullPointerException,
-                @TypeAnno("AIOOBE") ArrayIndexOutOfBoundsException {}
     }
 }
 

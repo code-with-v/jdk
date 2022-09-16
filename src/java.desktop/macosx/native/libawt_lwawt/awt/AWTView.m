@@ -27,7 +27,8 @@
 #import "CGLGraphicsConfig.h"
 #import "AWTView.h"
 #import "AWTWindow.h"
-#import "a11y/CommonComponentAccessibility.h"
+#import "JavaComponentAccessibility.h"
+#import "JavaTextAccessibility.h"
 #import "JavaAccessibilityUtilities.h"
 #import "GeomUtilities.h"
 #import "ThreadUtilities.h"
@@ -546,13 +547,12 @@ static BOOL shouldUsePressAndHold() {
 -(BOOL) isCodePointInUnicodeBlockNeedingIMEvent: (unichar) codePoint {
     if ((codePoint == 0x0024) || (codePoint == 0x00A3) ||
         (codePoint == 0x00A5) ||
-        ((codePoint >= 0x900) && (codePoint <= 0x97F)) ||
         ((codePoint >= 0x20A3) && (codePoint <= 0x20BF)) ||
         ((codePoint >= 0x3000) && (codePoint <= 0x303F)) ||
         ((codePoint >= 0xFF00) && (codePoint <= 0xFFEF))) {
         // Code point is in 'CJK Symbols and Punctuation' or
         // 'Halfwidth and Fullwidth Forms' Unicode block or
-        // currency symbols unicode or Devanagari script
+        // currency symbols unicode
         return YES;
     }
     return NO;
@@ -611,29 +611,42 @@ static BOOL shouldUsePressAndHold() {
 - (id)getAxData:(JNIEnv*)env
 {
     jobject jcomponent = [self awtComponent:env];
-    id ax = [[[CommonComponentAccessibility alloc] initWithParent:self withEnv:env withAccessible:jcomponent withIndex:-1 withView:self withJavaRole:nil] autorelease];
+    id ax = [[[JavaComponentAccessibility alloc] initWithParent:self withEnv:env withAccessible:jcomponent withIndex:-1 withView:self withJavaRole:nil] autorelease];
     (*env)->DeleteLocalRef(env, jcomponent);
     return ax;
 }
 
-// NSAccessibility messages
-- (id)accessibilityChildren
+- (NSArray *)accessibilityAttributeNames
 {
-    AWT_ASSERT_APPKIT_THREAD;
-    JNIEnv *env = [ThreadUtilities getJNIEnv];
-
-    (*env)->PushLocalFrame(env, 4);
-
-    id result = NSAccessibilityUnignoredChildrenForOnlyChild([self getAxData:env]);
-
-    (*env)->PopLocalFrame(env, NULL);
-
-    return result;
+    return [[super accessibilityAttributeNames] arrayByAddingObject:NSAccessibilityChildrenAttribute];
 }
 
-- (BOOL)isAccessibilityElement
+// NSAccessibility messages
+// attribute methods
+- (id)accessibilityAttributeValue:(NSString *)attribute
 {
-    return NO;
+    AWT_ASSERT_APPKIT_THREAD;
+
+    if ([attribute isEqualToString:NSAccessibilityChildrenAttribute])
+    {
+        JNIEnv *env = [ThreadUtilities getJNIEnv];
+
+        (*env)->PushLocalFrame(env, 4);
+
+        id result = NSAccessibilityUnignoredChildrenForOnlyChild([self getAxData:env]);
+
+        (*env)->PopLocalFrame(env, NULL);
+
+        return result;
+    }
+    else
+    {
+        return [super accessibilityAttributeValue:attribute];
+    }
+}
+- (BOOL)accessibilityIsIgnored
+{
+    return YES;
 }
 
 - (id)accessibilityHitTest:(NSPoint)point
@@ -643,7 +656,7 @@ static BOOL shouldUsePressAndHold() {
 
     (*env)->PushLocalFrame(env, 4);
 
-    id result = [[self getAxData:env] accessibilityHitTest:point];
+    id result = [[self getAxData:env] accessibilityHitTest:point withEnv:env];
 
     (*env)->PopLocalFrame(env, NULL);
 
@@ -668,24 +681,17 @@ static BOOL shouldUsePressAndHold() {
 // --- Services menu support for lightweights ---
 
 // finds the focused accessible element, and if it is a text element, obtains the text from it
-- (NSString *)accessibilitySelectedText
+- (NSString *)accessibleSelectedText
 {
     id focused = [self accessibilityFocusedUIElement];
-    if (![focused respondsToSelector:@selector(accessibilitySelectedText)]) return nil;
-    return [focused accessibilitySelectedText];
-}
-
-- (void)setAccessibilitySelectedText:(NSString *)accessibilitySelectedText {
-    id focused = [self accessibilityFocusedUIElement];
-    if ([focused respondsToSelector:@selector(setAccessibilitySelectedText:)]) {
-    [focused setAccessibilitySelectedText:accessibilitySelectedText];
-}
+    if (![focused isKindOfClass:[JavaTextAccessibility class]]) return nil;
+    return [(JavaTextAccessibility *)focused accessibilitySelectedTextAttribute];
 }
 
 // same as above, but converts to RTFD
 - (NSData *)accessibleSelectedTextAsRTFD
 {
-    NSString *selectedText = [self accessibilitySelectedText];
+    NSString *selectedText = [self accessibleSelectedText];
     NSAttributedString *styledText = [[NSAttributedString alloc] initWithString:selectedText];
     NSData *rtfdData = [styledText RTFDFromRange:NSMakeRange(0, [styledText length])
                               documentAttributes:
@@ -698,8 +704,8 @@ static BOOL shouldUsePressAndHold() {
 - (BOOL)replaceAccessibleTextSelection:(NSString *)text
 {
     id focused = [self accessibilityFocusedUIElement];
-    if (![focused respondsToSelector:@selector(setAccessibilitySelectedText)]) return NO;
-    [focused setAccessibilitySelectedText:text];
+    if (![focused isKindOfClass:[JavaTextAccessibility class]]) return NO;
+    [(JavaTextAccessibility *)focused accessibilitySetSelectedTextAttribute:text];
     return YES;
 }
 
@@ -709,7 +715,7 @@ static BOOL shouldUsePressAndHold() {
     if ([[self window] firstResponder] != self) return nil; // let AWT components handle themselves
 
     if ([sendType isEqual:NSStringPboardType] || [returnType isEqual:NSStringPboardType]) {
-        NSString *selectedText = [self accessibilitySelectedText];
+        NSString *selectedText = [self accessibleSelectedText];
         if (selectedText) return self;
     }
 
@@ -722,7 +728,7 @@ static BOOL shouldUsePressAndHold() {
     if ([types containsObject:NSStringPboardType])
     {
         [pboard declareTypes:[NSArray arrayWithObject:NSStringPboardType] owner:nil];
-        return [pboard setString:[self accessibilitySelectedText] forType:NSStringPboardType];
+        return [pboard setString:[self accessibleSelectedText] forType:NSStringPboardType];
     }
 
     if ([types containsObject:NSRTFDPboardType])
@@ -958,17 +964,11 @@ static jclass jc_CInputMethod = NULL;
 
 #ifdef IM_DEBUG
     NSLog(@"insertText kbdlayout %@ ",(NSString *)kbdLayout);
-
-    NSLog(@"utf8Length %lu utf16Length %lu", (unsigned long)utf8Length, (unsigned long)utf16Length);
-    NSLog(@"codePoint %x", codePoint);
 #endif // IM_DEBUG
 
     if ((utf16Length > 2) ||
         ((utf8Length > 1) && [self isCodePointInUnicodeBlockNeedingIMEvent:codePoint]) ||
         ((codePoint == 0x5c) && ([(NSString *)kbdLayout containsString:@"Kotoeri"]))) {
-#ifdef IM_DEBUG
-        NSLog(@"string complex ");
-#endif
         aStringIsComplex = YES;
     }
 

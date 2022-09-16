@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -78,7 +78,7 @@ void ZBarrierSetAssembler::load_at(MacroAssembler* masm,
   __ tst(dst, rscratch1);
   __ br(Assembler::EQ, done);
 
-  __ enter(/*strip_ret_addr*/true);
+  __ enter();
 
   __ push_call_clobbered_registers_except(RegSet::of(dst));
 
@@ -108,8 +108,7 @@ void ZBarrierSetAssembler::store_at(MacroAssembler* masm,
                                         Address dst,
                                         Register val,
                                         Register tmp1,
-                                        Register tmp2,
-                                        Register tmp3) {
+                                        Register tmp2) {
   // Verify value
   if (is_reference_type(type)) {
     // Note that src could be noreg, which means we
@@ -117,7 +116,7 @@ void ZBarrierSetAssembler::store_at(MacroAssembler* masm,
     if (val != noreg) {
       Label done;
 
-      // tmp1, tmp2 and tmp3 are often set to noreg.
+      // tmp1 and tmp2 are often set to noreg.
       RegSet savedRegs = RegSet::of(rscratch1);
       __ push(savedRegs, sp);
 
@@ -132,7 +131,7 @@ void ZBarrierSetAssembler::store_at(MacroAssembler* masm,
   }
 
   // Store value
-  BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2, noreg);
+  BarrierSetAssembler::store_at(masm, decorators, type, dst, val, tmp1, tmp2);
 }
 
 #endif // ASSERT
@@ -238,7 +237,7 @@ void ZBarrierSetAssembler::generate_c1_load_barrier_stub(LIR_Assembler* ce,
   assert_different_registers(ref, ref_addr, noreg);
 
   // Save r0 unless it is the result or tmp register
-  // Set up SP to accommodate parameters and maybe r0..
+  // Set up SP to accomodate parameters and maybe r0..
   if (ref != r0 && tmp != r0) {
     __ sub(sp, sp, 32);
     __ str(r0, Address(sp, 16));
@@ -253,7 +252,7 @@ void ZBarrierSetAssembler::generate_c1_load_barrier_stub(LIR_Assembler* ce,
   __ far_call(stub->runtime_stub());
 
   // Verify result
-  __ verify_oop(r0);
+  __ verify_oop(r0, "Bad oop");
 
   // Move result into place
   if (ref != r0) {
@@ -316,7 +315,6 @@ private:
   MacroAssembler* const _masm;
   RegSet                _gp_regs;
   FloatRegSet           _fp_regs;
-  PRegSet               _p_regs;
 
 public:
   void initialize(ZLoadBarrierStubC2* stub) {
@@ -330,8 +328,6 @@ public:
           _gp_regs += RegSet::of(vm_reg->as_Register());
         } else if (vm_reg->is_FloatRegister()) {
           _fp_regs += FloatRegSet::of(vm_reg->as_FloatRegister());
-        } else if (vm_reg->is_PRegister()) {
-          _p_regs += PRegSet::of(vm_reg->as_PRegister());
         } else {
           fatal("Unknown register type");
         }
@@ -345,8 +341,7 @@ public:
   ZSaveLiveRegisters(MacroAssembler* masm, ZLoadBarrierStubC2* stub) :
       _masm(masm),
       _gp_regs(),
-      _fp_regs(),
-      _p_regs() {
+      _fp_regs() {
 
     // Figure out what registers to save/restore
     initialize(stub);
@@ -354,12 +349,10 @@ public:
     // Save registers
     __ push(_gp_regs, sp);
     __ push_fp(_fp_regs, sp);
-    __ push_p(_p_regs, sp);
   }
 
   ~ZSaveLiveRegisters() {
     // Restore registers
-    __ pop_p(_p_regs, sp);
     __ pop_fp(_fp_regs, sp);
 
     // External runtime call may clobber ptrue reg

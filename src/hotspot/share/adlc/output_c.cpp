@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -397,7 +397,7 @@ static int pipeline_res_mask_initializer(
   const uint cyclemasksize = (maxcycleused + 31) >> 5;
 
   int i, j;
-  uint element_count = 0;
+  int element_count = 0;
   uint *res_mask = new uint [cyclemasksize];
   uint resources_used             = 0;
   uint resources_used_exclusively = 0;
@@ -524,12 +524,12 @@ static int pipeline_res_mask_initializer(
       fprintf(fp_cpp, "static const Pipeline_Use_Element pipeline_res_mask_%03d[%d] = {\n%s};\n\n",
         ndx+1, element_count, resource_mask);
 
-    // "0x012345678, 0x012345678, 4294967295"
-    char* args = new char [36 + 1];
+    char* args = new char [9 + 2*masklen + maskdigit];
 
-    int printed = sprintf(args, "0x%x, 0x%x, %u",
-      resources_used, resources_used_exclusively, element_count);
-    assert(printed <= 36, "overflow");
+    sprintf(args, "0x%0*x, 0x%0*x, %*d",
+      masklen, resources_used,
+      masklen, resources_used_exclusively,
+      maskdigit, element_count);
 
     pipeline_res_args.addName(args);
   }
@@ -1159,10 +1159,11 @@ static void check_peepconstraints(FILE *fp, FormDict &globals, PeepMatch *pmatch
       case Form::register_interface: {
         // Check that they are allocated to the same register
         // Need parameter for index position if not result operand
-        char left_reg_index[] = ",inst4294967295_idx4294967295";
+        char left_reg_index[] = ",instXXXX_idxXXXX";
         if( left_op_index != 0 ) {
+          assert( (left_index <= 9999) && (left_op_index <= 9999), "exceed string size");
           // Must have index into operands
-          sprintf(left_reg_index,",inst%u_idx%u", (unsigned)left_index, (unsigned)left_op_index);
+          sprintf(left_reg_index,",inst%d_idx%d", (int)left_index, left_op_index);
         } else {
           strcpy(left_reg_index, "");
         }
@@ -1171,10 +1172,11 @@ static void check_peepconstraints(FILE *fp, FormDict &globals, PeepMatch *pmatch
         fprintf(fp, " == ");
 
         if( right_index != -1 ) {
-          char right_reg_index[] = ",inst4294967295_idx4294967295";
+          char right_reg_index[18] = ",instXXXX_idxXXXX";
           if( right_op_index != 0 ) {
+            assert( (right_index <= 9999) && (right_op_index <= 9999), "exceed string size");
             // Must have index into operands
-            sprintf(right_reg_index,",inst%u_idx%u", (unsigned)right_index, (unsigned)right_op_index);
+            sprintf(right_reg_index,",inst%d_idx%d", (int)right_index, right_op_index);
           } else {
             strcpy(right_reg_index, "");
           }
@@ -1340,9 +1342,6 @@ static void generate_peepreplace( FILE *fp, FormDict &globals, PeepMatch *pmatch
     assert( false, "ShouldNotReachHere();");
   }
 
-  for (int i = 0; i <= max_position; i++) {
-    fprintf(fp, "        inst%d->set_removed();\n", i);
-  }
   // Return the new sub-tree
   fprintf(fp, "        deleted = %d;\n", max_position+1 /*zero to one based*/);
   fprintf(fp, "        return root;  // return new root;\n");
@@ -1527,6 +1526,7 @@ void ArchDesc::defineExpand(FILE *fp, InstructForm *node) {
       }
 
       if (node->is_ideal_fastlock() && new_inst->is_ideal_fastlock()) {
+        fprintf(fp, "  ((MachFastLockNode*)n%d)->_counters = _counters;\n", cnt);
         fprintf(fp, "  ((MachFastLockNode*)n%d)->_rtm_counters = _rtm_counters;\n", cnt);
         fprintf(fp, "  ((MachFastLockNode*)n%d)->_stack_rtm_counters = _stack_rtm_counters;\n", cnt);
       }
@@ -2274,9 +2274,6 @@ private:
 #if defined(PPC64)
     if (strcmp(rep_var,"$VectorRegister") == 0)   return "as_VectorRegister";
     if (strcmp(rep_var,"$VectorSRegister") == 0)  return "as_VectorSRegister";
-#endif
-#if defined(AARCH64)
-    if (strcmp(rep_var,"$PRegister") == 0)  return "as_PRegister";
 #endif
     return NULL;
   }
@@ -3944,6 +3941,7 @@ void ArchDesc::buildMachNode(FILE *fp_cpp, InstructForm *inst, const char *inden
     fprintf(fp_cpp, "%s node->_probs = _leaf->as_Jump()->_probs;\n", indent);
   }
   if( inst->is_ideal_fastlock() ) {
+    fprintf(fp_cpp, "%s node->_counters = _leaf->as_FastLock()->counters();\n", indent);
     fprintf(fp_cpp, "%s node->_rtm_counters = _leaf->as_FastLock()->rtm_counters();\n", indent);
     fprintf(fp_cpp, "%s node->_stack_rtm_counters = _leaf->as_FastLock()->stack_rtm_counters();\n", indent);
   }

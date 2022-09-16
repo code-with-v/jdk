@@ -24,16 +24,13 @@
 #include "precompiled.hpp"
 #include "gc/z/zUtils.hpp"
 #include "utilities/debug.hpp"
-#include "utilities/globalDefinitions.hpp"
 
 #include <stdlib.h>
 
 uintptr_t ZUtils::alloc_aligned(size_t alignment, size_t size) {
   void* res = NULL;
 
-  // Use raw posix_memalign as long as we have no wrapper for it
-  ALLOW_C_FUNCTION(::posix_memalign, int rc = posix_memalign(&res, alignment, size);)
-  if (rc != 0) {
+  if (posix_memalign(&res, alignment, size) != 0) {
     fatal("posix_memalign() failed");
   }
 

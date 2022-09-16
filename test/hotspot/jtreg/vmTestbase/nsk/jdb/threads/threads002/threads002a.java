@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,7 +26,6 @@ package nsk.jdb.threads.threads002;
 import nsk.share.*;
 import nsk.share.jpda.*;
 import nsk.share.jdb.*;
-import nsk.share.jdi.JDIThreadFactory;
 
 import java.io.*;
 
@@ -39,9 +38,8 @@ public class threads002a {
 
     static void lastBreak () {}
 
-    static final String THREAD_NAME = threads002.THREAD_NAME;
-    static int numThreads           = 5;   // number of threads
-    static Object waitnotify        = new Object();
+    static int numThreads = 5;   // number of threads
+    static Object waitnotify = new Object();
 
     public int runIt(String args[], PrintStream out) {
         JdbArgumentHandler argumentHandler = new JdbArgumentHandler(args);
@@ -53,8 +51,7 @@ public class threads002a {
         try {
             lock.setLock();
             for (int i = 0; i < numThreads ; i++) {
-                String name = THREAD_NAME + "-" + i;
-                holder[i] = JDIThreadFactory.newThread(new MyThread(lock), name);
+                holder[i] = new MyThread(lock);
                 synchronized (waitnotify) {
                     holder[i].start();
                     waitnotify.wait();
@@ -102,7 +99,7 @@ class Lock {
     }
 }
 
-class MyThread implements Runnable {
+class MyThread extends Thread {
 
     Lock lock;
     MyThread (Lock l) {

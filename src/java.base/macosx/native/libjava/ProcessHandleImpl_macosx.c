@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2015, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -237,9 +237,9 @@ static uid_t getUID(pid_t pid) {
  * into the Info object.
  */
 void os_getCmdlineAndUserInfo(JNIEnv *env, jobject jinfo, pid_t pid) {
-    int mib[3], maxargs, nargs;
+    int mib[3], maxargs, nargs, i;
     size_t size;
-    char *args, *cp;
+    char *args, *cp, *sp, *np;
 
     // Get the UID first. This is done here because it is cheap to do it here
     // on other platforms like Linux/Solaris/AIX where the uid comes from the
@@ -272,8 +272,7 @@ void os_getCmdlineAndUserInfo(JNIEnv *env, jobject jinfo, pid_t pid) {
         mib[2] = pid;
         size = (size_t) maxargs;
         if (sysctl(mib, 3, args, &size, NULL, 0) == -1) {
-            if (errno != EINVAL && errno != EIO) {
-                // If the pid is invalid, the information returned is empty and no exception
+            if (errno != EINVAL) {
                 JNU_ThrowByNameWithLastError(env,
                     "java/lang/RuntimeException", "sysctl failed");
             }
@@ -301,3 +300,4 @@ void os_getCmdlineAndUserInfo(JNIEnv *env, jobject jinfo, pid_t pid) {
     // Free the arg buffer
     free(args);
 }
+

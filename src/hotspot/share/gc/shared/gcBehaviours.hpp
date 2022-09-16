@@ -34,8 +34,7 @@ class IsUnloadingBehaviour {
   static IsUnloadingBehaviour* _current;
 
 public:
-  static bool is_unloading(CompiledMethod* cm);
-  virtual bool has_dead_oop(CompiledMethod* cm) const = 0;
+  virtual bool is_unloading(CompiledMethod* cm) const = 0;
   static IsUnloadingBehaviour* current() { return _current; }
   static void set_current(IsUnloadingBehaviour* current) { _current = current; }
 };
@@ -48,7 +47,7 @@ public:
     : _cl(is_alive)
   { }
 
-  virtual bool has_dead_oop(CompiledMethod* cm) const;
+  virtual bool is_unloading(CompiledMethod* cm) const;
 };
 
 #endif // SHARE_GC_SHARED_GCBEHAVIOURS_HPP

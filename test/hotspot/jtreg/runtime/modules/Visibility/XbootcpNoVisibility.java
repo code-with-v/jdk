@@ -25,7 +25,6 @@
  * @test
  * @summary Ensure that a class defined within a java.base package can not
  *          be located via -Xbootclasspath/a
- * @requires vm.flagless
  * @library /test/lib
  * @modules java.base/jdk.internal.misc
  *          java.management
@@ -76,8 +75,6 @@ public class XbootcpNoVisibility {
         new OutputAnalyzer(ProcessTools.createJavaProcessBuilder(
                 "-Xbootclasspath/a:.",
                 "Vis3_A")
-            .start())
-            .shouldHaveExitValue(0)
-            .shouldContain("XbootcpNoVisibility PASSED");
+            .start()).shouldContain("XbootcpNoVisibility PASSED");
     }
 }

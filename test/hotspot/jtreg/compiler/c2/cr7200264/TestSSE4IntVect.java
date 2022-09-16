@@ -28,8 +28,7 @@
  * @requires vm.cpu.features ~= ".*sse4\\.1.*" & vm.debug & vm.flavor == "server"
  * @requires !vm.emulatedClient & !vm.graal.enabled
  * @library /test/lib /
- * @run main/othervm -XX:+IgnoreUnrecognizedVMOptions -XX:StressLongCountedLoop=0
- *                   compiler.c2.cr7200264.TestSSE4IntVect
+ * @run driver compiler.c2.cr7200264.TestSSE4IntVect
  */
 
 package compiler.c2.cr7200264;

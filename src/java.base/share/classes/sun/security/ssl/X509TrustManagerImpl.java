@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -73,7 +73,7 @@ final class X509TrustManagerImpl extends X509ExtendedTrustManager
         this.pkixParams = null;
 
         if (trustedCerts == null) {
-            trustedCerts = Collections.emptySet();
+            trustedCerts = Collections.<X509Certificate>emptySet();
         }
 
         this.trustedCerts = trustedCerts;
@@ -172,7 +172,7 @@ final class X509TrustManagerImpl extends X509ExtendedTrustManager
                 }
             }
         } else {
-            // assume double-checked locking with a volatile flag works
+            // assume double checked locking with a volatile flag works
             // (guaranteed under the new Tiger memory model)
             v = serverValidator;
             if (v == null) {
@@ -199,8 +199,9 @@ final class X509TrustManagerImpl extends X509ExtendedTrustManager
 
         X509Certificate[] trustedChain;
         if ((socket != null) && socket.isConnected() &&
-                (socket instanceof SSLSocket sslSocket)) {
+                                        (socket instanceof SSLSocket)) {
 
+            SSLSocket sslSocket = (SSLSocket)socket;
             SSLSession session = sslSocket.getHandshakeSession();
             if (session == null) {
                 throw new CertificateException("No handshake session");
@@ -215,10 +216,10 @@ final class X509TrustManagerImpl extends X509ExtendedTrustManager
                 String[] localSupportedSignAlgs =
                         extSession.getLocalSupportedSignatureAlgorithms();
 
-                constraints = SSLAlgorithmConstraints.forSocket(
+                constraints = new SSLAlgorithmConstraints(
                                 sslSocket, localSupportedSignAlgs, false);
             } else {
-                constraints = SSLAlgorithmConstraints.forSocket(sslSocket, false);
+                constraints = new SSLAlgorithmConstraints(sslSocket, false);
             }
 
             // Grab any stapled OCSP responses for use in validation
@@ -269,10 +270,10 @@ final class X509TrustManagerImpl extends X509ExtendedTrustManager
                 String[] localSupportedSignAlgs =
                         extSession.getLocalSupportedSignatureAlgorithms();
 
-                constraints = SSLAlgorithmConstraints.forEngine(
+                constraints = new SSLAlgorithmConstraints(
                                 engine, localSupportedSignAlgs, false);
             } else {
-                constraints = SSLAlgorithmConstraints.forEngine(engine, false);
+                constraints = new SSLAlgorithmConstraints(engine, false);
             }
 
             // Grab any stapled OCSP responses for use in validation
@@ -355,7 +356,7 @@ final class X509TrustManagerImpl extends X509ExtendedTrustManager
                     ((SSLSocket)socket).getHandshakeSession());
         }
 
-        return Collections.emptyList();
+        return Collections.<SNIServerName>emptyList();
     }
 
     // Also used by X509KeyManagerImpl
@@ -364,7 +365,7 @@ final class X509TrustManagerImpl extends X509ExtendedTrustManager
             return getRequestedServerNames(engine.getHandshakeSession());
         }
 
-        return Collections.emptyList();
+        return Collections.<SNIServerName>emptyList();
     }
 
     private static List<SNIServerName> getRequestedServerNames(
@@ -373,7 +374,7 @@ final class X509TrustManagerImpl extends X509ExtendedTrustManager
             return ((ExtendedSSLSession)session).getRequestedServerNames();
         }
 
-        return Collections.emptyList();
+        return Collections.<SNIServerName>emptyList();
     }
 
     /*
@@ -388,8 +389,8 @@ final class X509TrustManagerImpl extends X509ExtendedTrustManager
      * in server_name extension or the peer host of the connection.  Peer host
      * is not always a reliable fully qualified domain name. The HostName in
      * server_name extension is more reliable than peer host. So we prefer
-     * the identity checking against the server_name extension if present, and
-     * may failover to peer host checking.
+     * the identity checking aginst the server_name extension if present, and
+     * may failove to peer host checking.
      */
     static void checkIdentity(SSLSession session,
             X509Certificate[] trustedChain,
@@ -403,12 +404,6 @@ final class X509TrustManagerImpl extends X509ExtendedTrustManager
 
         boolean identifiable = false;
         String peerHost = session.getPeerHost();
-        // Is it a Fully-Qualified Domain Names (FQDN) ending with a dot?
-        if (peerHost != null && peerHost.endsWith(".")) {
-            // Remove the ending dot, which is not allowed in SNIHostName.
-            peerHost = peerHost.substring(0, peerHost.length() - 1);
-        }
-
         if (!checkClientTrusted) {
             List<SNIServerName> sniNames = getRequestedServerNames(session);
             String sniHostName = getHostNameInSNI(sniNames);
@@ -422,7 +417,7 @@ final class X509TrustManagerImpl extends X509ExtendedTrustManager
                         throw ce;
                     }
 
-                    // otherwise, failover to check peer host
+                    // otherwisw, failover to check peer host
                 }
             }
         }

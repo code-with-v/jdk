@@ -127,7 +127,7 @@ public class MenuBar extends MenuComponent implements MenuContainer, Accessible 
 
     /**
      * Creates a new menu bar.
-     * @throws HeadlessException if GraphicsEnvironment.isHeadless()
+     * @exception HeadlessException if GraphicsEnvironment.isHeadless()
      * returns true.
      * @see java.awt.GraphicsEnvironment#isHeadless
      */

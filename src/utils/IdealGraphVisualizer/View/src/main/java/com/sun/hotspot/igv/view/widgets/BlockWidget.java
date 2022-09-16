@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2015, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -43,8 +43,7 @@ public class BlockWidget extends Widget {
 
     public static final int BORDER = 20;
     public static final Color BACKGROUND_COLOR = new Color(235, 235, 255);
-    private static final Font TITLE_FONT = new Font("Arial", Font.BOLD, 14);
-    public static final Color TITLE_COLOR = new Color(42, 42, 171);
+    private static final Font titleFont = new Font("Serif", Font.PLAIN, 14).deriveFont(Font.BOLD);
     private InputBlock blockNode;
     private Diagram diagram;
 
@@ -71,8 +70,9 @@ public class BlockWidget extends Widget {
             g.drawRect(r.x, r.y, r.width, r.height);
         }
 
-        g.setColor(TITLE_COLOR);
-        g.setFont(TITLE_FONT);
+        Color titleColor = Color.BLACK;
+        g.setColor(titleColor);
+        g.setFont(titleFont);
 
         String s = "B" + blockNode.getName();
         Rectangle2D r1 = g.getFontMetrics().getStringBounds(s, g);

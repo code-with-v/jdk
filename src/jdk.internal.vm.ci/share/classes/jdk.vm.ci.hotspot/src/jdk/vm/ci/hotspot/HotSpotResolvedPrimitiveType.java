@@ -23,7 +23,6 @@
 package jdk.vm.ci.hotspot;
 
 import static java.util.Objects.requireNonNull;
-import static jdk.vm.ci.hotspot.HotSpotJVMCIRuntime.runtime;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Modifier;
@@ -82,11 +81,11 @@ public final class HotSpotResolvedPrimitiveType extends HotSpotResolvedJavaType 
     }
 
     @Override
-    HotSpotResolvedObjectTypeImpl getArrayType() {
+    public HotSpotResolvedObjectType getArrayClass() {
         if (kind == JavaKind.Void) {
             return null;
         }
-        return runtime().compilerToVm.getArrayType(getJavaKind().getTypeChar(), null);
+        return super.getArrayClass();
     }
 
     @Override

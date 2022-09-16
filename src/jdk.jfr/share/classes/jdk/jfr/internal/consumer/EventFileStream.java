@@ -31,6 +31,7 @@ import java.security.AccessControlContext;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Objects;
 import jdk.jfr.consumer.RecordedEvent;
 
 /**
@@ -45,10 +46,10 @@ public final class EventFileStream extends AbstractEventStream {
     private ChunkParser currentParser;
     private RecordedEvent[] cacheSorted;
 
-    public EventFileStream(@SuppressWarnings("removal") AccessControlContext acc, Path file) throws IOException {
-        super(acc, Collections.emptyList());
-        this.input = new RecordingInput(file.toFile(), FileAccess.UNPRIVILEGED);
-        this.input.setStreamed();
+    public EventFileStream(@SuppressWarnings("removal") AccessControlContext acc, Path path) throws IOException {
+        super(acc, null, Collections.emptyList());
+        Objects.requireNonNull(path);
+        this.input = new RecordingInput(path.toFile(), FileAccess.UNPRIVILEGED);
     }
 
     @Override
@@ -63,18 +64,13 @@ public final class EventFileStream extends AbstractEventStream {
 
     @Override
     public void close() {
-        closeParser();
+        setClosed(true);
         dispatcher().runCloseActions();
         try {
             input.close();
         } catch (IOException e) {
             // ignore
         }
-    }
-
-    @Override
-    protected boolean isRecording() {
-        return false;
     }
 
     @Override
@@ -89,7 +85,7 @@ public final class EventFileStream extends AbstractEventStream {
             end = disp.endNanos;
         }
 
-        currentParser = new ChunkParser(input, disp.parserConfiguration, parserState());
+        currentParser = new ChunkParser(input, disp.parserConfiguration);
         while (!isClosed()) {
             onMetadata(currentParser);
             if (currentParser.getStartNanos() > end) {
@@ -97,9 +93,10 @@ public final class EventFileStream extends AbstractEventStream {
                 return;
             }
             disp = dispatcher();
-            var ranged  = disp.parserConfiguration.withRange(start, end);
-            currentParser.updateConfiguration(ranged, true);
-            if (disp.parserConfiguration.ordered()) {
+            disp.parserConfiguration.filterStart = start;
+            disp.parserConfiguration.filterEnd = end;
+            currentParser.updateConfiguration(disp.parserConfiguration, true);
+            if (disp.parserConfiguration.isOrdered()) {
                 processOrdered(disp);
             } else {
                 processUnordered(disp);

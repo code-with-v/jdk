@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -38,7 +38,6 @@ import java.awt.font.FontRenderContext;
 import java.awt.print.PageFormat;
 import java.awt.print.Printable;
 import java.awt.print.PrinterException;
-import java.lang.reflect.InvocationTargetException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -611,7 +610,8 @@ public class TextComponentPrintable implements CountingPrintable {
                         public void run() {
                         }
                     });
-            } catch (InterruptedException | InvocationTargetException ignore) {
+            } catch (InterruptedException ignore) {
+            } catch (java.lang.reflect.InvocationTargetException ignore) {
             }
             Document document = textComponentToPrint.getDocument();
             ((AbstractDocument) document).readLock();

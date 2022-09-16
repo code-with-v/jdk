@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,7 +26,7 @@
  * @bug 8141492 8071982 8141636 8147890 8166175 8168965 8176794 8175218 8147881
  *      8181622 8182263 8074407 8187521 8198522 8182765 8199278 8196201 8196202
  *      8184205 8214468 8222548 8223378 8234746 8241219 8254627 8247994 8263528
- *      8266808 8248863
+ *      8266808
  * @summary Test the search feature of javadoc.
  * @library ../../lib
  * @modules jdk.javadoc/jdk.javadoc.internal.tool
@@ -64,8 +64,7 @@ public class TestSearch extends JavadocTester {
                 "module-search-index.js",
                 "package-search-index.js",
                 "tag-search-index.js",
-                "type-search-index.js",
-                "search.html");
+                "type-search-index.js");
     }
 
     @Test
@@ -88,8 +87,7 @@ public class TestSearch extends JavadocTester {
                 "module-search-index.js",
                 "package-search-index.js",
                 "tag-search-index.js",
-                "type-search-index.js",
-                "search.html");
+                "type-search-index.js");
     }
 
     @Test
@@ -110,8 +108,7 @@ public class TestSearch extends JavadocTester {
                 "member-search-index.js",
                 "package-search-index.js",
                 "tag-search-index.js",
-                "type-search-index.js",
-                "search.html");
+                "type-search-index.js");
     }
 
     @Test
@@ -132,9 +129,7 @@ public class TestSearch extends JavadocTester {
                 "type-search-index.js",
                 "index-all.html",
                 "allpackages-index.html",
-                "allclasses-index.html",
-                "search-page.js",
-                "search.html");
+                "allclasses-index.html");
     }
 
     @Test
@@ -155,8 +150,7 @@ public class TestSearch extends JavadocTester {
                 "member-search-index.js",
                 "package-search-index.js",
                 "tag-search-index.js",
-                "type-search-index.js",
-                "search.html");
+                "type-search-index.js");
     }
 
     @Test
@@ -176,9 +170,7 @@ public class TestSearch extends JavadocTester {
                 "package-search-index.js",
                 "tag-search-index.js",
                 "type-search-index.js",
-                "index-all.html",
-                "search-page.js",
-                "search.html");
+                "index-all.html");
     }
 
     @Test
@@ -198,8 +190,7 @@ public class TestSearch extends JavadocTester {
                 "member-search-index.js",
                 "package-search-index.js",
                 "tag-search-index.js",
-                "type-search-index.js",
-                "search.html");
+                "type-search-index.js");
     }
 
     @Test
@@ -220,8 +211,7 @@ public class TestSearch extends JavadocTester {
                 "member-search-index.js",
                 "package-search-index.js",
                 "tag-search-index.js",
-                "type-search-index.js",
-                "search.html");
+                "type-search-index.js");
     }
 
     @Test
@@ -243,8 +233,7 @@ public class TestSearch extends JavadocTester {
                 "member-search-index.js",
                 "package-search-index.js",
                 "tag-search-index.js",
-                "type-search-index.js",
-                "search.html");
+                "type-search-index.js");
     }
 
     @Test
@@ -266,8 +255,7 @@ public class TestSearch extends JavadocTester {
                 "module-search-index.js",
                 "package-search-index.js",
                 "tag-search-index.js",
-                "type-search-index.js",
-                "search.html");
+                "type-search-index.js");
     }
 
     @Test
@@ -423,7 +411,7 @@ public class TestSearch extends JavadocTester {
                     <link rel="stylesheet" type="text/css" href="script-dir/jquery-ui.min.css" title="Style">
                     """,
                 """
-                    <script type="text/javascript" src="script-dir/jquery-3.6.0.min.js"></script>
+                    <script type="text/javascript" src="script-dir/jquery-3.5.1.min.js"></script>
                     """,
                 """
                     <script type="text/javascript" src="script-dir/jquery-ui.min.js"></script>""",
@@ -432,9 +420,9 @@ public class TestSearch extends JavadocTester {
                     loadScripts(document, 'script');""",
                 "<div class=\"nav-list-search\">",
                 """
-                    <div class="nav-list-search"><a href="search.html">SEARCH</a>
-                    <input type="text" id="search-input" disabled placeholder="Search">
-                    <input type="reset" id="reset-button" disabled value="reset">
+                    <label for="search-input">SEARCH:</label>
+                    <input type="text" id="search-input" value="search" disabled="disabled">
+                    <input type="reset" id="reset-button" value="reset" disabled="disabled">
                     """);
         checkOutput(fileName, true,
                 "<div class=\"flex-box\">");
@@ -695,9 +683,22 @@ public class TestSearch extends JavadocTester {
     void checkJqueryAndImageFiles(boolean expectedOutput) {
         checkFiles(expectedOutput,
                 "search.js",
-                "script-dir/jquery-3.6.0.min.js",
+                "jquery-ui.overrides.css",
+                "script-dir/jquery-3.5.1.min.js",
                 "script-dir/jquery-ui.min.js",
                 "script-dir/jquery-ui.min.css",
+                "script-dir/jquery-ui.structure.min.css",
+                "script-dir/images/ui-bg_glass_65_dadada_1x400.png",
+                "script-dir/images/ui-icons_454545_256x240.png",
+                "script-dir/images/ui-bg_glass_95_fef1ec_1x400.png",
+                "script-dir/images/ui-bg_glass_75_dadada_1x400.png",
+                "script-dir/images/ui-bg_highlight-soft_75_cccccc_1x100.png",
+                "script-dir/images/ui-icons_888888_256x240.png",
+                "script-dir/images/ui-icons_2e83ff_256x240.png",
+                "script-dir/images/ui-icons_cd0a0a_256x240.png",
+                "script-dir/images/ui-bg_glass_55_fbf9ee_1x400.png",
+                "script-dir/images/ui-icons_222222_256x240.png",
+                "script-dir/images/ui-bg_glass_75_e6e6e6_1x400.png",
                 "resources/x.png",
                 "resources/glass.png");
     }
@@ -708,13 +709,35 @@ public class TestSearch extends JavadocTester {
                 "##REPLACE:");
 
         checkOutput("search.js", true,
-                "function searchIndex(indexArray, category) {",
-                "function getURLPrefix(item, category) {",
-                "url += item.l;");
-
-        checkOutput("search-page.js", true,
-                "function renderResults(result) {",
-                "function selectTab(category) {");
+                "function searchIndexWithMatcher(indexArray, matcher, category, nameFunc) {",
+                """
+                    search.on('click keydown paste', function() {
+                            if ($(this).val() === watermark) {
+                                $(this).val('').removeClass('watermark');
+                            }
+                        });""",
+                """
+                    function getURLPrefix(ui) {
+                        var urlPrefix="";
+                        var slash = "/";
+                        if (ui.item.category === catModules) {
+                            return ui.item.l + slash;
+                        } else if (ui.item.category === catPackages && ui.item.m) {
+                            return ui.item.m + slash;
+                        } else if (ui.item.category === catTypes || ui.item.category === catMembers) {
+                            if (ui.item.m) {
+                                urlPrefix = ui.item.m + slash;
+                            } else {
+                                $.each(packageSearchIndex, function(index, item) {
+                                    if (item.m && ui.item.p === item.l) {
+                                        urlPrefix = item.m + slash;
+                                    }
+                                });
+                            }
+                        }
+                        return urlPrefix;
+                    }""",
+                "url += ui.item.l;");
 
         checkCssClasses("search.js", "stylesheet.css");
     }
@@ -801,10 +824,14 @@ public class TestSearch extends JavadocTester {
                     <button id="all-classes-table-tab5" role="tab" aria-selected="false" aria-contro\
                     ls="all-classes-table.tabpanel" tabindex="-1" onkeydown="switchTab(event)" oncli\
                     ck="show('all-classes-table', 'all-classes-table-tab5', 2)" class="table-tab">Ex\
-                    ception Classes</button>\
+                    ceptions</button>\
                     <button id="all-classes-table-tab6" role="tab" aria-selected="false" aria-contro\
                     ls="all-classes-table.tabpanel" tabindex="-1" onkeydown="switchTab(event)" oncli\
-                    ck="show('all-classes-table', 'all-classes-table-tab6', 2)" class="table-tab">An\
+                    ck="show('all-classes-table', 'all-classes-table-tab6', 2)" class="table-tab">Er\
+                    rors</button>\
+                    <button id="all-classes-table-tab7" role="tab" aria-selected="false" aria-contro\
+                    ls="all-classes-table.tabpanel" tabindex="-1" onkeydown="switchTab(event)" oncli\
+                    ck="show('all-classes-table', 'all-classes-table-tab7', 2)" class="table-tab">An\
                     notation Interfaces</button>\
                     </div>
                     <div id="all-classes-table.tabpanel" role="tabpanel">

@@ -31,9 +31,6 @@ import java.util.Random;
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @State(Scope.Thread)
-@Warmup(iterations = 4, time = 2, timeUnit = TimeUnit.SECONDS)
-@Measurement(iterations = 4, time = 2, timeUnit = TimeUnit.SECONDS)
-@Fork(value = 3)
 public class FloatingScalarVectorAbsDiff {
     @Param({"1024"})
     public int count;
@@ -68,14 +65,14 @@ public class FloatingScalarVectorAbsDiff {
     @Benchmark
     public void testVectorAbsDiffFloat() {
         for (int i = 0; i < count; i++) {
-            floatsD[i] = Math.abs(Math.abs(floatsA[i] - floatsB[i]) - 3.14f);
+            floatsD[i] = Math.abs(floatsA[i] - floatsB[i]);
         }
     }
 
     @Benchmark
     public void testVectorAbsDiffDouble() {
         for (int i = 0; i < count; i++) {
-            doublesD[i] = Math.abs(Math.abs(doublesA[i] - doublesB[i]) - 3.14d);
+            doublesD[i] = Math.abs(doublesA[i] - doublesB[i]);
         }
     }
 

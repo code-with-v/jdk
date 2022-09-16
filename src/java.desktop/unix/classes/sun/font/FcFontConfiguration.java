@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,23 +32,22 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Properties;
 import java.util.Scanner;
-
 import sun.awt.FcFontManager;
 import sun.awt.FontConfiguration;
 import sun.awt.FontDescriptor;
 import sun.awt.SunToolkit;
+import sun.font.CompositeFontDescriptor;
+import sun.font.FontConfigManager.FontConfigInfo;
 import sun.font.FontConfigManager.FcCompFont;
 import sun.font.FontConfigManager.FontConfigFont;
-import sun.font.FontConfigManager.FontConfigInfo;
 import sun.util.logging.PlatformLogger;
-
-import static java.nio.charset.StandardCharsets.ISO_8859_1;
 
 public class FcFontConfiguration extends FontConfiguration {
 
@@ -158,7 +157,7 @@ public class FcFontConfiguration extends FontConfiguration {
 
     @Override
     protected Charset getDefaultFontCharset(String fontName) {
-        return ISO_8859_1;
+        return Charset.forName("ISO8859_1");
     }
 
     @Override
@@ -179,7 +178,7 @@ public class FcFontConfiguration extends FontConfiguration {
         String[] componentFaceNames = cfi[idx].getComponentFaceNames();
         FontDescriptor[] ret = new FontDescriptor[componentFaceNames.length];
         for (int i = 0; i < componentFaceNames.length; i++) {
-            ret[i] = new FontDescriptor(componentFaceNames[i], ISO_8859_1.newEncoder(), new int[0]);
+            ret[i] = new FontDescriptor(componentFaceNames[i], StandardCharsets.ISO_8859_1.newEncoder(), new int[0]);
         }
 
         return ret;
@@ -295,12 +294,6 @@ public class FcFontConfiguration extends FontConfiguration {
         return null;
     }
 
-    private String extractOsInfo(String s) {
-        if (s.startsWith("\"")) s = s.substring(1);
-        if (s.endsWith("\"")) s = s.substring(0, s.length()-1);
-        return s;
-    }
-
     /**
      * Sets the OS name and version from environment information.
      */
@@ -320,9 +313,7 @@ public class FcFontConfiguration extends FontConfiguration {
                      * For Ubuntu the ID is "Ubuntu".
                      */
                     Properties props = new Properties();
-                    try (FileInputStream fis = new FileInputStream(f)) {
-                        props.load(fis);
-                    }
+                    props.load(new FileInputStream(f));
                     osName = props.getProperty("DISTRIB_ID");
                     osVersion =  props.getProperty("DISTRIB_RELEASE");
             } else if ((f = new File("/etc/redhat-release")).canRead()) {
@@ -337,16 +328,6 @@ public class FcFontConfiguration extends FontConfiguration {
             } else if ((f = new File("/etc/fedora-release")).canRead()) {
                 osName = "Fedora";
                 osVersion = getVersionString(f);
-            } else if ((f = new File("/etc/os-release")).canRead()) {
-                Properties props = new Properties();
-                try (FileInputStream fis = new FileInputStream(f)) {
-                    props.load(fis);
-                }
-                osName = props.getProperty("NAME");
-                osVersion = props.getProperty("VERSION_ID");
-                osName = extractOsInfo(osName);
-                if (osName.equals("SLES")) osName = "SuSE";
-                osVersion = extractOsInfo(osVersion);
             }
         } catch (Exception e) {
             if (FontUtilities.debugFonts()) {
@@ -419,9 +400,10 @@ public class FcFontConfiguration extends FontConfiguration {
             File dir = fcInfoFile.getParentFile();
             dir.mkdirs();
             File tempFile = Files.createTempFile(dir.toPath(), "fcinfo", null).toFile();
-            try (FileOutputStream fos = new FileOutputStream(tempFile)) {
-                props.store(fos, "JDK Font Configuration Generated File: *Do Not Edit*");
-            }
+            FileOutputStream fos = new FileOutputStream(tempFile);
+            props.store(fos,
+                      "JDK Font Configuration Generated File: *Do Not Edit*");
+            fos.close();
             boolean renamed = tempFile.renameTo(fcInfoFile);
             if (!renamed && FontUtilities.debugFonts()) {
                 System.out.println("rename failed");

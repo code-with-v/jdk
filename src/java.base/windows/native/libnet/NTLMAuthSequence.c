@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -76,7 +76,7 @@ JNIEXPORT jlong JNICALL Java_sun_net_www_protocol_http_ntlm_NTLMAuthSequence_get
     CredHandle      *pCred;
     TimeStamp            ltime;
     jboolean         isCopy;
-    SECURITY_STATUS      ss = SEC_E_INTERNAL_ERROR;
+    SECURITY_STATUS      ss;
 
     if (user != 0) {
         pUser = JNU_GetStringPlatformChars(env, user, &isCopy);
@@ -86,19 +86,31 @@ JNIEXPORT jlong JNICALL Java_sun_net_www_protocol_http_ntlm_NTLMAuthSequence_get
     if (domain != 0) {
         pDomain = JNU_GetStringPlatformChars(env, domain, &isCopy);
         if (pDomain == NULL) {
-            goto cleanup;
+            if (pUser != NULL)
+                JNU_ReleaseStringPlatformChars(env, user, pUser);
+            return 0;  // pending Exception
         }
     }
     if (password != 0) {
         pPassword = JNU_GetStringPlatformChars(env, password, &isCopy);
         if (pPassword == NULL) {
-            goto cleanup;
+            if(pUser != NULL)
+                JNU_ReleaseStringPlatformChars(env, user, pUser);
+            if(pDomain != NULL)
+                JNU_ReleaseStringPlatformChars(env, domain, pDomain);
+            return 0;  // pending Exception
         }
     }
     pCred = (CredHandle *)malloc(sizeof (CredHandle));
     if (pCred == NULL) {
         JNU_ThrowOutOfMemoryError(env, "native memory allocation failed");
-        goto cleanup;
+        if (pUser != NULL)
+            JNU_ReleaseStringPlatformChars(env, user, pUser);
+        if (pPassword != NULL)
+            JNU_ReleaseStringPlatformChars(env, password, pPassword);
+        if (pDomain != NULL)
+            JNU_ReleaseStringPlatformChars(env, domain, pDomain);
+        return NULL;
     }
 
     if ( ((pUser != NULL) || (pPassword != NULL)) || (pDomain != NULL)) {
@@ -133,7 +145,6 @@ JNIEXPORT jlong JNICALL Java_sun_net_www_protocol_http_ntlm_NTLMAuthSequence_get
         );
 
     /* Release resources held by JNU_GetStringPlatformChars */
-cleanup:
     if (pUser != NULL)
         JNU_ReleaseStringPlatformChars(env, user, pUser);
     if (pPassword != NULL)
@@ -141,7 +152,7 @@ cleanup:
     if (pDomain != NULL)
         JNU_ReleaseStringPlatformChars(env, domain, pDomain);
 
-    if (ss == SEC_E_OK) {
+    if (ss == 0) {
         return (jlong) pCred;
     } else {
         return 0;

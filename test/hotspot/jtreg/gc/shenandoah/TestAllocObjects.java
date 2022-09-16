@@ -23,7 +23,7 @@
  */
 
 /*
- * @test id=passive
+ * @test TestAllocObjects
  * @summary Acceptance tests: collector can withstand allocation
  * @requires vm.gc.Shenandoah
  *
@@ -49,7 +49,7 @@
  */
 
 /*
- * @test id=aggressive
+ * @test TestAllocObjects
  * @summary Acceptance tests: collector can withstand allocation
  * @requires vm.gc.Shenandoah
  *
@@ -85,7 +85,7 @@
  */
 
 /*
- * @test id=adaptive
+ * @test TestAllocObjects
  * @summary Acceptance tests: collector can withstand allocation
  * @requires vm.gc.Shenandoah
  *
@@ -105,7 +105,7 @@
  */
 
 /*
- * @test id=static
+ * @test TestAllocObjects
  * @summary Acceptance tests: collector can withstand allocation
  * @requires vm.gc.Shenandoah
  *
@@ -120,7 +120,7 @@
  */
 
 /*
- * @test id=compact
+ * @test TestAllocObjects
  * @summary Acceptance tests: collector can withstand allocation
  * @requires vm.gc.Shenandoah
  *
@@ -135,7 +135,7 @@
  */
 
 /*
- * @test id=iu-aggressive
+ * @test TestAllocObjects
  * @summary Acceptance tests: collector can withstand allocation
  * @requires vm.gc.Shenandoah
  *
@@ -165,7 +165,7 @@
  */
 
 /*
- * @test id=iu
+ * @test TestAllocObjects
  * @summary Acceptance tests: collector can withstand allocation
  * @requires vm.gc.Shenandoah
  *

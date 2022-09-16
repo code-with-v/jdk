@@ -32,7 +32,6 @@ import java.nio.ReadOnlyBufferException;
 import java.util.Objects;
 
 import jdk.internal.ref.CleanerFactory;
-import jdk.internal.util.Preconditions;
 import sun.nio.ch.DirectBuffer;
 
 /**
@@ -101,7 +100,6 @@ public class Inflater {
     private byte[] inputArray;
     private int inputPos, inputLim;
     private boolean finished;
-    private boolean pendingOutput;
     private boolean needDict;
     private long bytesRead;
     private long bytesWritten;
@@ -153,7 +151,9 @@ public class Inflater {
      * @see Inflater#needsInput
      */
     public void setInput(byte[] input, int off, int len) {
-        Preconditions.checkFromIndexSize(len, off, input.length, Preconditions.AIOOBE_FORMATTER);
+        if (off < 0 || len < 0 || off > input.length - len) {
+            throw new ArrayIndexOutOfBoundsException();
+        }
         synchronized (zsRef) {
             this.input = null;
             this.inputArray = input;
@@ -218,7 +218,9 @@ public class Inflater {
      * @see Inflater#getAdler
      */
     public void setDictionary(byte[] dictionary, int off, int len) {
-        Preconditions.checkFromIndexSize(len, off, dictionary.length, Preconditions.AIOOBE_FORMATTER);
+        if (off < 0 || len < 0 || off > dictionary.length - len) {
+            throw new ArrayIndexOutOfBoundsException();
+        }
         synchronized (zsRef) {
             ensureOpen();
             setDictionary(zsRef.address(), dictionary, off, len);
@@ -361,7 +363,9 @@ public class Inflater {
     public int inflate(byte[] output, int off, int len)
         throws DataFormatException
     {
-        Preconditions.checkFromIndexSize(len, off, output.length, Preconditions.AIOOBE_FORMATTER);
+        if (off < 0 || len < 0 || off > output.length - len) {
+            throw new ArrayIndexOutOfBoundsException();
+        }
         synchronized (zsRef) {
             ensureOpen();
             ByteBuffer input = this.input;
@@ -416,18 +420,11 @@ public class Inflater {
             if ((result >>> 62 & 1) != 0) {
                 finished = true;
             }
-            if (written == len && !finished) {
-                pendingOutput = true;
-            } else {
-                pendingOutput = false;
-            }
             if ((result >>> 63 & 1) != 0) {
                 needDict = true;
             }
             if (input != null) {
-                if (read > 0) {
-                    input.position(inputPos + read);
-                }
+                input.position(inputPos + read);
             } else {
                 this.inputPos = inputPos + read;
             }
@@ -715,10 +712,6 @@ public class Inflater {
         assert Thread.holdsLock(zsRef);
         if (zsRef.address() == 0)
             throw new NullPointerException("Inflater has been closed");
-    }
-
-    boolean hasPendingOutput() {
-        return pendingOutput;
     }
 
     private static native void initIDs();

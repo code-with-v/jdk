@@ -84,7 +84,7 @@ static void setBlendingFactors(
                                  vertexShaderId:(NSString *)vertexShaderId
                                fragmentShaderId:(NSString *)fragmentShaderId
 {
-    RenderOptions defaultOptions = {JNI_FALSE, JNI_FALSE, 0/*unused*/, {JNI_FALSE, JNI_TRUE}, JNI_FALSE, JNI_FALSE, JNI_FALSE};
+    RenderOptions defaultOptions = {JNI_FALSE, JNI_FALSE, 0/*unused*/, {JNI_FALSE, JNI_TRUE}, {JNI_FALSE, JNI_TRUE}, JNI_FALSE, JNI_FALSE, JNI_FALSE};
     return [self getPipelineState:pipelineDescriptor
                    vertexShaderId:vertexShaderId
                  fragmentShaderId:fragmentShaderId
@@ -98,7 +98,7 @@ static void setBlendingFactors(
                                fragmentShaderId:(NSString *)fragmentShaderId
                                stencilNeeded:(bool)stencilNeeded
 {
-    RenderOptions defaultOptions = {JNI_FALSE, JNI_FALSE, 0/*unused*/, {JNI_FALSE, JNI_TRUE}, JNI_FALSE, JNI_FALSE, JNI_FALSE};
+    RenderOptions defaultOptions = {JNI_FALSE, JNI_FALSE, 0/*unused*/, {JNI_FALSE, JNI_TRUE}, {JNI_FALSE, JNI_TRUE}, JNI_FALSE, JNI_FALSE, JNI_FALSE};
     return [self getPipelineState:pipelineDescriptor
                    vertexShaderId:vertexShaderId
                  fragmentShaderId:fragmentShaderId
@@ -106,19 +106,6 @@ static void setBlendingFactors(
                     renderOptions:&defaultOptions
                     stencilNeeded:stencilNeeded];
 }
-
-// Pipeline state index
-union StateIndex {
-  uint32_t value;
-  struct {
-    uint32_t srcPremultiplied : 1,
-             srcOpaque        : 1,
-             stencil          : 1,
-             aa               : 1,
-             extAlpha         : 1,
-             compositeRule    : 27;
-  } bits;
-};
 
 // Base method to obtain MTLRenderPipelineState.
 // NOTE: parameters compositeRule, srcFlags, dstFlags are used to set MTLRenderPipelineColorAttachmentDescriptor multipliers
@@ -136,31 +123,45 @@ union StateIndex {
 
     // Calculate index by flags and compositeRule
     // TODO: reimplement, use map with convenient key (calculated by all arguments)
-    union StateIndex index;
-    index.value = 0;
+    int subIndex = 0;
     if (useXorComposite) {
         // compositeRule value is already XOR_COMPOSITE_RULE
     }
     else {
         if (useComposite) {
-            index.bits.srcPremultiplied = renderOptions->srcFlags.isPremultiplied;
-            index.bits.srcOpaque = renderOptions->srcFlags.isOpaque;
+            if (!renderOptions->srcFlags.isPremultiplied)
+                subIndex |= 1;
+            if (renderOptions->srcFlags.isOpaque)
+                subIndex |= 1 << 1;
+            if (!renderOptions->dstFlags.isPremultiplied)
+                subIndex |= 1 << 2;
+            if (renderOptions->dstFlags.isOpaque)
+                subIndex |= 1 << 3;
         } else
             compositeRule = RULE_Src;
     }
 
-    index.bits.stencil = stencilNeeded;
-    index.bits.aa = renderOptions->isAA;
-    index.bits.extAlpha = composite != nil && FLT_LT([composite getExtraAlpha], 1.0f);
-    index.bits.compositeRule = compositeRule;
+    if (stencilNeeded) {
+        subIndex |= 1 << 4;
+    }
+
+    if (renderOptions->isAA) {
+        subIndex |= 1 << 5;
+    }
+
+    if ((composite != nil && FLT_LT([composite getExtraAlpha], 1.0f))) {
+        subIndex |= 1 << 6;
+    }
+
+    int index = compositeRule*128 + subIndex;
 
     NSPointerArray * subStates = [self getSubStates:vertexShaderId fragmentShader:fragmentShaderId];
 
-    if (index.value >= subStates.count) {
-        subStates.count = index.value + 1;
+    if (index >= subStates.count) {
+        subStates.count = (NSUInteger) (index + 1);
     }
 
-    id<MTLRenderPipelineState> result = [subStates pointerAtIndex:index.value];
+    id<MTLRenderPipelineState> result = [subStates pointerAtIndex:index];
     if (result == nil) {
         @autoreleasepool {
             id <MTLFunction> vertexShader = [self getShader:vertexShaderId];
@@ -221,7 +222,7 @@ union StateIndex {
                 exit(0);
             }
 
-            [subStates replacePointerAtIndex:index.value withPointer:result];
+            [subStates insertPointer:result atIndex:index];
         }
     }
 

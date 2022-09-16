@@ -78,7 +78,7 @@ public class LocaleUtility {
             variant = EMPTY_STRING;
         }
 
-        return Locale.of(language, country, variant);
+        return new Locale(language, country, variant );
     }
 
 

@@ -1,6 +1,6 @@
 /*
  *
- * Copyright (c) 2007, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -109,6 +109,7 @@ public class J2Ddemo extends JPanel implements ItemListener, ActionListener, Dem
         { "Paths", "Append", "CurveQuadTo", "FillStroke", "WindingRule" },
         { "Transforms", "Rotate", "SelectTx", "TransformAnim" }
     };
+    private final boolean demoIsInApplet;
     private JCheckBoxMenuItem controlsCB;
     private JMenuItem runMI, cloneMI, fileMI, backgMI;
 //    private JMenuItem ccthreadMI, verboseMI;
@@ -121,7 +122,8 @@ public class J2Ddemo extends JPanel implements ItemListener, ActionListener, Dem
     /**
      * Construct the J2D Demo.
      */
-    public J2Ddemo(DemoProgress progress, RunWindowSettings runWndSetts) {
+    public J2Ddemo(boolean demoIsInApplet, DemoProgress progress, RunWindowSettings runWndSetts) {
+        this.demoIsInApplet = demoIsInApplet;
         this.runWndSetts = runWndSetts;
 
         setLayout(new BorderLayout());
@@ -169,9 +171,11 @@ public class J2Ddemo extends JPanel implements ItemListener, ActionListener, Dem
         JPopupMenu.setDefaultLightWeightPopupEnabled(false);
         JMenuBar menuBar = new JMenuBar();
 
-        JMenu file = menuBar.add(new JMenu("File"));
-        fileMI = file.add(new JMenuItem("Exit"));
-        fileMI.addActionListener(this);
+        if (!demoIsInApplet) {
+            JMenu file = menuBar.add(new JMenu("File"));
+            fileMI = file.add(new JMenuItem("Exit"));
+            fileMI.addActionListener(this);
+        }
 
         JMenu options = menuBar.add(new JMenu("Options"));
 
@@ -235,7 +239,11 @@ public class J2Ddemo extends JPanel implements ItemListener, ActionListener, Dem
         rf.addWindowListener(l);
         rf.getContentPane().add("Center", runwindow);
         rf.pack();
-        rf.setSize(new Dimension(200, 125));
+        if (!demoIsInApplet) {
+            rf.setSize(new Dimension(200, 125));
+        } else {
+            rf.setSize(new Dimension(200, 150));
+        }
         rf.setVisible(true);
     }
 
@@ -603,7 +611,7 @@ public class J2Ddemo extends JPanel implements ItemListener, ActionListener, Dem
 
         frame.setVisible(true);
 
-        J2Ddemo demo = new J2Ddemo(demoProgress, runWndSetts);
+        J2Ddemo demo = new J2Ddemo(false, demoProgress, runWndSetts);
         demoOneInstArr[0] = demo;
 
         frame.getContentPane().removeAll();

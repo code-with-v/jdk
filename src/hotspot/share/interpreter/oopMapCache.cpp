@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -178,7 +178,7 @@ InterpreterOopMap::InterpreterOopMap() {
 }
 
 InterpreterOopMap::~InterpreterOopMap() {
-  // The expectation is that the bit mask was allocated
+  // The expection is that the bit mask was allocated
   // last in this resource area.  That would make the free of the
   // bit_mask effective (see how FREE_RESOURCE_ARRAY does a free).
   // If it was not allocated last, there is not a correctness problem
@@ -202,7 +202,6 @@ void InterpreterOopMap::initialize() {
   _mask_size = USHRT_MAX;  // This value should cause a failure quickly
   _bci       = 0;
   _expression_stack_size = 0;
-  _num_oops  = 0;
   for (int i = 0; i < N; i++) _bit_mask[i] = 0;
 }
 
@@ -277,26 +276,26 @@ bool OopMapCacheEntry::verify_mask(CellTypeState* vars, CellTypeState* stack, in
 
   // Check if map is generated correctly
   // (Use ?: operator to make sure all 'true' & 'false' are represented exactly the same so we can use == afterwards)
-  const bool log = log_is_enabled(Trace, interpreter, oopmap);
-  LogStream st(Log(interpreter, oopmap)::trace());
+  Log(interpreter, oopmap) logv;
+  LogStream st(logv.trace());
 
-  if (log) st.print("Locals (%d): ", max_locals);
+  st.print("Locals (%d): ", max_locals);
   for(int i = 0; i < max_locals; i++) {
     bool v1 = is_oop(i)               ? true : false;
     bool v2 = vars[i].is_reference()  ? true : false;
     assert(v1 == v2, "locals oop mask generation error");
-    if (log) st.print("%d", v1 ? 1 : 0);
+    st.print("%d", v1 ? 1 : 0);
   }
-  if (log) st.cr();
+  st.cr();
 
-  if (log) st.print("Stack (%d): ", stack_top);
+  st.print("Stack (%d): ", stack_top);
   for(int j = 0; j < stack_top; j++) {
     bool v1 = is_oop(max_locals + j)  ? true : false;
     bool v2 = stack[j].is_reference() ? true : false;
     assert(v1 == v2, "stack oop mask generation error");
-    if (log) st.print("%d", v1 ? 1 : 0);
+    st.print("%d", v1 ? 1 : 0);
   }
-  if (log) st.cr();
+  st.cr();
   return true;
 }
 
@@ -359,7 +358,6 @@ void OopMapCacheEntry::set_mask(CellTypeState *vars, CellTypeState *stack, int s
   uintptr_t value = 0;
   uintptr_t mask = 1;
 
-  _num_oops = 0;
   CellTypeState* cell = vars;
   for (int entry_index = 0; entry_index < n_entries; entry_index++, mask <<= bits_per_entry, cell++) {
     // store last word
@@ -377,7 +375,6 @@ void OopMapCacheEntry::set_mask(CellTypeState *vars, CellTypeState *stack, int s
     // set oop bit
     if ( cell->is_reference()) {
       value |= (mask << oop_bit_number );
-      _num_oops++;
     }
 
     // set dead bit
@@ -410,7 +407,6 @@ void InterpreterOopMap::resource_copy(OopMapCacheEntry* from) {
   set_bci(from->bci());
   set_mask_size(from->mask_size());
   set_expression_stack_size(from->expression_stack_size());
-  _num_oops = from->num_oops();
 
   // Is the bit mask contained in the entry?
   if (from->mask_size() <= small_mask_limit) {

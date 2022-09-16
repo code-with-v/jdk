@@ -82,7 +82,7 @@ public final class VersionHelper {
 
     /**
      * Returns true if deserialization of objects from 'javaSerializedData'
-     * and 'javaReferenceAddress' LDAP attributes is allowed.
+     * LDAP attribute is allowed.
      *
      * @return true if deserialization is allowed; false - otherwise
      */

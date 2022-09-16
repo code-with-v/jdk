@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -79,9 +79,7 @@ public class BCPOrSystemNotSpecified extends TestRunner {
         List<String> log;
         List<String> expected = Arrays.asList(
                 "- compiler.warn.source.no.bootclasspath: 8",
-                "- compiler.warn.option.obsolete.source: 8",
-                "- compiler.warn.option.obsolete.suppression",
-                "3 warnings"
+                "1 warning"
         );
 
         log = new JavacTask(tb)
@@ -103,7 +101,8 @@ public class BCPOrSystemNotSpecified extends TestRunner {
         new JavacTask(tb)
                 .options("-XDrawDiagnostics",
                          "-source", "8",
-                         "-bootclasspath", bcp.toAbsolutePath().toString())
+                         "-bootclasspath", bcp.toAbsolutePath().toString(),
+                         "-Werror")
                 .outdir(classes)
                 .files(tb.findJavaFiles(src))
                 .run(Expect.SUCCESS)

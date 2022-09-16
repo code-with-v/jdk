@@ -194,8 +194,7 @@ public class RandomTestMoments {
 
     public static void main(String[] args) {
         RandomGeneratorFactory.all()
-                              .filter(f -> !f.name().equals("SecureRandom"))
-                              .forEach(factory -> {
+             .forEach(factory -> {
                 setRNG(factory.name());
                 testOneRng(factory.create(325) );
             });

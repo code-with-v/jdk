@@ -30,7 +30,6 @@ import javax.swing.Action;
 import javax.swing.KeyStroke;
 import org.openide.util.HelpCtx;
 import org.openide.util.actions.CallableSystemAction;
-import org.openide.util.Utilities;
 
 /**
  *
@@ -47,14 +46,19 @@ public final class ZoomOutAction extends CallableSystemAction {
     }
 
     public ZoomOutAction() {
+
         putValue(Action.SHORT_DESCRIPTION, "Zoom out");
-        // D is the Control key on most platforms, the Command (meta) key on Macintosh
-        putValue(Action.ACCELERATOR_KEY, Utilities.stringToKey("D-MINUS"));
+        putValue(Action.ACCELERATOR_KEY, KeyStroke.getKeyStroke(KeyEvent.VK_MINUS, Event.CTRL_MASK, false));
     }
 
     @Override
     public String getName() {
         return "Zoom out";
+    }
+
+    @Override
+    protected void initialize() {
+        super.initialize();
     }
 
     @Override

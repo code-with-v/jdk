@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,12 +29,16 @@ import java.io.IOException;
 import java.io.Writer;
 
 import jdk.javadoc.internal.doclets.toolkit.Content;
+import jdk.javadoc.internal.doclets.toolkit.util.DocletConstants;
 
 /**
  * Class for generating string content for HTML tags of javadoc output.
  * The content is mutable to the extent that additional content may be added.
- * Newlines are always represented by {@code \n}.
- * Any special HTML characters will be escaped if and when the content is written out.
+ *
+ *  <p><b>This is NOT part of any supported API.
+ *  If you write code that depends on this, you do so at your own risk.
+ *  This code and its internal interfaces are subject to change or
+ *  deletion without notice.</b>
  */
 public class TextBuilder extends Content {
 
@@ -53,19 +57,19 @@ public class TextBuilder extends Content {
      * @param initialContent initial content for the object
      */
     public TextBuilder(CharSequence initialContent) {
-        assert Text.checkNewlines(initialContent);
-        stringBuilder = new StringBuilder(initialContent);
+        stringBuilder = new StringBuilder();
+        Entity.escapeHtmlChars(initialContent, stringBuilder);
     }
 
     /**
-     * Adds content for the StringContent object.
+     * Adds content for the StringContent object.  The method escapes
+     * HTML characters for the string content that is added.
      *
      * @param strContent string content to be added
      */
     @Override
     public TextBuilder add(CharSequence strContent) {
-        assert Text.checkNewlines(strContent);
-        stringBuilder.append(strContent);
+        Entity.escapeHtmlChars(strContent, stringBuilder);
         return this;
     }
 
@@ -76,7 +80,7 @@ public class TextBuilder extends Content {
 
     @Override
     public int charCount() {
-        return stringBuilder.length();
+        return RawHtml.charCount(stringBuilder.toString());
     }
 
     @Override
@@ -85,9 +89,9 @@ public class TextBuilder extends Content {
     }
 
     @Override
-    public boolean write(Writer out, String newline, boolean atNewline) throws IOException {
-        String s = Entity.escapeHtmlChars(stringBuilder);
-        out.write(s.replace("\n", newline));
-        return s.endsWith("\n");
+    public boolean write(Writer out, boolean atNewline) throws IOException {
+        String s = stringBuilder.toString();
+        out.write(s);
+        return s.endsWith(DocletConstants.NL);
     }
 }

@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 public class AttributedStringBuilder extends AttributedCharSequence implements Appendable {
 
     private char[] buffer;
-    private long[] style;
+    private int[] style;
     private int length;
     private TabStops tabs = new TabStops(0);
     private int lastLineLength = 0;
@@ -44,7 +44,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
 
     public AttributedStringBuilder(int capacity) {
         buffer = new char[capacity];
-        style = new long[capacity];
+        style = new int[capacity];
         length = 0;
     }
 
@@ -64,7 +64,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
     }
 
     @Override
-    long styleCodeAt(int index) {
+    int styleCodeAt(int index) {
         return style[index];
     }
 
@@ -89,17 +89,11 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
 
     @Override
     public AttributedStringBuilder append(CharSequence csq) {
-        if (csq == null) {
-            csq = "null"; // Required by Appendable.append
-        }
         return append(new AttributedString(csq, current));
     }
 
     @Override
     public AttributedStringBuilder append(CharSequence csq, int start, int end) {
-        if (csq == null) {
-            csq = "null"; // Required by Appendable.append
-        }
         return append(csq.subSequence(start, end));
     }
 
@@ -158,7 +152,7 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
         ensureCapacity(length + end - start);
         for (int i = start; i < end; i++) {
             char c = str.charAt(i);
-            long s = str.styleCodeAt(i) & ~current.getMask() | current.getStyle();
+            int s = str.styleCodeAt(i) & ~current.getMask() | current.getStyle();
             if (tabs.defined() && c == '\t') {
                 insertTab(new AttributedStyle(s, 0));
             } else {
@@ -292,10 +286,12 @@ public class AttributedStringBuilder extends AttributedCharSequence implements A
                                             int r = Integer.parseInt(params[++j]);
                                             int g = Integer.parseInt(params[++j]);
                                             int b = Integer.parseInt(params[++j]);
+                                            // convert to 256 colors
+                                            int col = 16 + (r >> 3) * 36 + (g >> 3) * 6 + (b >> 3);
                                             if (ansiParam == 38) {
-                                                current = current.foreground(r, g, b);
+                                                current = current.foreground(col);
                                             } else {
-                                                current = current.background(r, g, b);
+                                                current = current.background(col);
                                             }
                                         }
                                     } else if (ansiParam2 == 5) {

@@ -83,7 +83,7 @@ import javax.swing.plaf.ScrollBarUI;
  */
 @JavaBean(defaultProperty = "UI", description = "A component that helps determine the visible content range of an area.")
 @SwingContainer(false)
-@SuppressWarnings({"serial"})  // Same-version serialization only
+@SuppressWarnings("serial") // Same-version serialization only
 public class JScrollBar extends JComponent implements Adjustable, Accessible
 {
     /**
@@ -108,26 +108,18 @@ public class JScrollBar extends JComponent implements Adjustable, Accessible
 
 
     /**
-     * Orientation of this scrollBar.
-     *
      * @see #setOrientation
      */
     protected int orientation;
 
 
     /**
-     * Stores the amount by which the value of the scrollbar is changed
-     * upon a unit up/down request.
-     *
      * @see #setUnitIncrement
      */
     protected int unitIncrement;
 
 
     /**
-     * Stores the amount by which the value of the scrollbar is changed
-     * upon a block (usually "page") up/down request.
-     *
      * @see #setBlockIncrement
      */
     protected int blockIncrement;
@@ -155,7 +147,7 @@ public class JScrollBar extends JComponent implements Adjustable, Accessible
      * That way, when the user jumps the knob to an adjacent position,
      * one or two lines of the original contents remain in view.
      *
-     * @throws IllegalArgumentException if orientation is not one of VERTICAL, HORIZONTAL
+     * @exception IllegalArgumentException if orientation is not one of VERTICAL, HORIZONTAL
      *
      * @see #setOrientation
      * @see #setValue
@@ -279,7 +271,7 @@ public class JScrollBar extends JComponent implements Adjustable, Accessible
      * HORIZONTAL.
      *
      * @param orientation an orientation of the {@code JScrollBar}
-     * @throws IllegalArgumentException if orientation is not one of VERTICAL, HORIZONTAL
+     * @exception IllegalArgumentException if orientation is not one of VERTICAL, HORIZONTAL
      * @see #getOrientation
      */
     @BeanProperty(preferred = true, visualUpdate = true, enumerationValues = {

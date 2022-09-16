@@ -25,7 +25,6 @@
  * @test
  * @key headful
  * @bug 6325652 8159152
- * @requires (os.family != "mac")
  * @summary Tests keyboard shortcuts
  * @library ..
  */

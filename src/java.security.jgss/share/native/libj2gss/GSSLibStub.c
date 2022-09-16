@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -48,6 +48,7 @@ Java_sun_security_jgss_wrapper_GSSLibStub_init(JNIEnv *env,
                                                jboolean jDebug) {
     const char *libName;
     int failed;
+    char *error = NULL;
 
     if (!jDebug) {
       JGSS_DEBUG = 0;
@@ -936,7 +937,7 @@ Java_sun_security_jgss_wrapper_GSSLibStub_initContext(JNIEnv *env,
   // this is to work with both MIT and Solaris. Former deletes half-built
   // context if error occurs
   if (contextHdl != contextHdlSave) {
-    (*env)->CallVoidMethod(env, jcontextSpi, MID_NativeGSSContext_setContext,
+    (*env)->SetLongField(env, jcontextSpi, FID_NativeGSSContext_pContext,
                          ptr_to_jlong(contextHdl));
     TRACE1("[GSSLibStub_initContext] set pContext=%" PRIuPTR "", (uintptr_t)contextHdl);
   }
@@ -1056,7 +1057,7 @@ Java_sun_security_jgss_wrapper_GSSLibStub_acceptContext(JNIEnv *env,
   // this is to work with both MIT and Solaris. Former deletes half-built
   // context if error occurs
   if (contextHdl != contextHdlSave) {
-    (*env)->CallVoidMethod(env, jcontextSpi, MID_NativeGSSContext_setContext,
+    (*env)->SetLongField(env, jcontextSpi, FID_NativeGSSContext_pContext,
                          ptr_to_jlong(contextHdl));
     TRACE1("[GSSLibStub_acceptContext] set pContext=%" PRIuPTR "", (uintptr_t)contextHdl);
   }

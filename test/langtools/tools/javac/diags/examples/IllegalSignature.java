@@ -21,7 +21,8 @@
  * questions.
  */
 
-// key: compiler.err.enclosing.class.type.non.denotable
+// key: compiler.err.cannot.generate.class
+// key: compiler.misc.illegal.signature
 
 class IllegalSignature<X> {
     class Inner { }

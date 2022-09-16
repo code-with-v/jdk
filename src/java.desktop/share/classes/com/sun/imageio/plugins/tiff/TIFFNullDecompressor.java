@@ -136,7 +136,12 @@ public class TIFFNullDecompressor extends TIFFDecompressor {
 
             int lastRow = activeSrcHeight - 1;
             for (int y = 0; y < activeSrcHeight; y++) {
-                stream.readFully(b, dstOffset, activeBytesPerRow);
+                int bytesRead = stream.read(b, dstOffset, activeBytesPerRow);
+                if (bytesRead < 0) {
+                    throw new EOFException();
+                } else if (bytesRead != activeBytesPerRow) {
+                    break;
+                }
                 dstOffset += scanlineStride;
 
                 // Skip unneeded bytes (row suffix + row prefix).
@@ -149,10 +154,17 @@ public class TIFFNullDecompressor extends TIFFDecompressor {
             stream.seek(offset);
             int bytesPerRow = (srcWidth*bitsPerPixel + 7)/8;
             if(bytesPerRow == scanlineStride) {
-                stream.readFully(b, dstOffset, bytesPerRow*srcHeight);
+                if (stream.read(b, dstOffset, bytesPerRow*srcHeight) < 0) {
+                    throw new EOFException();
+                }
             } else {
                 for (int y = 0; y < srcHeight; y++) {
-                    stream.readFully(b, dstOffset, bytesPerRow);
+                    int bytesRead = stream.read(b, dstOffset, bytesPerRow);
+                    if (bytesRead < 0) {
+                        throw new EOFException();
+                    } else if (bytesRead != bytesPerRow) {
+                        break;
+                    }
                     dstOffset += scanlineStride;
                 }
             }

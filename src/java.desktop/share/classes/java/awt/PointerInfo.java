@@ -41,7 +41,7 @@ package java.awt;
  * @author Roman Poborchiy
  * @since 1.5
  */
-public final class PointerInfo {
+public class PointerInfo {
 
     private final GraphicsDevice device;
     private final Point location;

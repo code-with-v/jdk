@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -111,9 +111,7 @@ public abstract class CalendarSystem {
         }
     }
 
-    private static final class GregorianHolder {
-        private static final Gregorian GREGORIAN_INSTANCE = new Gregorian();
-    }
+    private static final Gregorian GREGORIAN_INSTANCE = new Gregorian();
 
     /**
      * Returns the singleton instance of the <code>Gregorian</code>
@@ -122,7 +120,7 @@ public abstract class CalendarSystem {
      * @return the <code>Gregorian</code> instance
      */
     public static Gregorian getGregorianCalendar() {
-        return GregorianHolder.GREGORIAN_INSTANCE;
+        return GREGORIAN_INSTANCE;
     }
 
     /**
@@ -137,7 +135,7 @@ public abstract class CalendarSystem {
      */
     public static CalendarSystem forName(String calendarName) {
         if ("gregorian".equals(calendarName)) {
-            return GregorianHolder.GREGORIAN_INSTANCE;
+            return GREGORIAN_INSTANCE;
         }
 
         if (!initialized) {

@@ -31,7 +31,7 @@ import jdk.test.lib.Platform;
 import jtreg.SkippedException;
 
 /**
- * @test id=process
+ * @test
  * @bug 8190198
  * @summary Test clhsdb pmap command on a live process
  * @requires vm.hasSA
@@ -40,7 +40,7 @@ import jtreg.SkippedException;
  */
 
 /**
- * @test id=core
+ * @test
  * @bug 8190198
  * @summary Test clhsdb pmap command on a core file
  * @requires vm.hasSA

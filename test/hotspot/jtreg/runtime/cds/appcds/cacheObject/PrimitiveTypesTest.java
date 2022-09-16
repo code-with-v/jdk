@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,18 +25,18 @@
 /*
  * @test
  * @summary Test archived primitive type mirrors
- * @requires vm.cds.write.archived.java.heap
+ * @requires vm.cds.archived.java.heap
  * @library /test/lib /test/hotspot/jtreg/runtime/cds/appcds
- * @build jdk.test.whitebox.WhiteBox
+ * @build sun.hotspot.WhiteBox
  * @compile PrimitiveTypesApp.java
  * @run driver jdk.test.lib.helpers.ClassFileInstaller -jar app.jar PrimitiveTypesApp FieldsTest
- * @run driver jdk.test.lib.helpers.ClassFileInstaller -jar WhiteBox.jar jdk.test.whitebox.WhiteBox
+ * @run driver jdk.test.lib.helpers.ClassFileInstaller -jar WhiteBox.jar sun.hotspot.WhiteBox
  * @run driver PrimitiveTypesTest
  */
 
 import jdk.test.lib.process.OutputAnalyzer;
 import jdk.test.lib.helpers.ClassFileInstaller;
-import jdk.test.whitebox.WhiteBox;
+import sun.hotspot.WhiteBox;
 
 public class PrimitiveTypesTest {
     public static void main(String[] args) throws Exception {

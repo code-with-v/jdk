@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -69,20 +69,20 @@ public final class AnnotatedTypeFactory {
                     actualTypeAnnos,
                     allOnSameTarget,
                     decl);
-        } else if (type instanceof TypeVariable<?> typeVariable) {
-            return new AnnotatedTypeVariableImpl(typeVariable,
+        } else if (type instanceof TypeVariable) {
+            return new AnnotatedTypeVariableImpl((TypeVariable)type,
                     currentLoc,
                     actualTypeAnnos,
                     allOnSameTarget,
                     decl);
-        } else if (type instanceof ParameterizedType paramType) {
-            return new AnnotatedParameterizedTypeImpl(paramType,
+        } else if (type instanceof ParameterizedType) {
+            return new AnnotatedParameterizedTypeImpl((ParameterizedType)type,
                     currentLoc,
                     actualTypeAnnos,
                     allOnSameTarget,
                     decl);
-        } else if (type instanceof WildcardType wildType) {
-            return new AnnotatedWildcardTypeImpl(wildType,
+        } else if (type instanceof WildcardType) {
+            return new AnnotatedWildcardTypeImpl((WildcardType) type,
                     currentLoc,
                     actualTypeAnnos,
                     allOnSameTarget,
@@ -94,13 +94,15 @@ public final class AnnotatedTypeFactory {
     public static LocationInfo nestingForType(Type type, LocationInfo addTo) {
         if (isArray(type))
             return addTo;
-        if (type instanceof Class<?> clz) {
+        if (type instanceof Class) {
+            Class<?> clz = (Class)type;
             if (clz.getEnclosingClass() == null)
                 return addTo;
             if (Modifier.isStatic(clz.getModifiers()))
                 return addTo;
             return nestingForType(clz.getEnclosingClass(), addTo.pushInner());
-        } else if (type instanceof ParameterizedType t) {
+        } else if (type instanceof ParameterizedType) {
+            ParameterizedType t = (ParameterizedType)type;
             if (t.getOwnerType() == null)
                 return addTo;
             if (t.getRawType() instanceof Class
@@ -112,7 +114,8 @@ public final class AnnotatedTypeFactory {
     }
 
     private static boolean isArray(Type t) {
-        if (t instanceof Class<?> c) {
+        if (t instanceof Class) {
+            Class<?> c = (Class)t;
             if (c.isArray())
                 return true;
         } else if (t instanceof GenericArrayType) {
@@ -314,7 +317,8 @@ public final class AnnotatedTypeFactory {
 
         private Type getComponentType() {
             Type t = getType();
-            if (t instanceof Class<?> c) {
+            if (t instanceof Class) {
+                Class<?> c = (Class)t;
                 return c.getComponentType();
             }
             return ((GenericArrayType)t).getGenericComponentType();
@@ -339,7 +343,8 @@ public final class AnnotatedTypeFactory {
             StringBuilder sb = new StringBuilder();
 
             AnnotatedType componentType = this;
-            while (componentType instanceof AnnotatedArrayType annotatedArrayType) {
+            while (componentType instanceof AnnotatedArrayType) {
+                AnnotatedArrayType annotatedArrayType = (AnnotatedArrayType) componentType;
                 sb.append(annotationsToString(annotatedArrayType.getAnnotations(), true) + "[]");
                 componentType = annotatedArrayType.getAnnotatedGenericComponentType();
             }
@@ -350,7 +355,8 @@ public final class AnnotatedTypeFactory {
 
         @Override
         public boolean equals(Object o) {
-            if (o instanceof AnnotatedArrayType that) {
+            if (o instanceof AnnotatedArrayType) {
+                AnnotatedArrayType that = (AnnotatedArrayType) o;
                 return equalsTypeAndAnnotations(that) &&
                     Objects.equals(getAnnotatedGenericComponentType(),
                                    that.getAnnotatedGenericComponentType());
@@ -395,7 +401,8 @@ public final class AnnotatedTypeFactory {
 
         @Override
         public boolean equals(Object o) {
-            if (o instanceof AnnotatedTypeVariable that) {
+            if (o instanceof AnnotatedTypeVariable) {
+                AnnotatedTypeVariable that = (AnnotatedTypeVariable) o;
                 return equalsTypeAndAnnotations(that);
             } else {
                 return false;
@@ -476,7 +483,8 @@ public final class AnnotatedTypeFactory {
 
         @Override
         public boolean equals(Object o) {
-            if (o instanceof AnnotatedParameterizedType that) {
+            if (o instanceof AnnotatedParameterizedType) {
+                AnnotatedParameterizedType that = (AnnotatedParameterizedType) o;
                 return equalsTypeAndAnnotations(that) &&
                     Arrays.equals(getAnnotatedActualTypeArguments(), that.getAnnotatedActualTypeArguments());
             } else {
@@ -590,7 +598,8 @@ public final class AnnotatedTypeFactory {
 
         @Override
         public boolean equals(Object o) {
-            if (o instanceof AnnotatedWildcardType that) {
+            if (o instanceof AnnotatedWildcardType) {
+                AnnotatedWildcardType that = (AnnotatedWildcardType) o;
                 return equalsTypeAndAnnotations(that) &&
                     // Treats ordering as significant
                     Arrays.equals(getAnnotatedLowerBounds(), that.getAnnotatedLowerBounds()) &&

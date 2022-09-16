@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -61,12 +61,7 @@ public abstract class JavaVFrame extends VFrame {
                  lockState, hobj.asLongValue());
 
       Klass klass = Oop.getKlassForOopHandle(hobj);
-      String klassName;
-      if (klass != null) {
-        klassName = klass.getName().asString();
-      } else {
-        klassName = "<unknown class>";
-      }
+      String klassName = klass.getName().asString();
       tty.print("(a ");
       if (klassName.equals("java/lang/Class")) {
         Oop obj = VM.getVM().getObjectHeap().newOop(hobj);
@@ -203,11 +198,13 @@ public abstract class JavaVFrame extends VFrame {
   }
 
   public boolean equals(Object o) {
-      if (!(o instanceof JavaVFrame other)) {
+      if (o == null || !(o instanceof JavaVFrame)) {
           return false;
       }
 
-    // Check static part
+      JavaVFrame other = (JavaVFrame) o;
+
+      // Check static part
       if (!getMethod().equals(other.getMethod())) {
           return false;
       }

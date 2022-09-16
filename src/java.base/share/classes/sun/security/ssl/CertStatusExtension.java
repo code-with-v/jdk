@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -239,14 +239,14 @@ final class CertStatusExtension {
         }
     }
 
-    enum CertStatusRequestType {
+    static enum CertStatusRequestType {
         OCSP        ((byte)0x01,    "ocsp"),        // RFC 6066/6961
         OCSP_MULTI  ((byte)0x02,    "ocsp_multi");  // RFC 6961
 
         final byte id;
         final String name;
 
-        CertStatusRequestType(byte id, String name) {
+        private CertStatusRequestType(byte id, String name) {
             this.id = id;
             this.name = name;
         }
@@ -287,11 +287,10 @@ final class CertStatusExtension {
         @Override
         public String toString() {
             MessageFormat messageFormat = new MessageFormat(
-                    """
-                            "certificate status type": {0}
-                            "encoded certificate status": '{'
-                            {1}
-                            '}'""",
+                "\"certificate status type\": {0}\n" +
+                "\"encoded certificate status\": '{'\n" +
+                "{1}\n" +
+                "'}'",
                 Locale.ENGLISH);
 
             HexDumpEncoder hexEncoder = new HexDumpEncoder();
@@ -405,19 +404,17 @@ final class CertStatusExtension {
         @Override
         public String toString() {
             MessageFormat messageFormat = new MessageFormat(
-                    """
-                            "certificate status type": {0}
-                            "OCSP status request": '{'
-                            {1}
-                            '}'""",
+                "\"certificate status type\": {0}\n" +
+                "\"OCSP status request\": '{'\n" +
+                "{1}\n" +
+                "'}'",
                 Locale.ENGLISH);
 
             MessageFormat requestFormat = new MessageFormat(
-                    """
-                            "responder_id": {0}
-                            "request extensions": '{'
-                            {1}
-                            '}'""",
+                "\"responder_id\": {0}\n" +
+                "\"request extensions\": '{'\n" +
+                "{1}\n" +
+                "'}'",
                 Locale.ENGLISH);
 
             String ridStr = "<empty>";
@@ -480,11 +477,10 @@ final class CertStatusExtension {
         @Override
         public String toString() {
             MessageFormat messageFormat = new MessageFormat(
-                    """
-                            "certificate status response type": {0}
-                            "encoded certificate status": '{'
-                            {1}
-                            '}'""",
+                "\"certificate status response type\": {0}\n" +
+                "\"encoded certificate status\": '{'\n" +
+                "{1}\n" +
+                "'}'",
                 Locale.ENGLISH);
 
             HexDumpEncoder hexEncoder = new HexDumpEncoder();
@@ -519,11 +515,10 @@ final class CertStatusExtension {
         @Override
         public String toString() {
             MessageFormat messageFormat = new MessageFormat(
-                    """
-                            "certificate status response type": {0}
-                            "OCSP status response": '{'
-                            {1}
-                            '}'""",
+                "\"certificate status response type\": {0}\n" +
+                "\"OCSP status response\": '{'\n" +
+                "{1}\n" +
+                "'}'",
                 Locale.ENGLISH);
 
             Object[] messageFields = {
@@ -815,7 +810,7 @@ final class CertStatusExtension {
                                 new SSLProtocolException(
                             "Invalid status_request_v2 extension: " +
                             "insufficient data (request_length=" + requestLen +
-                            ", remaining=" + message.remaining() + ")"));
+                            ", remining=" + message.remaining() + ")"));
                 }
 
                 byte[] encoded = new byte[requestLen];

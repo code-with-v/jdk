@@ -61,7 +61,7 @@ public:
   }
 
   void verify();
-  void initialize() override;
+  void initialize();
 
   void clear_into_younger(Generation* old_gen);
 
@@ -76,7 +76,7 @@ public:
                               OopIterateClosure* cl,
                               CardTableRS* ct);
 
-  bool is_in_young(const void* p) const override;
+  virtual bool is_in_young(oop obj) const;
 };
 
 class ClearNoncleanCardWrapper: public MemRegionClosure {
@@ -95,7 +95,7 @@ private:
 
 public:
   ClearNoncleanCardWrapper(DirtyCardToOopClosure* dirty_card_closure, CardTableRS* ct);
-  void do_MemRegion(MemRegion mr) override;
+  void do_MemRegion(MemRegion mr);
 };
 
 #endif // SHARE_GC_SHARED_CARDTABLERS_HPP

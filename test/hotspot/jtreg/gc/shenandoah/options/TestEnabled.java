@@ -25,14 +25,14 @@ import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 
 /*
- * @test id=default
+ * @test TestEnabled
  * @requires vm.gc.Shenandoah & vm.gc == "null"
  * @run main/othervm -Dexpected=false -Xmx64m                                                       TestEnabled
  * @run main/othervm -Dexpected=true  -Xmx64m -XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC TestEnabled
  */
 
 /*
- * @test id=already
+ * @test TestEnabledAlready
  * @requires vm.gc.Shenandoah & vm.gc == "Shenandoah"
  * @run main/othervm -Dexpected=true -Xmx64m                                                        TestEnabled
  */

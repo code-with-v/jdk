@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,24 +25,34 @@
 
 package sun.security.util;
 
-import java.math.BigInteger;
 import java.security.AlgorithmParameters;
-import java.security.InvalidKeyException;
 import java.security.Key;
+import java.security.InvalidKeyException;
+import java.security.interfaces.ECKey;
+import java.security.interfaces.EdECKey;
+import java.security.interfaces.EdECPublicKey;
+import java.security.interfaces.RSAKey;
+import java.security.interfaces.DSAKey;
+import java.security.interfaces.DSAParams;
+import java.security.interfaces.XECKey;
 import java.security.SecureRandom;
-import java.security.interfaces.*;
-import java.security.spec.*;
-import java.util.Arrays;
+import java.security.spec.AlgorithmParameterSpec;
+import java.security.spec.KeySpec;
+import java.security.spec.ECParameterSpec;
+import java.security.spec.InvalidParameterSpecException;
 import javax.crypto.SecretKey;
 import javax.crypto.interfaces.DHKey;
 import javax.crypto.interfaces.DHPublicKey;
 import javax.crypto.spec.DHParameterSpec;
 import javax.crypto.spec.DHPublicKeySpec;
+import java.math.BigInteger;
+import java.security.spec.NamedParameterSpec;
+import java.util.Arrays;
 
 import sun.security.jca.JCAUtil;
 
 /**
- * A utility class to get key length, validate keys, etc.
+ * A utility class to get key length, valiate keys, etc.
  */
 public final class KeyUtil {
 
@@ -53,7 +63,7 @@ public final class KeyUtil {
      * @return the key size of the given key object in bits, or -1 if the
      *       key size is not accessible
      */
-    public static int getKeySize(Key key) {
+    public static final int getKeySize(Key key) {
         int size = -1;
 
         if (key instanceof Length) {
@@ -70,7 +80,8 @@ public final class KeyUtil {
         }
 
         // try to parse the length from key specification
-        if (key instanceof SecretKey sk) {
+        if (key instanceof SecretKey) {
+            SecretKey sk = (SecretKey)key;
             String format = sk.getFormat();
             if ("RAW".equals(format)) {
                 byte[] encoded = sk.getEncoded();
@@ -78,18 +89,23 @@ public final class KeyUtil {
                     size = (encoded.length * 8);
                     Arrays.fill(encoded, (byte)0);
                 }
-            }   // Otherwise, it may be an unextractable key of PKCS#11, or
+            }   // Otherwise, it may be a unextractable key of PKCS#11, or
                 // a key we are not able to handle.
-        } else if (key instanceof RSAKey pubk) {
+        } else if (key instanceof RSAKey) {
+            RSAKey pubk = (RSAKey)key;
             size = pubk.getModulus().bitLength();
-        } else if (key instanceof ECKey pubk) {
+        } else if (key instanceof ECKey) {
+            ECKey pubk = (ECKey)key;
             size = pubk.getParams().getOrder().bitLength();
-        } else if (key instanceof DSAKey pubk) {
+        } else if (key instanceof DSAKey) {
+            DSAKey pubk = (DSAKey)key;
             DSAParams params = pubk.getParams();    // params can be null
             size = (params != null) ? params.getP().bitLength() : -1;
-        } else if (key instanceof DHKey pubk) {
+        } else if (key instanceof DHKey) {
+            DHKey pubk = (DHKey)key;
             size = pubk.getParams().getP().bitLength();
-        } else if (key instanceof XECKey pubk) {
+        } else if (key instanceof XECKey) {
+            XECKey pubk = (XECKey)key;
             AlgorithmParameterSpec params = pubk.getParams();
             if (params instanceof NamedParameterSpec) {
                 String name = ((NamedParameterSpec) params).getName();
@@ -113,7 +129,7 @@ public final class KeyUtil {
             } else {
                 size = -1;
             }
-        }   // Otherwise, it may be an unextractable key of PKCS#11, or
+        }   // Otherwise, it may be a unextractable key of PKCS#11, or
             // a key we are not able to handle.
 
         return size;
@@ -172,27 +188,6 @@ public final class KeyUtil {
         }
 
         return -1;
-    }
-
-    /**
-     * Returns the algorithm name of the given key object. If an EC key is
-     * specified, returns the algorithm name and its named curve.
-     *
-     * @param key the key object, cannot be null
-     * @return the algorithm name of the given key object, or return in the
-     *       form of "EC (named curve)" if the given key object is an EC key
-     */
-    public static final String fullDisplayAlgName(Key key) {
-        String result = key.getAlgorithm();
-        if (key instanceof ECKey) {
-            ECParameterSpec paramSpec = ((ECKey) key).getParams();
-            if (paramSpec instanceof NamedCurve nc) {
-                result += " (" + nc.getNameAndAliases()[0] + ")";
-            }
-        } else if (key instanceof EdECKey) {
-            result = ((EdECKey) key).getParams().getName();
-        }
-        return result;
     }
 
     /**
@@ -291,7 +286,7 @@ public final class KeyUtil {
      *         contains the lower of that suggested by the client in the client
      *         hello and the highest supported by the server.
      * @param  encoded the encoded key in its "RAW" encoding format
-     * @param  isFailOver whether the previous decryption of the
+     * @param  isFailOver whether or not the previous decryption of the
      *         encrypted PreMasterSecret message run into problem
      * @return the polished PreMasterSecret key in its "RAW" encoding format
      */
@@ -339,7 +334,7 @@ public final class KeyUtil {
      * 1. Verify that y lies within the interval [2,p-1]. If it does not,
      *    the key is invalid.
      * 2. Compute y^q mod p. If the result == 1, the key is valid.
-     *    Otherwise, the key is invalid.
+     *    Otherwise the key is invalid.
      */
     private static void validateDHPublicKey(DHPublicKey publicKey)
             throws InvalidKeyException {

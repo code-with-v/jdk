@@ -114,6 +114,7 @@ struct TxtFrameUniforms {
     vector_float4 color;
     int mode; // NOTE: consider to use bit fields
     int isSrcOpaque;
+    int isDstOpaque;
     float extraAlpha;
 };
 

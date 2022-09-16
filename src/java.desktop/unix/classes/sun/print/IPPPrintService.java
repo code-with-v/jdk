@@ -27,82 +27,42 @@ package sun.print;
 
 import java.awt.GraphicsEnvironment;
 import java.awt.Toolkit;
-import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.net.HttpURLConnection;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.URLConnection;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.Map;
-
+import javax.print.attribute.*;
+import javax.print.attribute.standard.*;
 import javax.print.DocFlavor;
 import javax.print.DocPrintJob;
 import javax.print.PrintService;
 import javax.print.ServiceUIFactory;
-import javax.print.attribute.Attribute;
-import javax.print.attribute.AttributeSet;
-import javax.print.attribute.AttributeSetUtilities;
-import javax.print.attribute.EnumSyntax;
-import javax.print.attribute.HashAttributeSet;
-import javax.print.attribute.HashPrintServiceAttributeSet;
-import javax.print.attribute.PrintRequestAttribute;
-import javax.print.attribute.PrintServiceAttribute;
-import javax.print.attribute.PrintServiceAttributeSet;
-import javax.print.attribute.Size2DSyntax;
-import javax.print.attribute.standard.Chromaticity;
-import javax.print.attribute.standard.ColorSupported;
-import javax.print.attribute.standard.Copies;
-import javax.print.attribute.standard.CopiesSupported;
-import javax.print.attribute.standard.Destination;
-import javax.print.attribute.standard.DialogOwner;
-import javax.print.attribute.standard.DialogTypeSelection;
-import javax.print.attribute.standard.Fidelity;
-import javax.print.attribute.standard.Finishings;
-import javax.print.attribute.standard.JobName;
-import javax.print.attribute.standard.JobSheets;
-import javax.print.attribute.standard.Media;
-import javax.print.attribute.standard.MediaPrintableArea;
-import javax.print.attribute.standard.MediaSize;
-import javax.print.attribute.standard.MediaSizeName;
-import javax.print.attribute.standard.MediaTray;
-import javax.print.attribute.standard.NumberUp;
-import javax.print.attribute.standard.OrientationRequested;
-import javax.print.attribute.standard.PDLOverrideSupported;
-import javax.print.attribute.standard.PageRanges;
-import javax.print.attribute.standard.PagesPerMinute;
-import javax.print.attribute.standard.PagesPerMinuteColor;
-import javax.print.attribute.standard.PrinterInfo;
-import javax.print.attribute.standard.PrinterIsAcceptingJobs;
-import javax.print.attribute.standard.PrinterLocation;
-import javax.print.attribute.standard.PrinterMakeAndModel;
-import javax.print.attribute.standard.PrinterMessageFromOperator;
-import javax.print.attribute.standard.PrinterMoreInfo;
-import javax.print.attribute.standard.PrinterMoreInfoManufacturer;
-import javax.print.attribute.standard.PrinterName;
-import javax.print.attribute.standard.PrinterResolution;
-import javax.print.attribute.standard.PrinterState;
-import javax.print.attribute.standard.PrinterStateReasons;
-import javax.print.attribute.standard.PrinterURI;
-import javax.print.attribute.standard.QueuedJobCount;
-import javax.print.attribute.standard.RequestingUserName;
-import javax.print.attribute.standard.SheetCollate;
-import javax.print.attribute.standard.Sides;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Date;
+import java.util.Arrays;
+import java.security.AccessController;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import javax.print.event.PrintServiceAttributeListener;
 
-import static java.nio.charset.StandardCharsets.ISO_8859_1;
-import static java.nio.charset.StandardCharsets.UTF_8;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.HttpURLConnection;
+import java.io.File;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.DataInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.charset.Charset;
+
+import java.util.Iterator;
+import java.util.HashSet;
+import java.util.Map;
+
 
 public class IPPPrintService implements PrintService, SunPrinterJobService {
 
@@ -365,7 +325,11 @@ public class IPPPrintService implements PrintService, SunPrinterJobService {
         if ((name == null) || (url == null)){
             throw new IllegalArgumentException("null uri or printer name");
         }
-        printer = java.net.URLDecoder.decode(name, UTF_8);
+        try {
+            printer = java.net.URLDecoder.decode(name, "UTF-8");
+        } catch (java.io.UnsupportedEncodingException e) {
+            printer = name;
+        }
         supportedDocFlavors = null;
         supportedCats = null;
         mediaSizeNames = null;
@@ -395,7 +359,11 @@ public class IPPPrintService implements PrintService, SunPrinterJobService {
         if ((name == null) || (uriStr == null)){
             throw new IllegalArgumentException("null uri or printer name");
         }
-        printer = java.net.URLDecoder.decode(name, UTF_8);
+        try {
+            printer = java.net.URLDecoder.decode(name, "UTF-8");
+        } catch (java.io.UnsupportedEncodingException e) {
+            printer = name;
+        }
         supportedDocFlavors = null;
         supportedCats = null;
         mediaSizeNames = null;
@@ -671,7 +639,8 @@ public class IPPPrintService implements PrintService, SunPrinterJobService {
 
             int match = -1;
             Media media = (Media)attributes.get(Media.class);
-            if (media instanceof MediaSizeName msn) {
+            if (media != null && media instanceof MediaSizeName) {
+                MediaSizeName msn = (MediaSizeName)media;
 
                 // case when no supported mediasizenames are reported
                 // check given media against the default
@@ -831,7 +800,7 @@ public class IPPPrintService implements PrintService, SunPrinterJobService {
 
     //This class is for getting all pre-defined Finishings
     @SuppressWarnings("serial") // JDK implementation class
-    private static class ExtFinishing extends Finishings {
+    private class ExtFinishing extends Finishings {
         ExtFinishing(int value) {
             super(100); // 100 to avoid any conflicts with predefined values.
         }
@@ -926,7 +895,7 @@ public class IPPPrintService implements PrintService, SunPrinterJobService {
                                 gifImagesAdded = true;
                             } else if (mimeType.equals("image/jpeg")) {
                                 jpgImagesAdded = true;
-                            } else if (mimeType.contains("postscript")) {
+                            } else if (mimeType.indexOf("postscript") != -1) {
                                 psSupported = true;
                             }
                             break;
@@ -1554,7 +1523,7 @@ public class IPPPrintService implements PrintService, SunPrinterJobService {
                     return mediaSizeNames[defaultMediaIndex];
                 } else {
                     for (int i=0; i< mediaSizeNames.length; i++) {
-                        if (mediaSizeNames[i].toString().contains(name)) {
+                        if (mediaSizeNames[i].toString().indexOf(name) != -1) {
                             defaultMediaIndex = i;
                             return mediaSizeNames[defaultMediaIndex];
                         }
@@ -1766,8 +1735,9 @@ public class IPPPrintService implements PrintService, SunPrinterJobService {
 
                    InputStream is = urlConnection.getInputStream();
                    if (is != null) {
-                       BufferedReader d = new BufferedReader(
-                               new InputStreamReader(is, ISO_8859_1));
+                       BufferedReader d =
+                           new BufferedReader(new InputStreamReader(is,
+                                                          Charset.forName("ISO-8859-1")));
                        String lineStr;
                        while ((lineStr = d.readLine()) != null) {
                            if (lineStr.startsWith("*cupsFilter:")) {
@@ -1859,7 +1829,13 @@ public class IPPPrintService implements PrintService, SunPrinterJobService {
     public static boolean writeIPPRequest(OutputStream os,
                                            String operCode,
                                            AttributeClass[] attCl) {
-        OutputStreamWriter osw = new OutputStreamWriter(os, UTF_8);
+        OutputStreamWriter osw;
+        try {
+            osw = new OutputStreamWriter(os, "UTF-8");
+        } catch (java.io.UnsupportedEncodingException exc) {
+            debug_println(debugPrefix+"writeIPPRequest, UTF-8 not supported? Exception: "+exc);
+            return false;
+        }
         debug_println(debugPrefix+"writeIPPRequest, op code= "+operCode);
         char[] opCode =  new char[2];
         opCode[0] =  (char)Byte.parseByte(operCode.substring(0,2), 16);

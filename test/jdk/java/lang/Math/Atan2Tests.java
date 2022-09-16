@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2004, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,6 +25,7 @@
  * @test
  * @bug 4984407
  * @summary Tests for {Math, StrictMath}.atan2
+ * @author Joseph D. Darcy
  */
 
 public class Atan2Tests {
@@ -32,8 +33,10 @@ public class Atan2Tests {
 
     static int testAtan2Case(double input1, double input2, double expected) {
         int failures = 0;
-        failures += Tests.test("StrictMath.atan2", input1, input2, StrictMath::atan2, expected);
-        failures += Tests.test("Math.atan2",       input1, input2, Math::atan2,       expected);
+        failures += Tests.test("StrictMath.atan2(double, double)", input1, input2,
+                               StrictMath.atan2(input1, input2), expected);
+        failures += Tests.test("Math.atan2(double, double)", input1, input2,
+                               Math.atan2(input1, input2), expected);
 
         return failures;
     }
@@ -52,7 +55,7 @@ public class Atan2Tests {
         return failures;
     }
 
-    public static void main(String... argv) {
+    public static void main(String [] argv) {
         int failures = 0;
 
         failures += testAtan2();

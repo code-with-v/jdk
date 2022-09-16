@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,43 +28,88 @@
 #include "oops/oop.hpp"
 #include "oops/weakHandle.hpp"
 #include "runtime/atomic.hpp"
+#include "utilities/hashtable.hpp"
 
-// The ProtectionDomainCacheTable maps all java.security.ProtectionDomain objects that are
-// registered by DictionaryEntry::add_protection_domain() to a unique WeakHandle.
+// This class caches the approved protection domains that can access loaded classes.
+// Dictionary entry pd_set point to entries in this hashtable.   Please refer
+// to dictionary.hpp pd_set for more information about how protection domain entries
+// are used.
+// This table is walked during GC, rather than the class loader data graph dictionaries.
+class ProtectionDomainCacheEntry : public HashtableEntry<WeakHandle, mtClass> {
+  friend class VMStructs;
+ public:
+  oop object();
+  oop object_no_keepalive();
+
+  ProtectionDomainCacheEntry* next() {
+    return (ProtectionDomainCacheEntry*)HashtableEntry<WeakHandle, mtClass>::next();
+  }
+
+  ProtectionDomainCacheEntry** next_addr() {
+    return (ProtectionDomainCacheEntry**)HashtableEntry<WeakHandle, mtClass>::next_addr();
+  }
+
+  void verify();
+};
+
+// The ProtectionDomainCacheTable contains all protection domain oops. The
+// dictionary entries reference its entries instead of having references to oops
+// directly.
+// This is used to speed up system dictionary iteration: the oops in the
+// protection domain are the only ones referring the Java heap. So when there is
+// need to update these, instead of going over every entry of the system dictionary,
+// we only need to iterate over this set.
 // The amount of different protection domains used is typically magnitudes smaller
 // than the number of system dictionary entries (loaded classes).
-class ProtectionDomainCacheTable : public AllStatic {
+class ProtectionDomainCacheTable : public Hashtable<WeakHandle, mtClass> {
+  ProtectionDomainCacheEntry* bucket(int i) const {
+    return (ProtectionDomainCacheEntry*) Hashtable<WeakHandle, mtClass>::bucket(i);
+  }
 
-  static bool _dead_entries;
-  static int _total_oops_removed;
+  // The following method is not MT-safe and must be done under lock.
+  ProtectionDomainCacheEntry** bucket_addr(int i) {
+    return (ProtectionDomainCacheEntry**) Hashtable<WeakHandle, mtClass>::bucket_addr(i);
+  }
+
+  ProtectionDomainCacheEntry* new_entry(unsigned int hash, WeakHandle protection_domain) {
+    ProtectionDomainCacheEntry* entry = (ProtectionDomainCacheEntry*)
+      Hashtable<WeakHandle, mtClass>::new_entry(hash, protection_domain);
+    return entry;
+  }
+
+  static unsigned int compute_hash(Handle protection_domain);
+
+  int index_for(Handle protection_domain);
+  ProtectionDomainCacheEntry* add_entry(int index, unsigned int hash, Handle protection_domain);
+  ProtectionDomainCacheEntry* find_entry(int index, Handle protection_domain);
+
+  bool _dead_entries;
+  int _total_oops_removed;
 
 public:
-  static unsigned int compute_hash(const WeakHandle& protection_domain);
-  static bool equals(const WeakHandle& protection_domain1, const WeakHandle& protection_domain2);
+  ProtectionDomainCacheTable(int table_size);
+  ProtectionDomainCacheEntry* get(Handle protection_domain);
 
-  static WeakHandle add_if_absent(Handle protection_domain);
-  static void unlink();
+  void unlink();
 
-  static void print_on(outputStream* st);
-  static void verify();
+  void print_on(outputStream* st) const;
+  void verify();
 
-  static bool has_work() { return _dead_entries; }
-  static void trigger_cleanup();
+  bool has_work() { return _dead_entries; }
+  void trigger_cleanup();
 
-  static int removed_entries_count() { return _total_oops_removed; };
-  static int number_of_entries();
-  static void print_table_statistics(outputStream* st);
+  int removed_entries_count() { return _total_oops_removed; };
 };
 
 
 // This describes the linked list protection domain for each DictionaryEntry in pd_set.
 class ProtectionDomainEntry :public CHeapObj<mtClass> {
-  WeakHandle _object;
+  ProtectionDomainCacheEntry* _pd_cache;
   ProtectionDomainEntry* volatile _next;
  public:
 
-  ProtectionDomainEntry(WeakHandle obj,
-                        ProtectionDomainEntry* head) : _object(obj), _next(head) {}
+  ProtectionDomainEntry(ProtectionDomainCacheEntry* pd_cache,
+                        ProtectionDomainEntry* head) : _pd_cache(pd_cache), _next(head) {}
 
   ProtectionDomainEntry* next_acquire() { return Atomic::load_acquire(&_next); }
   void release_set_next(ProtectionDomainEntry* entry) { Atomic::release_store(&_next, entry); }

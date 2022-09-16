@@ -29,7 +29,7 @@
  * @bug 8022301
  * @bug 8025519
  * @summary sigaction(sig) results in process hang/timed-out if sig is much greater than SIGRTMAX
- * @requires os.family != "windows"
+ * @requires (os.family == "linux")
  * @library /test/lib
  * @compile TestJNI.java
  * @run driver Testjsig

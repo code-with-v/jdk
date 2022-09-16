@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -37,6 +37,7 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.function.Predicate;
 import java.util.regex.*;
+import java.util.stream.Collectors;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
@@ -45,6 +46,7 @@ import javax.lang.model.util.*;
 import javax.tools.JavaFileManager;
 import javax.tools.JavaFileObject;
 import javax.tools.JavaFileObject.Kind;
+import javax.tools.StandardJavaFileManager;
 
 import static javax.tools.StandardLocation.*;
 
@@ -300,7 +302,10 @@ public class JavacProcessingEnvironment implements ProcessingEnvironment, Closea
             try {
                 processorIterator = List.of(new PrintingProcessor()).iterator();
             } catch (Throwable t) {
-                throw new AssertionError("Problem instantiating PrintingProcessor.", t);
+                AssertionError assertError =
+                    new AssertionError("Problem instantiating PrintingProcessor.");
+                assertError.initCause(t);
+                throw assertError;
             }
         } else if (processors != null) {
             processorIterator = processors.iterator();
@@ -490,7 +495,7 @@ public class JavacProcessingEnvironment implements ProcessingEnvironment, Closea
     }
 
     private class NameServiceIterator extends ServiceIterator {
-        private Map<String, Processor> namedProcessorsMap = new HashMap<>();
+        private Map<String, Processor> namedProcessorsMap = new HashMap<>();;
         private Iterator<String> processorNames = null;
         private Processor nextProc = null;
 
@@ -1637,7 +1642,7 @@ public class JavacProcessingEnvironment implements ProcessingEnvironment, Closea
                     List<? extends RecordComponent> recordComponents = node.sym.getRecordComponents();
                     for (RecordComponent rc : recordComponents) {
                         List<JCAnnotation> originalAnnos = rc.getOriginalAnnos();
-                        originalAnnos.forEach(a -> visitAnnotation(a));
+                        originalAnnos.stream().forEach(a -> visitAnnotation(a));
                     }
                     // we should empty the list of permitted subclasses for next round
                     node.sym.permitted = List.nil();

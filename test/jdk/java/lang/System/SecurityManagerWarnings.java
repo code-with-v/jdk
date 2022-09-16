@@ -23,7 +23,7 @@
 
 /*
  * @test
- * @bug 8266459 8268349 8269543 8270380
+ * @bug 8266459 8268349 8269543
  * @summary check various warnings
  * @library /test/lib
  */
@@ -53,7 +53,7 @@ public class SecurityManagerWarnings {
 
             String testClasses = System.getProperty("test.classes");
 
-            disallowTest(null, testClasses);
+            allowTest(null, testClasses);
             allowTest("allow", testClasses);
             disallowTest("disallow", testClasses);
             enableTest("", testClasses);
@@ -66,7 +66,7 @@ public class SecurityManagerWarnings {
                     Path.of("A.class"),
                     Path.of("B.class"));
 
-            disallowTest(null, "a.jar");
+            allowTest(null, "a.jar");
         } else {
             System.out.println("SM is enabled: " + (System.getSecurityManager() != null));
             PrintStream oldErr = System.err;

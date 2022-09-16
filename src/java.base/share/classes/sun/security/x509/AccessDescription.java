@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -37,9 +37,9 @@ public final class AccessDescription {
 
     private int myhash = -1;
 
-    private final ObjectIdentifier accessMethod;
+    private ObjectIdentifier accessMethod;
 
-    private final GeneralName accessLocation;
+    private GeneralName accessLocation;
 
     public static final ObjectIdentifier Ad_OCSP_Id =
         ObjectIdentifier.of(KnownOIDs.OCSP);
@@ -87,9 +87,10 @@ public final class AccessDescription {
     }
 
     public boolean equals(Object obj) {
-        if (!(obj instanceof AccessDescription that)) {
+        if (obj == null || (!(obj instanceof AccessDescription))) {
             return false;
         }
+        AccessDescription that = (AccessDescription)obj;
 
         if (this == that) {
             return true;
@@ -99,7 +100,7 @@ public final class AccessDescription {
     }
 
     public String toString() {
-        String method;
+        String method = null;
         if (accessMethod.equals(Ad_CAISSUERS_Id)) {
             method = "caIssuers";
         } else if (accessMethod.equals(Ad_CAREPOSITORY_Id)) {

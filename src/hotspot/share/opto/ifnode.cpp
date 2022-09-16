@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -114,11 +114,10 @@ static Node* split_if(IfNode *iff, PhaseIterGVN *igvn) {
   if( !t->singleton() ) return NULL;
 
   // No intervening control, like a simple Call
-  Node* r = iff->in(0);
-  if (!r->is_Region() || r->is_Loop() || phi->region() != r || r->as_Region()->is_copy()) {
-    return NULL;
-  }
-
+  Node *r = iff->in(0);
+  if( !r->is_Region() ) return NULL;
+  if (r->is_Loop()) return NULL;
+  if( phi->region() != r ) return NULL;
   // No other users of the cmp/bool
   if (b->outcnt() != 1 || cmp->outcnt() != 1) {
     //tty->print_cr("many users of cmp/bool");
@@ -186,7 +185,7 @@ static Node* split_if(IfNode *iff, PhaseIterGVN *igvn) {
         } else if( v->Opcode() == Op_CastII ) {
           tty->print_cr("Phi has CastII use");
         } else {
-          tty->print_cr("Phi has use I can't be bothered with");
+          tty->print_cr("Phi has use I cant be bothered with");
         }
         */
       }
@@ -244,23 +243,13 @@ static Node* split_if(IfNode *iff, PhaseIterGVN *igvn) {
     }
     Node* proj = PhaseIdealLoop::find_predicate(r->in(ii));
     if (proj != NULL) {
-      // Bail out if splitting through a region with a predicate input (could
-      // also be a loop header before loop opts creates a LoopNode for it).
       return NULL;
     }
   }
 
   // If all the defs of the phi are the same constant, we already have the desired end state.
   // Skip the split that would create empty phi and region nodes.
-  if ((r->req() - req_c) == 1) {
-    return NULL;
-  }
-
-  // At this point we know that we can apply the split if optimization. If the region is still on the worklist,
-  // we should wait until it is processed. The region might be removed which makes this optimization redundant.
-  // This also avoids the creation of dead data loops when rewiring data nodes below when a region is dying.
-  if (igvn->_worklist.member(r)) {
-    igvn->_worklist.push(iff); // retry split if later again
+  if((r->req() - req_c) == 1) {
     return NULL;
   }
 
@@ -739,7 +728,7 @@ bool IfNode::is_ctrl_folds(Node* ctrl, PhaseIterGVN* igvn) {
 // Do this If and the dominating If share a region?
 bool IfNode::has_shared_region(ProjNode* proj, ProjNode*& success, ProjNode*& fail) {
   ProjNode* otherproj = proj->other_if_proj();
-  Node* otherproj_ctrl_use = otherproj->unique_ctrl_out_or_null();
+  Node* otherproj_ctrl_use = otherproj->unique_ctrl_out();
   RegionNode* region = (otherproj_ctrl_use != NULL && otherproj_ctrl_use->is_Region()) ? otherproj_ctrl_use->as_Region() : NULL;
   success = NULL;
   fail = NULL;
@@ -838,9 +827,7 @@ bool IfNode::has_only_uncommon_traps(ProjNode* proj, ProjNode*& success, ProjNod
       ciMethod* dom_method = dom_unc->jvms()->method();
       int dom_bci = dom_unc->jvms()->bci();
       if (!igvn->C->too_many_traps(dom_method, dom_bci, Deoptimization::Reason_unstable_fused_if) &&
-          !igvn->C->too_many_traps(dom_method, dom_bci, Deoptimization::Reason_range_check) &&
-          // Return true if c2 manages to reconcile with UnstableIf optimization. See the comments for it.
-          igvn->C->remove_unstable_if_trap(dom_unc, true/*yield*/)) {
+          !igvn->C->too_many_traps(dom_method, dom_bci, Deoptimization::Reason_range_check)) {
         success = unc_proj;
         fail = unc_proj->other_if_proj();
         return true;
@@ -1723,16 +1710,6 @@ Node* IfProjNode::Identity(PhaseGVN* phase) {
        // will cause this node to be reprocessed once the dead branch is killed.
        in(0)->outcnt() == 1))) {
     // IfNode control
-    if (in(0)->is_BaseCountedLoopEnd()) {
-      // CountedLoopEndNode may be eliminated by if subsuming, replace CountedLoopNode with LoopNode to
-      // avoid mismatching between CountedLoopNode and CountedLoopEndNode in the following optimization.
-      Node* head = unique_ctrl_out_or_null();
-      if (head != NULL && head->is_BaseCountedLoop() && head->in(LoopNode::LoopBackControl) == this) {
-        Node* new_head = new LoopNode(head->in(LoopNode::EntryControl), this);
-        phase->is_IterGVN()->register_new_node_with_optimizer(new_head);
-        phase->is_IterGVN()->replace_node(head, new_head);
-      }
-    }
     return in(0)->in(0);
   }
   // no progress
@@ -1740,9 +1717,39 @@ Node* IfProjNode::Identity(PhaseGVN* phase) {
 }
 
 #ifndef PRODUCT
+//-------------------------------related---------------------------------------
+// An IfProjNode's related node set consists of its input (an IfNode) including
+// the IfNode's condition, plus all of its outputs at level 1. In compact mode,
+// the restrictions for IfNode apply (see IfNode::rel).
+void IfProjNode::related(GrowableArray<Node*> *in_rel, GrowableArray<Node*> *out_rel, bool compact) const {
+  Node* ifNode = this->in(0);
+  in_rel->append(ifNode);
+  if (compact) {
+    ifNode->collect_nodes(in_rel, 3, false, true);
+  } else {
+    ifNode->collect_nodes_in_all_data(in_rel, false);
+  }
+  this->collect_nodes(out_rel, -1, false, false);
+}
+
 //------------------------------dump_spec--------------------------------------
 void IfNode::dump_spec(outputStream *st) const {
   st->print("P=%f, C=%f",_prob,_fcnt);
+}
+
+//-------------------------------related---------------------------------------
+// For an IfNode, the set of related output nodes is just the output nodes till
+// depth 2, i.e, the IfTrue/IfFalse projection nodes plus the nodes they refer.
+// The related input nodes contain no control nodes, but all data nodes
+// pertaining to the condition. In compact mode, the input nodes are collected
+// up to a depth of 3.
+void IfNode::related(GrowableArray <Node *> *in_rel, GrowableArray <Node *> *out_rel, bool compact) const {
+  if (compact) {
+    this->collect_nodes(in_rel, 3, false, true);
+  } else {
+    this->collect_nodes_in_all_data(in_rel, false);
+  }
+  this->collect_nodes(out_rel, -2, false, false);
 }
 #endif
 
@@ -1758,7 +1765,7 @@ static IfNode* idealize_test(PhaseGVN* phase, IfNode* iff) {
   Node* old_if_f = iff->proj_out(false);
   Node* old_if_t = iff->proj_out(true);
 
-  // CountedLoopEnds want the back-control test to be TRUE, regardless of
+  // CountedLoopEnds want the back-control test to be TRUE, irregardless of
   // whether they are testing a 'gt' or 'lt' condition.  The 'gt' condition
   // happens in count-down loops
   if (iff->is_BaseCountedLoopEnd())  return NULL;

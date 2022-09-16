@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1995, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1995, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -45,7 +45,6 @@ import java.util.ServiceLoader;
 
 import jdk.internal.access.JavaNetURLAccess;
 import jdk.internal.access.SharedSecrets;
-import jdk.internal.misc.ThreadTracker;
 import jdk.internal.misc.VM;
 import sun.net.util.IPAddressUtil;
 import sun.security.util.SecurityConstants;
@@ -724,7 +723,7 @@ public final class URL implements java.io.Serializable {
         String protocol = uri.getScheme();
 
         // In general we need to go via Handler.parseURL, but for the jrt
-        // protocol we enforce that the Handler is not overridable and can
+        // protocol we enforce that the Handler is not overrideable and can
         // optimize URI to URL conversion.
         //
         // Case-sensitive comparison for performance; malformed protocols will
@@ -1243,7 +1242,7 @@ public final class URL implements java.io.Serializable {
     private static final URLStreamHandlerFactory defaultFactory = new DefaultFactory();
 
     private static class DefaultFactory implements URLStreamHandlerFactory {
-        private static final String PREFIX = "sun.net.www.protocol.";
+        private static String PREFIX = "sun.net.www.protocol.";
 
         public URLStreamHandler createURLStreamHandler(String protocol) {
             // Avoid using reflection during bootstrap
@@ -1343,24 +1342,15 @@ public final class URL implements java.io.Serializable {
         };
     }
 
-    private static class ThreadTrackHolder {
-        static final ThreadTracker TRACKER = new ThreadTracker();
-    }
-
-    private static Object tryBeginLookup() {
-        return ThreadTrackHolder.TRACKER.tryBegin();
-    }
-
-    private static void endLookup(Object key) {
-        ThreadTrackHolder.TRACKER.end(key);
-    }
+    // Thread-local gate to prevent recursive provider lookups
+    private static ThreadLocal<Object> gate = new ThreadLocal<>();
 
     @SuppressWarnings("removal")
     private static URLStreamHandler lookupViaProviders(final String protocol) {
-        Object key = tryBeginLookup();
-        if (key == null) {
+        if (gate.get() != null)
             throw new Error("Circular loading of URL stream handler providers detected");
-        }
+
+        gate.set(gate);
         try {
             return AccessController.doPrivileged(
                 new PrivilegedAction<>() {
@@ -1376,7 +1366,7 @@ public final class URL implements java.io.Serializable {
                     }
                 });
         } finally {
-            endLookup(key);
+            gate.set(null);
         }
     }
 
@@ -1772,7 +1762,7 @@ final class UrlDeserializedState {
 
     String reconstituteUrlString() {
 
-        // pre-compute length of StringBuilder
+        // pre-compute length of StringBuffer
         int len = protocol.length() + 1;
         if (authority != null && !authority.isEmpty())
             len += 2 + authority.length();

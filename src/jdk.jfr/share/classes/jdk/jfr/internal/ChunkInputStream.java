@@ -110,4 +110,11 @@ final class ChunkInputStream extends InputStream {
             }
         }
     }
+
+    @Override
+    @SuppressWarnings("deprecation")
+    protected void finalize() throws Throwable {
+        super.finalize();
+        close();
+    }
 }

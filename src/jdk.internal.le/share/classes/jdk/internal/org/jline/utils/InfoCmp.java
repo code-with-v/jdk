@@ -619,7 +619,7 @@ public final class InfoCmp {
     static {
         for (String s : Arrays.asList("dumb", "dumb-color", "ansi", "xterm", "xterm-256color",
                 "windows", "windows-256color", "windows-conemu", "windows-vtp",
-                "screen", "screen-256color", "rxvt-unicode", "rxvt-unicode-256color", "rxvt-basic", "rxvt")) {
+                "screen", "screen-256color")) {
             setDefaultInfoCmp(s, () -> loadDefaultInfoCmp(s));
         }
     }

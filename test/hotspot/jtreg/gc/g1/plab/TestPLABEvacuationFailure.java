@@ -68,7 +68,7 @@ public class TestPLABEvacuationFailure {
             "failure wasted"));
 
     private static final String[] COMMON_OPTIONS = {
-        "-Xlog:gc,gc+plab=debug",
+        "-Xlog:gc=debug,gc+phases=trace",
         "-XX:+UseG1GC",
         "-XX:InitiatingHeapOccupancyPercent=100",
         "-XX:-G1UseAdaptiveIHOP",
@@ -196,7 +196,7 @@ public class TestPLABEvacuationFailure {
 
     private static List<Long> getGcIdPlabEvacFailures(OutputAnalyzer out) {
         return out.asLines().stream()
-                .filter(line -> line.contains("(Evacuation Failure)"))
+                .filter(line -> line.contains("space exhausted"))
                 .map(line -> LogParser.getGcIdFromLine(line, GC_ID_PATTERN))
                 .collect(Collectors.toList());
     }

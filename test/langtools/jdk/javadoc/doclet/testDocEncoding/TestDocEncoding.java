@@ -58,8 +58,8 @@ public class TestDocEncoding extends JavadocTester {
 
         checkOutput("stylesheet.css", true,
                 """
-                body {
-                    background-color:var(--body-background-color);""");
+                    body {
+                        background-color:#ffffff;""");
 
         // reset the charset, for a negative test, that the -docencoding
         // was effective and that the output is not in UTF-8.
@@ -67,7 +67,7 @@ public class TestDocEncoding extends JavadocTester {
         checkOutput("stylesheet.css", false,
                 """
                     body {
-                        background-color:var(--page-bg-color);""");
+                        background-color:#ffffff;""");
     }
 }
 

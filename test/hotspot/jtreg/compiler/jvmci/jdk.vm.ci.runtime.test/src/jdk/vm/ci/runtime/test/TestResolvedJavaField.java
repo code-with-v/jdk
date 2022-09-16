@@ -68,17 +68,6 @@ public class TestResolvedJavaField extends FieldUniverse {
     }
 
     @Test
-    public void equalsTest() {
-        for (ResolvedJavaField f : fields.values()) {
-            for (ResolvedJavaField that : fields.values()) {
-                boolean expect = f == that;
-                boolean actual = f.equals(that);
-                assertEquals(expect, actual);
-            }
-        }
-    }
-
-    @Test
     public void getModifiersTest() {
         for (Map.Entry<Field, ResolvedJavaField> e : fields.entrySet()) {
             int expected = e.getKey().getModifiers();

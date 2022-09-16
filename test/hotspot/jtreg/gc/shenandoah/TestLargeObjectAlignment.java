@@ -23,7 +23,7 @@
  */
 
 /*
- * @test
+ * @test TestLargeObjectAlignment
  * @summary Shenandoah crashes with -XX:ObjectAlignmentInBytes=16
  * @key randomness
  * @requires vm.gc.Shenandoah

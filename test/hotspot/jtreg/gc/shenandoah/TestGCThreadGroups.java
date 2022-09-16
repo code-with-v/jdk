@@ -23,7 +23,7 @@
  */
 
 /**
- * @test id=passive
+ * @test TestGCThreadGroups
  * @summary Test Shenandoah GC uses concurrent/parallel threads correctly
  * @requires vm.gc.Shenandoah
  *
@@ -35,7 +35,7 @@
  */
 
 /**
- * @test id=default
+ * @test TestGCThreadGroups
  * @summary Test Shenandoah GC uses concurrent/parallel threads correctly
  * @requires vm.gc.Shenandoah
  *
@@ -77,7 +77,7 @@
  */
 
 /**
- * @test id=iu
+ * @test TestGCThreadGroups
  * @summary Test Shenandoah GC uses concurrent/parallel threads correctly
  * @requires vm.gc.Shenandoah
  *

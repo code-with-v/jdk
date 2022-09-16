@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,27 +22,24 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-
 package com.sun.imageio.plugins.tiff;
 
 import java.io.EOFException;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-
 import javax.imageio.IIOException;
+import javax.imageio.stream.ImageInputStream;
+import javax.imageio.stream.ImageOutputStream;
 import javax.imageio.plugins.tiff.BaselineTIFFTagSet;
 import javax.imageio.plugins.tiff.TIFFDirectory;
 import javax.imageio.plugins.tiff.TIFFField;
 import javax.imageio.plugins.tiff.TIFFTag;
 import javax.imageio.plugins.tiff.TIFFTagSet;
-import javax.imageio.stream.ImageInputStream;
-import javax.imageio.stream.ImageOutputStream;
-
-import static java.nio.charset.StandardCharsets.US_ASCII;
 
 public class TIFFIFD extends TIFFDirectory {
     private static final long MAX_SAMPLES_PER_PIXEL = 0xffff;
@@ -56,12 +53,12 @@ public class TIFFIFD extends TIFFDirectory {
     // A set of tag numbers corresponding to tags essential to decoding
     // the image and metadata required to interpret its samples.
     //
-    private static volatile Set<Integer> essentialTags;
+    private static volatile Set<Integer> essentialTags = null;
 
     private static void initializeEssentialTags() {
         Set<Integer> tags = essentialTags;
         if (tags == null) {
-            essentialTags = Set.of(
+            essentialTags = tags = Set.of(
                 BaselineTIFFTagSet.TAG_BITS_PER_SAMPLE,
                 BaselineTIFFTagSet.TAG_COLOR_MAP,
                 BaselineTIFFTagSet.TAG_COMPRESSION,
@@ -286,7 +283,8 @@ public class TIFFIFD extends TIFFDirectory {
                             if (inString) {
                                 // end of string
                                 String s = new String(bvalues, prevIndex,
-                                        index - prevIndex, US_ASCII);
+                                        index - prevIndex,
+                                        StandardCharsets.US_ASCII);
                                 v.add(s);
                                 inString = false;
                             }
@@ -321,7 +319,7 @@ public class TIFFIFD extends TIFFDirectory {
                         while (bytesToRead != 0) {
                             int sz = Math.min(bytesToRead, UNIT_SIZE);
                             byte[] unit = new byte[sz];
-                            stream.readFully(unit, 0, sz);
+                            stream.readFully(unit, bytesRead, sz);
                             bufs.add(unit);
                             bytesRead += sz;
                             bytesToRead -= sz;
@@ -457,7 +455,7 @@ public class TIFFIFD extends TIFFDirectory {
                     while (shortsToRead != 0) {
                         int sz = Math.min(shortsToRead, SSHORT_TILE_SIZE);
                         short[] unit = new short[sz];
-                        stream.readFully(unit, 0, sz);
+                        stream.readFully(unit, shortsRead, sz);
                         bufs.add(unit);
                         shortsRead += sz;
                         shortsToRead -= sz;
@@ -488,7 +486,7 @@ public class TIFFIFD extends TIFFDirectory {
                     while (intsToRead != 0) {
                         int sz = Math.min(intsToRead, INT_TILE_SIZE);
                         int[] unit = new int[sz];
-                        stream.readFully(unit, 0, sz);
+                        stream.readFully(unit, intsToRead, sz);
                         bufs.add(unit);
                         intsRead += sz;
                         intsToRead -= sz;
@@ -520,7 +518,7 @@ public class TIFFIFD extends TIFFDirectory {
                     while (srationalsToRead != 0) {
                         int sz = Math.min(srationalsToRead, SRATIONAL_TILE_SIZE);
                         int[] unit = new int[sz * 2];
-                        stream.readFully(unit, 0, (sz * 2));
+                        stream.readFully(unit, (srationalsToRead * 2), (sz * 2));
                         bufs.add(unit);
                         srationalsRead += sz;
                         srationalsToRead -= sz;
@@ -554,7 +552,7 @@ public class TIFFIFD extends TIFFDirectory {
                     while (floatsToRead != 0) {
                         int sz = Math.min(floatsToRead, FLOAT_TILE_SIZE);
                         float[] unit = new float[sz];
-                        stream.readFully(unit, 0, sz);
+                        stream.readFully(unit, floatsToRead, sz);
                         bufs.add(unit);
                         floatsRead += sz;
                         floatsToRead -= sz;
@@ -585,7 +583,7 @@ public class TIFFIFD extends TIFFDirectory {
                     while (doublesToRead != 0) {
                         int sz = Math.min(doublesToRead, DOUBLE_TILE_SIZE);
                         double[] unit = new double[sz];
-                        stream.readFully(unit, 0, sz);
+                        stream.readFully(unit, doublesToRead, sz);
                         bufs.add(unit);
                         doublesRead += sz;
                         doublesToRead -= sz;
@@ -1002,7 +1000,7 @@ public class TIFFIFD extends TIFFDirectory {
                 // The IFD entry value is a pointer to the actual field value.
                 long offset = stream.readUnsignedInt();
 
-                // Check whether the field value is within the stream.
+                // Check whether the the field value is within the stream.
                 if (haveStreamLength && offset + size > streamLength) {
                     continue;
                 }

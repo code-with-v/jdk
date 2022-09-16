@@ -55,7 +55,7 @@ public class OldSuperInf {
         OutputAnalyzer output = TestCommon.dump(appJar, appClasses, "-Xlog:class+load,cds=debug,verification=trace");
         TestCommon.checkExecReturn(output, 0,
                                    dynamicMode ? true : false,
-                                   "Skipping OldInf: Old class has been linked",
+                                   "Pre JDK 6 class not supported by CDS: 49.0 OldInf",
                                    "Skipping ChildOldInf: Old class has been linked",
                                    "Skipping GChild2: Old class has been linked");
 

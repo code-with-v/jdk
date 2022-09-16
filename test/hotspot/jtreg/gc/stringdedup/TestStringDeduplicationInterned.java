@@ -24,73 +24,20 @@
 package gc.stringdedup;
 
 /*
- * @test id=Serial
+ * @test TestStringDeduplicationInterned
  * @summary Test string deduplication of interned strings
  * @bug 8029075
- * @requires vm.gc.Serial
+ * @requires vm.gc == "null" | vm.gc == "G1"
  * @library /test/lib
  * @library /
  * @modules java.base/jdk.internal.misc:open
  * @modules java.base/java.lang:open
  *          java.management
- * @run driver gc.stringdedup.TestStringDeduplicationInterned Serial
- */
-
-/*
- * @test id=G1
- * @summary Test string deduplication of interned strings
- * @bug 8029075
- * @requires vm.gc.G1
- * @library /test/lib
- * @library /
- * @modules java.base/jdk.internal.misc:open
- * @modules java.base/java.lang:open
- *          java.management
- * @run driver gc.stringdedup.TestStringDeduplicationInterned G1
- */
-
-/*
- * @test id=Parallel
- * @summary Test string deduplication of interned strings
- * @bug 8029075
- * @requires vm.gc.Parallel
- * @library /test/lib
- * @library /
- * @modules java.base/jdk.internal.misc:open
- * @modules java.base/java.lang:open
- *          java.management
- * @run driver gc.stringdedup.TestStringDeduplicationInterned Parallel
- */
-
-/*
- * @test id=Shenandoah
- * @summary Test string deduplication of interned strings
- * @bug 8029075
- * @requires vm.gc.Shenandoah
- * @library /test/lib
- * @library /
- * @modules java.base/jdk.internal.misc:open
- * @modules java.base/java.lang:open
- *          java.management
- * @run driver gc.stringdedup.TestStringDeduplicationInterned Shenandoah
- */
-
-/*
- * @test id=Z
- * @summary Test string deduplication of interned strings
- * @bug 8029075
- * @requires vm.gc.Z
- * @library /test/lib
- * @library /
- * @modules java.base/jdk.internal.misc:open
- * @modules java.base/java.lang:open
- *          java.management
- * @run driver gc.stringdedup.TestStringDeduplicationInterned Z
+ * @run driver gc.stringdedup.TestStringDeduplicationInterned
  */
 
 public class TestStringDeduplicationInterned {
     public static void main(String[] args) throws Exception {
-        TestStringDeduplicationTools.selectGC(args);
         TestStringDeduplicationTools.testInterned();
     }
 }

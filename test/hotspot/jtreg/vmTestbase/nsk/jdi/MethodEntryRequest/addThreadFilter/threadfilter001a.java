@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,7 @@
 package nsk.jdi.MethodEntryRequest.addThreadFilter;
 
 import nsk.share.*;
+import nsk.share.jpda.*;
 import nsk.share.jdi.*;
 
 /**
@@ -53,8 +54,8 @@ public class threadfilter001a {
 
     //====================================================== test program
 
-    static Thread thread1 = null;
-    static Thread thread2 = null;
+    static threadfilter001aThread thread1 = null;
+    static threadfilter001aThread thread2 = null;
 
     static threadfilter001aTestClass objTC = new threadfilter001aTestClass();
 
@@ -82,8 +83,8 @@ public class threadfilter001a {
         argHandler = new ArgumentHandler(argv);
         log = argHandler.createDebugeeLog();
 
-        thread1 = JDIThreadFactory.newThread(new threadfilter001aThread("thread1"));
-        thread2 = JDIThreadFactory.newThread(new threadfilter001aThread("thread2"));
+        thread1 = new threadfilter001aThread("thread1");
+        thread2 = new threadfilter001aThread("thread2");
 
         log1("debuggee started!");
 
@@ -146,19 +147,21 @@ public class threadfilter001a {
     static Object lockingObj[] = new Object[2];
     static volatile int number = 0;
 
-    static class threadfilter001aThread extends NamedTask {
+    static class threadfilter001aThread extends Thread {
 
+        String tName = null;
         int tNumber;
 
         public threadfilter001aThread(String threadName) {
             super(threadName);
+            tName = threadName;
             tNumber = number;
             number++;
             lockingObj[tNumber] = threadName;
         }
 
         public void run() {
-            log1("  'run': enter  :: threadName == " + getName());
+            log1("  'run': enter  :: threadName == " + tName);
             if (lockingObj[tNumber] == null)
                 log1("lockingObj[tNumber] == null");
             synchronized(lockingObj[tNumber]) {
@@ -167,7 +170,7 @@ public class threadfilter001a {
                 }
                 objTC.method();
             }
-            log1("  'run': exit   :: threadName == " + getName());
+            log1("  'run': exit   :: threadName == " + tName);
             return;
         }
     }

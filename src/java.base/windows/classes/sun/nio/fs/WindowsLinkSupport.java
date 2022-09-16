@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -269,7 +269,8 @@ class WindowsLinkSupport {
      */
     private static String readLinkImpl(long handle) throws IOException {
         int size = MAXIMUM_REPARSE_DATA_BUFFER_SIZE;
-        try (NativeBuffer buffer = NativeBuffers.getNativeBuffer(size)) {
+        NativeBuffer buffer = NativeBuffers.getNativeBuffer(size);
+        try {
             try {
                 DeviceIoControlGetReparsePoint(handle, buffer.address(), size);
             } catch (WindowsException x) {
@@ -333,6 +334,8 @@ class WindowsLinkSupport {
                 throw new IOException("Symbolic link target is invalid");
             }
             return target;
+        } finally {
+            buffer.release();
         }
     }
 

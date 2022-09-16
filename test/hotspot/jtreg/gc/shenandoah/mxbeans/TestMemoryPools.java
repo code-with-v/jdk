@@ -23,7 +23,7 @@
  */
 
 /**
- * @test
+ * @test TestMemoryPools
  * @summary Test JMX memory pools
  * @requires vm.gc.Shenandoah
  * @modules java.base/jdk.internal.misc

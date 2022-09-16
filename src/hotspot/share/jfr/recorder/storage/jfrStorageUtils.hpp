@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,7 +29,7 @@
 #include "jfr/recorder/repository/jfrChunkWriter.hpp"
 #include "jfr/utilities/jfrAllocation.hpp"
 #include "jfr/utilities/jfrTypes.hpp"
-#include "runtime/javaThread.hpp"
+#include "runtime/thread.hpp"
 
 class CompositeOperationOr {
  public:
@@ -104,6 +104,16 @@ class Retired {
   }
 };
 
+template <typename T, bool negation>
+class Excluded {
+ public:
+  typedef T Type;
+  bool process(Type* t) {
+    assert(t != NULL, "invariant");
+    return negation ? !t->excluded() : t->excluded();
+  }
+};
+
 template <typename Operation>
 class MutexedWriteOp {
  private:
@@ -154,11 +164,9 @@ class PredicatedConcurrentWriteOp : public ConcurrentWriteOp<Operation> {
 
 template <typename Operation>
 class ExclusiveOp : private MutexedWriteOp<Operation> {
- private:
-  Thread* const _thread;
  public:
   typedef typename Operation::Type Type;
-  ExclusiveOp(Operation& operation);
+  ExclusiveOp(Operation& operation) : MutexedWriteOp<Operation>(operation) {}
   bool process(Type* t);
   size_t processed() const { return MutexedWriteOp<Operation>::processed(); }
 };
@@ -183,11 +191,9 @@ class DiscardOp {
 
 template <typename Operation>
 class ExclusiveDiscardOp : private DiscardOp<Operation> {
- private:
-  Thread* const _thread;
  public:
   typedef typename Operation::Type Type;
-  ExclusiveDiscardOp(jfr_operation_mode mode = concurrent);
+  ExclusiveDiscardOp(jfr_operation_mode mode = concurrent) : DiscardOp<Operation>(mode) {}
   bool process(Type* t);
   size_t processed() const { return DiscardOp<Operation>::processed(); }
   size_t elements() const { return DiscardOp<Operation>::elements(); }

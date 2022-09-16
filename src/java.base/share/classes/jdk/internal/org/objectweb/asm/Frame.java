@@ -56,7 +56,6 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package jdk.internal.org.objectweb.asm;
 
 /**
@@ -611,11 +610,11 @@ class Frame {
       */
     private void pop(final int elements) {
         if (outputStackTop >= elements) {
-            outputStackTop -= (short) elements;
+            outputStackTop -= elements;
         } else {
             // If the number of elements to be popped is greater than the number of elements in the output
             // stack, clear it, and pop the remaining elements from the input stack.
-            outputStackStart -= (short) (elements - outputStackTop);
+            outputStackStart -= elements - outputStackTop;
             outputStackTop = 0;
         }
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -89,6 +89,7 @@ public class ManifestDigester {
     {
         int i = offset, len = rawBytes.length;
         int last = offset - 1;
+        int next;
         boolean allBlank = true;
 
         /* denotes that a position is not yet assigned.
@@ -215,7 +216,7 @@ public class ManifestDigester {
         // According to the JAR File Specification: "If there are multiple
         // individual sections for the same file entry, the attributes in
         // these sections are merged."
-        private final List<Section> sections = new ArrayList<>();
+        private List<Section> sections = new ArrayList<>();
         boolean oldStyle;
 
         private Entry addSection(Section sec)
@@ -330,12 +331,8 @@ public class ManifestDigester {
      * @see #MF_MAIN_ATTRS
      */
     public Entry getMainAttsEntry(boolean oldStyle) {
-        if (mainAttsEntry != null) {
-            mainAttsEntry.oldStyle = oldStyle;
-            return mainAttsEntry;
-        } else {
-            return null;
-        }
+        mainAttsEntry.oldStyle = oldStyle;
+        return mainAttsEntry;
     }
 
     public Entry get(String name) {

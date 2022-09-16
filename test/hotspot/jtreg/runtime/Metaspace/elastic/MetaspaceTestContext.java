@@ -1,7 +1,9 @@
 
-import jdk.test.whitebox.WhiteBox;
+import sun.hotspot.WhiteBox;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 
 public class MetaspaceTestContext {
 
@@ -137,9 +139,6 @@ public class MetaspaceTestContext {
 
         long usageMeasured = usedWords();
         long committedMeasured = committedWords();
-
-        System.out.println("context used words " + usageMeasured + ", committed words " + committedMeasured
-                + ".");
 
         if (usageMeasured > committedMeasured) {
             throw new RuntimeException("Weirdness.");

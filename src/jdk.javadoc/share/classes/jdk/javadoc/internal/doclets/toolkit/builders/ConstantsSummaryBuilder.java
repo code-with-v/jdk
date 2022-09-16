@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -41,14 +41,19 @@ import static jdk.javadoc.internal.doclets.toolkit.util.VisibleMemberTable.Kind.
 
 /**
  * Builds the Constants Summary Page.
+ *
+ *  <p><b>This is NOT part of any supported API.
+ *  If you write code that depends on this, you do so at your own risk.
+ *  This code and its internal interfaces are subject to change or
+ *  deletion without notice.</b>
  */
 public class ConstantsSummaryBuilder extends AbstractBuilder {
 
     /**
-     * The maximum number of package directories shown in the headings of
-     * the constant values contents list and headings.
+     * The maximum number of package directories shown in the constant
+     * value index.
      */
-    private static final int MAX_CONSTANT_VALUE_INDEX_LENGTH = 2;
+    public static final int MAX_CONSTANT_VALUE_INDEX_LENGTH = 2;
 
     /**
      * The writer used to write the results.
@@ -56,14 +61,14 @@ public class ConstantsSummaryBuilder extends AbstractBuilder {
     protected ConstantsSummaryWriter writer;
 
     /**
-     * The set of type elements that have constant fields.
+     * The set of TypeElements that have constant fields.
      */
     protected final Set<TypeElement> typeElementsWithConstFields;
 
     /**
-     * The set of package-group headings.
+     * The set of printed package headers.
      */
-    protected final Set<String> packageGroupHeadings;
+    protected final Set<PackageElement> printedPackageHeaders;
 
     /**
      * The current package being documented.
@@ -76,20 +81,25 @@ public class ConstantsSummaryBuilder extends AbstractBuilder {
     private TypeElement currentClass;
 
     /**
-     * Constructs a new {@code ConstantsSummaryBuilder}.
+     * True if first package is listed.
+     */
+    private boolean first = true;
+
+    /**
+     * Construct a new ConstantsSummaryBuilder.
      *
-     * @param context       the build context
+     * @param context       the build context.
      */
     private ConstantsSummaryBuilder(Context context) {
         super(context);
         this.typeElementsWithConstFields = new HashSet<>();
-        this.packageGroupHeadings = new TreeSet<>(utils::compareStrings);
+        this.printedPackageHeaders = new TreeSet<>(utils.comparators.makePackageComparator());
     }
 
     /**
-     * Constructs a {@code ConstantsSummaryBuilder}.
+     * Construct a ConstantsSummaryBuilder.
      *
-     * @param context       the build context
+     * @param context       the build context.
      * @return the new ConstantsSummaryBuilder
      */
     public static ConstantsSummaryBuilder getInstance(Context context) {
@@ -112,79 +122,82 @@ public class ConstantsSummaryBuilder extends AbstractBuilder {
     }
 
     /**
-     * Builds the constant summary page.
+     * Build the constant summary.
      *
      * @throws DocletException if there is a problem while building the documentation
      */
     protected void buildConstantSummary() throws DocletException {
-        Content content = writer.getHeader();
+        Content contentTree = writer.getHeader();
 
         buildContents();
         buildConstantSummaries();
 
         writer.addFooter();
-        writer.printDocument(content);
+        writer.printDocument(contentTree);
     }
 
     /**
-     * Builds the list of contents for the groups of packages appearing in the constants summary page.
+     * Build the list of packages.
      */
     protected void buildContents() {
-        Content contentList = writer.getContentsHeader();
-        packageGroupHeadings.clear();
+        Content contentListTree = writer.getContentsHeader();
+        printedPackageHeaders.clear();
         for (PackageElement pkg : configuration.packages) {
-            String abbrevPackageName = getAbbrevPackageName(pkg);
-            if (hasConstantField(pkg) && !packageGroupHeadings.contains(abbrevPackageName)) {
-                writer.addLinkToPackageContent(abbrevPackageName, contentList);
-                packageGroupHeadings.add(abbrevPackageName);
+            if (hasConstantField(pkg) && !hasPrintedPackageIndex(pkg)) {
+                writer.addLinkToPackageContent(pkg, printedPackageHeaders, contentListTree);
             }
         }
-        writer.addContentsList(contentList);
+        writer.addContentsList(contentListTree);
     }
 
     /**
-     * Builds the summary for each documented package.
+     * Build the summary for each documented package.
      *
      * @throws DocletException if there is a problem while building the documentation
      */
     protected void buildConstantSummaries() throws DocletException {
-        packageGroupHeadings.clear();
-        Content summaries = writer.getConstantSummaries();
+        printedPackageHeaders.clear();
+        Content summariesTree = writer.getConstantSummaries();
         for (PackageElement aPackage : configuration.packages) {
             if (hasConstantField(aPackage)) {
                 currentPackage = aPackage;
                 //Build the documentation for the current package.
-                buildPackageHeader(summaries);
-                buildClassConstantSummary();
+
+                buildPackageHeader(summariesTree);
+                buildClassConstantSummary(summariesTree);
+
+                first = false;
             }
         }
-        writer.addConstantSummaries(summaries);
+        writer.addConstantSummaries(summariesTree);
     }
 
     /**
-     * Builds the header for the given package.
+     * Build the header for the given package.
      *
-     * @param target the content to which the package header will be added
+     * @param summariesTree the tree to which the package header will be added
      */
-    protected void buildPackageHeader(Content target) {
-        String abbrevPkgName = getAbbrevPackageName(currentPackage);
-        if (!packageGroupHeadings.contains(abbrevPkgName)) {
-            writer.addPackageGroup(abbrevPkgName, target);
-            packageGroupHeadings.add(abbrevPkgName);
+    protected void buildPackageHeader(Content summariesTree) {
+        PackageElement abbrevPkg = configuration.workArounds.getAbbreviatedPackageElement(currentPackage);
+        if (!printedPackageHeaders.contains(abbrevPkg)) {
+            writer.addPackageName(currentPackage, summariesTree, first);
+            printedPackageHeaders.add(abbrevPkg);
         }
     }
 
     /**
-     * Builds the summary for the current class.
+     * Build the summary for the current class.
      *
+     * @param summariesTree the tree to which the class constant summary will be added
      * @throws DocletException if there is a problem while building the documentation
+     *
      */
-    protected void buildClassConstantSummary()
+    protected void buildClassConstantSummary(Content summariesTree)
             throws DocletException {
         SortedSet<TypeElement> classes = !currentPackage.isUnnamed()
                 ? utils.getAllClasses(currentPackage)
                 : configuration.typeElementCatalog.allUnnamedClasses();
-        Content classConstantHeader = writer.getClassConstantHeader();
+        Content classConstantTree = writer.getClassConstantHeader();
         for (TypeElement te : classes) {
             if (!typeElementsWithConstFields.contains(te) ||
                 !utils.isIncluded(te)) {
@@ -193,25 +206,27 @@ public class ConstantsSummaryBuilder extends AbstractBuilder {
             currentClass = te;
             //Build the documentation for the current class.
 
-            buildConstantMembers(classConstantHeader);
+            buildConstantMembers(classConstantTree);
 
         }
-        writer.addClassConstant(classConstantHeader);
+        writer.addClassConstant(summariesTree, classConstantTree);
     }
 
     /**
-     * Builds the summary of constant members in the class.
+     * Build the summary of constant members in the class.
      *
-     * @param target the content to which the table of constant members will be added
+     * @param classConstantTree the tree to which the constant members table
+     *                          will be added
      */
-    protected void buildConstantMembers(Content target) {
-        new ConstantFieldBuilder(currentClass).buildMembersSummary(target);
+    protected void buildConstantMembers(Content classConstantTree) {
+        new ConstantFieldBuilder(currentClass).buildMembersSummary(classConstantTree);
     }
 
     /**
-     * {@return true if the given package has constant fields to document}
+     * Return true if the given package has constant fields to document.
      *
-     * @param pkg   the package to be checked
+     * @param pkg   the package being checked.
+     * @return true if the given package has constant fields to document.
      */
     private boolean hasConstantField(PackageElement pkg) {
         SortedSet<TypeElement> classes = !pkg.isUnnamed()
@@ -227,9 +242,10 @@ public class ConstantsSummaryBuilder extends AbstractBuilder {
     }
 
     /**
-     * {@return true if the given class has constant fields to document}
+     * Return true if the given class has constant fields to document.
      *
-     * @param typeElement the class to be checked
+     * @param typeElement the class being checked.
+     * @return true if the given package has constant fields to document.
      */
     private boolean hasConstantField (TypeElement typeElement) {
         VisibleMemberTable vmt = configuration.getVisibleMemberTable(typeElement);
@@ -245,36 +261,33 @@ public class ConstantsSummaryBuilder extends AbstractBuilder {
     }
 
     /**
-     * {@return the abbreviated name for a package, containing the leading segments of the name}
+     * Return true if the given package name has been printed.  Also
+     * return true if the root of this package has been printed.
      *
-     * @param pkg the package
+     * @param pkg the name of the package to check.
      */
-    public String getAbbrevPackageName(PackageElement pkg) {
-        if (pkg.isUnnamed()) {
-            return "";
+    private boolean hasPrintedPackageIndex(PackageElement pkg) {
+        for (PackageElement printedPkg : printedPackageHeaders) {
+            if (utils.getPackageName(pkg).startsWith(utils.parsePackageName(printedPkg))) {
+                return true;
+            }
         }
-
-        String packageName = utils.getPackageName(pkg);
-        int index = -1;
-        for (int j = 0; j < MAX_CONSTANT_VALUE_INDEX_LENGTH; j++) {
-            index = packageName.indexOf(".", index + 1);
-        }
-        return index == -1 ? packageName : packageName.substring(0, index);
+        return false;
     }
 
     /**
-     * Builder for the table of fields with constant values.
+     * Print the table of constants.
      */
     private class ConstantFieldBuilder {
 
         /**
-         * The type element that we are examining constants for.
+         * The typeElement that we are examining constants for.
          */
         protected TypeElement typeElement;
 
         /**
-         * Constructs a {@code ConstantFieldBuilder}.
-         * @param typeElement the type element that we are examining constants for
+         * Construct a ConstantFieldSubWriter.
+         * @param typeElement the typeElement that we are examining constants for.
          */
         public ConstantFieldBuilder(TypeElement typeElement) {
             this.typeElement = typeElement;
@@ -283,17 +296,19 @@ public class ConstantsSummaryBuilder extends AbstractBuilder {
         /**
          * Builds the table of constants for a given class.
          *
-         * @param target the content to which the table of class constants will be added
+         * @param classConstantTree the tree to which the class constants table
+         *                          will be added
          */
-        protected void buildMembersSummary(Content target) {
+        protected void buildMembersSummary(Content classConstantTree) {
             SortedSet<VariableElement> members = members();
             if (!members.isEmpty()) {
-                writer.addConstantMembers(typeElement, members, target);
+                writer.addConstantMembers(typeElement, members, classConstantTree);
             }
         }
 
         /**
-         * {@return a set of visible constant fields for the given type}
+         * Returns a set of visible constant fields for the given type.
+         * @return the set of visible constant fields for the given type.
          */
         protected SortedSet<VariableElement> members() {
             VisibleMemberTable vmt = configuration.getVisibleMemberTable(typeElement);

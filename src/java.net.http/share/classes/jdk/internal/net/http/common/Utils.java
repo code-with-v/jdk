@@ -175,7 +175,7 @@ public final class Utils {
     // used by caller.
 
     public static final BiPredicate<String, String> CONTEXT_RESTRICTED(HttpClient client) {
-        return (k, v) -> client.authenticator().isEmpty() ||
+        return (k, v) -> !client.authenticator().isPresent() ||
                 (!k.equalsIgnoreCase("Authorization")
                         && !k.equalsIgnoreCase("Proxy-Authorization"));
     }
@@ -391,6 +391,7 @@ public final class Utils {
         return new URLPermission(urlString, actionStringBuilder.toString());
     }
 
+
     // ABNF primitives defined in RFC 7230
     private static final boolean[] tchar      = new boolean[256];
     private static final boolean[] fieldvchar = new boolean[256];
@@ -410,7 +411,7 @@ public final class Utils {
     }
 
     /*
-     * Validates an RFC 7230 field-name.
+     * Validates a RFC 7230 field-name.
      */
     public static boolean isValidName(String token) {
         for (int i = 0; i < token.length(); i++) {
@@ -471,7 +472,7 @@ public final class Utils {
     }
 
     /*
-     * Validates an RFC 7230 field-value.
+     * Validates a RFC 7230 field-value.
      *
      * "Obsolete line folding" rule
      *
@@ -493,6 +494,7 @@ public final class Utils {
         }
         return true;
     }
+
 
     @SuppressWarnings("removal")
     public static int getIntegerNetProperty(String name, int defaultValue) {
@@ -871,7 +873,7 @@ public final class Utils {
         if (defaultPort) {
             return host;
         } else {
-            return host + ":" + port;
+            return host + ":" + Integer.toString(port);
         }
     }
 

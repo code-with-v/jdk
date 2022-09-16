@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -43,6 +43,11 @@ import jdk.javadoc.internal.doclets.toolkit.MemberSummaryWriter;
 
 /**
  * Writes field documentation in HTML format.
+ *
+ *  <p><b>This is NOT part of any supported API.
+ *  If you write code that depends on this, you do so at your own risk.
+ *  This code and its internal interfaces are subject to change or
+ *  deletion without notice.</b>
  */
 public class FieldWriterImpl extends AbstractMemberWriter
     implements FieldWriter, MemberSummaryWriter {
@@ -57,11 +62,11 @@ public class FieldWriterImpl extends AbstractMemberWriter
 
     @Override
     public Content getMemberSummaryHeader(TypeElement typeElement,
-            Content content) {
-        content.add(MarkerComments.START_OF_FIELD_SUMMARY);
-        Content memberContent = new ContentBuilder();
-        writer.addSummaryHeader(this, memberContent);
-        return memberContent;
+            Content memberSummaryTree) {
+        memberSummaryTree.add(MarkerComments.START_OF_FIELD_SUMMARY);
+        Content memberTree = new ContentBuilder();
+        writer.addSummaryHeader(this, memberTree);
+        return memberTree;
     }
 
     @Override
@@ -71,22 +76,22 @@ public class FieldWriterImpl extends AbstractMemberWriter
     }
 
     @Override
-    public Content getFieldDetailsHeader(Content content) {
-        content.add(MarkerComments.START_OF_FIELD_DETAILS);
-        Content fieldDetailsContent = new ContentBuilder();
-        var heading = HtmlTree.HEADING(Headings.TypeDeclaration.DETAILS_HEADING,
+    public Content getFieldDetailsTreeHeader(Content memberDetailsTree) {
+        memberDetailsTree.add(MarkerComments.START_OF_FIELD_DETAILS);
+        Content fieldDetailsTree = new ContentBuilder();
+        Content heading = HtmlTree.HEADING(Headings.TypeDeclaration.DETAILS_HEADING,
                 contents.fieldDetailsLabel);
-        fieldDetailsContent.add(heading);
-        return fieldDetailsContent;
+        fieldDetailsTree.add(heading);
+        return fieldDetailsTree;
     }
 
     @Override
-    public Content getFieldHeaderContent(VariableElement field) {
-        Content content = new ContentBuilder();
-        var heading = HtmlTree.HEADING(Headings.TypeDeclaration.MEMBER_HEADING,
+    public Content getFieldDocTreeHeader(VariableElement field) {
+        Content fieldTree = new ContentBuilder();
+        Content heading = HtmlTree.HEADING(Headings.TypeDeclaration.MEMBER_HEADING,
                 Text.of(name(field)));
-        content.add(heading);
-        return HtmlTree.SECTION(HtmlStyle.detail, content)
+        fieldTree.add(heading);
+        return HtmlTree.SECTION(HtmlStyle.detail, fieldTree)
                 .setId(htmlIds.forMember(field));
     }
 
@@ -99,41 +104,41 @@ public class FieldWriterImpl extends AbstractMemberWriter
     }
 
     @Override
-    public void addDeprecated(VariableElement field, Content fieldContent) {
-        addDeprecatedInfo(field, fieldContent);
+    public void addDeprecated(VariableElement field, Content fieldTree) {
+        addDeprecatedInfo(field, fieldTree);
     }
 
     @Override
-    public void addPreview(VariableElement field, Content content) {
-        addPreviewInfo(field, content);
+    public void addPreview(VariableElement field, Content fieldTree) {
+        addPreviewInfo(field, fieldTree);
     }
 
     @Override
-    public void addComments(VariableElement field, Content fieldContent) {
+    public void addComments(VariableElement field, Content fieldTree) {
         if (!utils.getFullBody(field).isEmpty()) {
-            writer.addInlineComment(field, fieldContent);
+            writer.addInlineComment(field, fieldTree);
         }
     }
 
     @Override
-    public void addTags(VariableElement field, Content fieldContent) {
-        writer.addTagsInfo(field, fieldContent);
+    public void addTags(VariableElement field, Content fieldTree) {
+        writer.addTagsInfo(field, fieldTree);
     }
 
     @Override
-    public Content getFieldDetails(Content memberDetailsHeaderContent, Content memberContent) {
+    public Content getFieldDetails(Content fieldDetailsTreeHeader, Content fieldDetailsTree) {
         return writer.getDetailsListItem(
                 HtmlTree.SECTION(HtmlStyle.fieldDetails)
                         .setId(HtmlIds.FIELD_DETAIL)
-                        .add(memberDetailsHeaderContent)
-                        .add(memberContent));
+                        .add(fieldDetailsTreeHeader)
+                        .add(fieldDetailsTree));
     }
 
     @Override
-    public void addSummaryLabel(Content content) {
-        var label = HtmlTree.HEADING(Headings.TypeDeclaration.SUMMARY_HEADING,
+    public void addSummaryLabel(Content memberTree) {
+        Content label = HtmlTree.HEADING(Headings.TypeDeclaration.SUMMARY_HEADING,
                 contents.fieldSummaryLabel);
-        content.add(label);
+        memberTree.add(label);
     }
 
     @Override
@@ -154,7 +159,7 @@ public class FieldWriterImpl extends AbstractMemberWriter
     }
 
     @Override
-    public void addInheritedSummaryLabel(TypeElement typeElement, Content content) {
+    public void addInheritedSummaryLabel(TypeElement typeElement, Content inheritedTree) {
         Content classLink = writer.getPreQualifiedClassLink(
                 HtmlLinkInfo.Kind.MEMBER, typeElement);
         Content label;
@@ -167,32 +172,32 @@ public class FieldWriterImpl extends AbstractMemberWriter
                     ? resources.getText("doclet.Fields_Inherited_From_Class")
                     : resources.getText("doclet.Fields_Inherited_From_Interface"));
         }
-        var labelHeading = HtmlTree.HEADING(Headings.TypeDeclaration.INHERITED_SUMMARY_HEADING,
+        HtmlTree labelHeading = HtmlTree.HEADING(Headings.TypeDeclaration.INHERITED_SUMMARY_HEADING,
                 label);
         labelHeading.setId(htmlIds.forInheritedFields(typeElement));
         labelHeading.add(Entity.NO_BREAK_SPACE);
         labelHeading.add(classLink);
-        content.add(labelHeading);
+        inheritedTree.add(labelHeading);
     }
 
     @Override
     protected void addSummaryLink(HtmlLinkInfo.Kind context, TypeElement typeElement, Element member,
-                                  Content content) {
+                                  Content tdSummary) {
         Content memberLink = writer.getDocLink(context, typeElement , member, name(member),
                 HtmlStyle.memberNameLink);
-        var code = HtmlTree.CODE(memberLink);
-        content.add(code);
+        Content code = HtmlTree.CODE(memberLink);
+        tdSummary.add(code);
     }
 
     @Override
-    protected void addInheritedSummaryLink(TypeElement typeElement, Element member, Content target) {
-        target.add(
+    protected void addInheritedSummaryLink(TypeElement typeElement, Element member, Content linksTree) {
+        linksTree.add(
                 writer.getDocLink(HtmlLinkInfo.Kind.MEMBER, typeElement, member, name(member)));
     }
 
     @Override
-    protected void addSummaryType(Element member, Content content) {
-        addModifiersAndType(member, utils.asInstantiatedFieldType(typeElement, (VariableElement)member), content);
+    protected void addSummaryType(Element member, Content tdSummaryType) {
+        addModifierAndType(member, utils.asInstantiatedFieldType(typeElement, (VariableElement)member), tdSummaryType);
     }
 
     @Override
@@ -202,7 +207,7 @@ public class FieldWriterImpl extends AbstractMemberWriter
     }
 
     @Override
-    public Content getMemberHeader(){
-        return writer.getMemberHeader();
+    public Content getMemberTreeHeader(){
+        return writer.getMemberTreeHeader();
     }
 }

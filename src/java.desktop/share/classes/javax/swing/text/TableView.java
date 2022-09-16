@@ -805,7 +805,7 @@ public abstract class TableView extends BoxView {
          *
          * @param axis may be either View.X_AXIS or View.Y_AXIS
          * @return the resize weight
-         * @throws IllegalArgumentException for an invalid axis
+         * @exception IllegalArgumentException for an invalid axis
          */
         public int getResizeWeight(int axis) {
             return 1;

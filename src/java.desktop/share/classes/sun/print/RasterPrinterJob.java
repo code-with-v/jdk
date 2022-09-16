@@ -28,6 +28,8 @@ package sun.print;
 import java.io.FilePermission;
 
 import java.awt.Color;
+import java.awt.Dialog;
+import java.awt.Frame;
 import java.awt.Graphics2D;
 import java.awt.GraphicsConfiguration;
 import java.awt.GraphicsEnvironment;
@@ -302,7 +304,7 @@ public abstract class RasterPrinterJob extends PrinterJob {
      * The redrawing code needs to look at sx, sy to calculate the scale
      * to device resolution.
      */
-    private static class GraphicsState {
+    private class GraphicsState {
         Rectangle2D region;  // Area of page to repaint
         Shape theClip;       // image drawing clip.
         AffineTransform theTransform; // to transform clip to dev coords.
@@ -714,7 +716,7 @@ public abstract class RasterPrinterJob extends PrinterJob {
      *            is cancelled, or a new PageFormat object containing
      *            the format indicated by the user if the dialog is
      *            acknowledged
-     * @throws HeadlessException if GraphicsEnvironment.isHeadless()
+     * @exception HeadlessException if GraphicsEnvironment.isHeadless()
      * returns true.
      * @see java.awt.GraphicsEnvironment#isHeadless
      * @since     1.2
@@ -947,7 +949,7 @@ public abstract class RasterPrinterJob extends PrinterJob {
      *
      * @param attributes to store changed properties.
      * @return false if the user cancels the dialog and true otherwise.
-     * @throws HeadlessException if GraphicsEnvironment.isHeadless()
+     * @exception HeadlessException if GraphicsEnvironment.isHeadless()
      * returns true.
      * @see java.awt.GraphicsEnvironment#isHeadless
      */
@@ -1100,7 +1102,7 @@ public abstract class RasterPrinterJob extends PrinterJob {
      * print job interactively.
      * @return false if the user cancels the dialog and
      *         true otherwise.
-     * @throws HeadlessException if GraphicsEnvironment.isHeadless()
+     * @exception HeadlessException if GraphicsEnvironment.isHeadless()
      * returns true.
      * @see java.awt.GraphicsEnvironment#isHeadless
      */
@@ -1183,7 +1185,7 @@ public abstract class RasterPrinterJob extends PrinterJob {
      * for the number of pages as well as the PageFormat and
      * Printable for each page.
      * @param document The document to be printed. It may not be null.
-     * @throws NullPointerException the Pageable passed in was null.
+     * @exception NullPointerException the Pageable passed in was null.
      * @see PageFormat
      * @see Printable
      */
@@ -1477,7 +1479,7 @@ public abstract class RasterPrinterJob extends PrinterJob {
 
     /**
      * Prints a set of pages.
-     * @throws java.awt.print.PrinterException an error in the print system
+     * @exception java.awt.print.PrinterException an error in the print system
      *                                          caused the job to be aborted
      * @see java.awt.print.Book
      * @see java.awt.print.Pageable
@@ -1545,7 +1547,7 @@ public abstract class RasterPrinterJob extends PrinterJob {
          * PrintRequestAttributeSet while calling print(attributes)
          */
         JobSheets js = (JobSheets)psvc.getDefaultAttributeValue(JobSheets.class);
-        if (JobSheets.NONE.equals(js)) {
+        if (js != null && js.equals(JobSheets.NONE)) {
             noJobSheet = true;
         }
 

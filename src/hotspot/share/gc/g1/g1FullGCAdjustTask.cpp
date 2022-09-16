@@ -81,6 +81,7 @@ class G1AdjustRegionClosure : public HeapRegionClosure {
 G1FullGCAdjustTask::G1FullGCAdjustTask(G1FullCollector* collector) :
     G1FullGCTask("G1 Adjust", collector),
     _root_processor(G1CollectedHeap::heap(), collector->workers()),
+    _references_done(false),
     _weak_proc_task(collector->workers()),
     _hrclaimer(collector->workers()),
     _adjust(collector) {
@@ -96,11 +97,13 @@ void G1FullGCAdjustTask::work(uint worker_id) {
   G1FullGCMarker* marker = collector()->marker(worker_id);
   marker->preserved_stack()->adjust_during_full_gc();
 
-  {
-    // Adjust the weak roots.
-    AlwaysTrueClosure always_alive;
-    _weak_proc_task.work(worker_id, &always_alive, &_adjust);
+  // Adjust the weak roots.
+  if (!Atomic::cmpxchg(&_references_done, false, true)) {
+    G1CollectedHeap::heap()->ref_processor_stw()->weak_oops_do(&_adjust);
   }
+
+  AlwaysTrueClosure always_alive;
+  _weak_proc_task.work(worker_id, &always_alive, &_adjust);
 
   CLDToOopClosure adjust_cld(&_adjust, ClassLoaderData::_claim_strong);
   CodeBlobToOopClosure adjust_code(&_adjust, CodeBlobToOopClosure::FixRelocations);

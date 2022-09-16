@@ -80,6 +80,12 @@ ValueType* ValueType::meet(ValueType* y) const {
 }
 
 
+ValueType* ValueType::join(ValueType* y) const {
+  Unimplemented();
+  return NULL;
+}
+
+
 ciType* ObjectConstant::exact_type() const {
   ciObject* c = constant_value();
   return (c != NULL && !c->is_null_object()) ? c->klass() : NULL;

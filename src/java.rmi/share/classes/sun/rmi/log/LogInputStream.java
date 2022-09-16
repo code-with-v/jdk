@@ -103,7 +103,7 @@ class LogInputStream extends InputStream {
             return 0;
         n = (length < n) ? length : n;
         n = in.skip(n);
-        length -= (int) n;
+        length -= n;
         return n;
     }
 
@@ -128,7 +128,7 @@ class LogInputStream extends InputStream {
     /**
      * Closes the stream when garbage is collected.
      */
-    @SuppressWarnings("removal")
+    @SuppressWarnings("deprecation")
     protected void finalize() throws IOException {
         close();
     }

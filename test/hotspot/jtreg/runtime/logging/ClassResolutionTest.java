@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +25,6 @@
 /*
  * @test ClassResolutionTest
  * @bug 8144874
- * @requires vm.flagless
  * @modules java.base/jdk.internal.misc
  * @library /test/lib
  * @run driver ClassResolutionTest
@@ -63,7 +62,6 @@ public class ClassResolutionTest {
         ProcessBuilder pb = ProcessTools.createJavaProcessBuilder("-Xlog:class+resolve=debug",
                                                                   ClassResolutionTestMain.class.getName());
         OutputAnalyzer o = new OutputAnalyzer(pb.start());
-        o.shouldHaveExitValue(0);
         o.shouldContain("[class,resolve] ClassResolutionTest$ClassResolutionTestMain$Thing1Handler ClassResolutionTest$ClassResolutionTestMain$Thing1");
         o.shouldContain("[class,resolve] resolve JVM_CONSTANT_MethodHandle");
 
@@ -72,7 +70,6 @@ public class ClassResolutionTest {
                                                    "-Xlog:class+resolve=off",
                                                    ClassResolutionTestMain.class.getName());
         o = new OutputAnalyzer(pb.start());
-        o.shouldHaveExitValue(0);
         o.shouldNotContain("[class,resolve]");
     };
 

@@ -50,6 +50,11 @@ public final class NewFilterAction extends CallableSystemAction {
     }
 
     @Override
+    protected void initialize() {
+        super.initialize();
+    }
+
+    @Override
     public HelpCtx getHelpCtx() {
         return HelpCtx.DEFAULT_HELP;
     }

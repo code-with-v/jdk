@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -39,11 +39,9 @@ import com.sun.jdi.connect.TransportTimeoutException;
 import com.sun.jdi.connect.spi.Connection;
 import com.sun.jdi.connect.spi.TransportService;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 /*
  * A transport service based on a TCP connection between the
- * debugger and debuggee.
+ * debugger and debugee.
  */
 
 public class SocketTransportService extends TransportService {
@@ -122,7 +120,7 @@ public class SocketTransportService extends TransportService {
     void handshake(Socket s, long timeout) throws IOException {
         s.setSoTimeout((int)timeout);
 
-        byte[] hello = "JDWP-Handshake".getBytes(UTF_8);
+        byte[] hello = "JDWP-Handshake".getBytes("UTF-8");
         s.getOutputStream().write(hello);
 
         byte[] b = new byte[hello.length];

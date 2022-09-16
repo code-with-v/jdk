@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -77,9 +77,8 @@ class SinkChannelImpl
         return fdVal;
     }
 
-    SinkChannelImpl(SelectorProvider sp, FileDescriptor fd) throws IOException {
+    SinkChannelImpl(SelectorProvider sp, FileDescriptor fd) {
         super(sp);
-        IOUtil.configureBlocking(fd, false);
         this.fd = fd;
         this.fdVal = IOUtil.fdVal(fd);
     }
@@ -124,12 +123,8 @@ class SinkChannelImpl
             if (!tryClose()) {
                 long th = thread;
                 if (th != 0) {
-                    if (NativeThread.isVirtualThread(th)) {
-                        Poller.stopPoll(fdVal);
-                    } else {
-                        nd.preClose(fd);
-                        NativeThread.signal(th);
-                    }
+                    nd.preClose(fd);
+                    NativeThread.signal(th);
                 }
             }
         }

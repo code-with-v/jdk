@@ -23,7 +23,7 @@
  */
 
 /*
- * @test
+ * @test TestParallelRefprocSanity
  * @summary Test that reference processing works with both parallel and non-parallel variants.
  * @requires vm.gc.Shenandoah
  *

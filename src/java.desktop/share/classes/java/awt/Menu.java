@@ -31,7 +31,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serial;
-import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.EventListener;
 import java.util.Vector;
@@ -125,7 +124,7 @@ public class Menu extends MenuItem implements MenuContainer, Accessible {
     /**
      * Constructs a new menu with an empty label. This menu is not
      * a tear-off menu.
-     * @throws HeadlessException if GraphicsEnvironment.isHeadless()
+     * @exception HeadlessException if GraphicsEnvironment.isHeadless()
      * returns true.
      * @see java.awt.GraphicsEnvironment#isHeadless
      * @since      1.1
@@ -139,7 +138,7 @@ public class Menu extends MenuItem implements MenuContainer, Accessible {
      * a tear-off menu.
      * @param       label the menu's label in the menu bar, or in
      *                   another menu of which this menu is a submenu.
-     * @throws HeadlessException if GraphicsEnvironment.isHeadless()
+     * @exception HeadlessException if GraphicsEnvironment.isHeadless()
      * returns true.
      * @see java.awt.GraphicsEnvironment#isHeadless
      */
@@ -158,7 +157,7 @@ public class Menu extends MenuItem implements MenuContainer, Accessible {
      *                   another menu of which this menu is a submenu.
      * @param       tearOff   if {@code true}, the menu
      *                   is a tear-off menu.
-     * @throws HeadlessException if GraphicsEnvironment.isHeadless()
+     * @exception HeadlessException if GraphicsEnvironment.isHeadless()
      * returns true.
      * @see java.awt.GraphicsEnvironment#isHeadless
      */
@@ -313,7 +312,7 @@ public class Menu extends MenuItem implements MenuContainer, Accessible {
      *                          item should be inserted.
      * @see           java.awt.Menu#add(java.lang.String)
      * @see           java.awt.Menu#add(java.awt.MenuItem)
-     * @throws     IllegalArgumentException if the value of
+     * @exception     IllegalArgumentException if the value of
      *                    {@code index} is less than zero
      * @since         1.1
      */
@@ -325,14 +324,14 @@ public class Menu extends MenuItem implements MenuContainer, Accessible {
             }
 
             int nitems = getItemCount();
-            ArrayList<MenuItem> tempItems = new ArrayList<>();
+            Vector<MenuItem> tempItems = new Vector<>();
 
             /* Remove the item at index, nitems-index times
                storing them in a temporary vector in the
                order they appear on the menu.
             */
             for (int i = index ; i < nitems; i++) {
-                tempItems.add(getItem(index));
+                tempItems.addElement(getItem(index));
                 remove(index);
             }
 
@@ -342,7 +341,7 @@ public class Menu extends MenuItem implements MenuContainer, Accessible {
                already in the correct order in the temp vector.
             */
             for (int i = 0; i < tempItems.size()  ; i++) {
-                add(tempItems.get(i));
+                add(tempItems.elementAt(i));
             }
         }
     }
@@ -357,7 +356,7 @@ public class Menu extends MenuItem implements MenuContainer, Accessible {
      *                      should be inserted
      * @see         java.awt.Menu#add(java.lang.String)
      * @see         java.awt.Menu#add(java.awt.MenuItem)
-     * @throws     IllegalArgumentException if the value of
+     * @exception     IllegalArgumentException if the value of
      *                    {@code index} is less than zero
      * @since       1.1
      */
@@ -378,7 +377,7 @@ public class Menu extends MenuItem implements MenuContainer, Accessible {
      * Inserts a separator at the specified position.
      * @param       index the position at which the
      *                       menu separator should be inserted.
-     * @throws   IllegalArgumentException if the value of
+     * @exception   IllegalArgumentException if the value of
      *                       {@code index} is less than 0.
      * @see         java.awt.Menu#addSeparator
      * @since       1.1
@@ -391,14 +390,14 @@ public class Menu extends MenuItem implements MenuContainer, Accessible {
             }
 
             int nitems = getItemCount();
-            ArrayList<MenuItem> tempItems = new ArrayList<>();
+            Vector<MenuItem> tempItems = new Vector<>();
 
             /* Remove the item at index, nitems-index times
                storing them in a temporary vector in the
                order they appear on the menu.
             */
             for (int i = index ; i < nitems; i++) {
-                tempItems.add(getItem(index));
+                tempItems.addElement(getItem(index));
                 remove(index);
             }
 
@@ -408,7 +407,7 @@ public class Menu extends MenuItem implements MenuContainer, Accessible {
                already in the correct order in the temp vector.
             */
             for (int i = 0; i < tempItems.size()  ; i++) {
-                add(tempItems.get(i));
+                add(tempItems.elementAt(i));
             }
         }
     }
@@ -500,7 +499,7 @@ public class Menu extends MenuItem implements MenuContainer, Accessible {
             } else {
                 MenuShortcut ms = mi.getShortcut();
                 if (ms != null) {
-                    shortcuts.add(ms);
+                    shortcuts.addElement(ms);
                 }
             }
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,21 +25,20 @@
 
 package sun.security.jgss.wrapper;
 
-import org.ietf.jgss.GSSException;
-import org.ietf.jgss.GSSName;
-import org.ietf.jgss.Oid;
-import sun.security.jgss.GSSExceptionImpl;
-import sun.security.jgss.GSSUtil;
-import sun.security.jgss.spi.GSSNameSpi;
+import org.ietf.jgss.*;
+import java.security.Provider;
+import java.security.Security;
+import java.io.IOException;
 import sun.security.krb5.Realm;
+import sun.security.jgss.GSSUtil;
+import sun.security.util.ObjectIdentifier;
 import sun.security.util.DerInputStream;
 import sun.security.util.DerOutputStream;
-import sun.security.util.ObjectIdentifier;
+import sun.security.jgss.GSSUtil;
+import sun.security.jgss.GSSExceptionImpl;
+import sun.security.jgss.spi.GSSNameSpi;
 
 import javax.security.auth.kerberos.ServicePermission;
-import java.io.IOException;
-import java.lang.ref.Cleaner;
-import java.security.Provider;
 
 /**
  * This class is essentially a wrapper class for the gss_name_t
@@ -49,12 +48,11 @@ import java.security.Provider;
  */
 
 public class GSSNameElement implements GSSNameSpi {
-    private final Cleaner.Cleanable cleanable;
 
-    final long pName; // Pointer to the gss_name_t structure
+    long pName = 0; // Pointer to the gss_name_t structure
     private String printableName;
     private Oid printableType;
-    final private GSSLibStub cStub;
+    private GSSLibStub cStub;
 
     static final GSSNameElement DEF_ACCEPTOR = new GSSNameElement();
 
@@ -96,9 +94,6 @@ public class GSSNameElement implements GSSNameSpi {
 
     private GSSNameElement() {
         printableName = "<DEFAULT ACCEPTOR>";
-        pName = 0;
-        cleanable = null;
-        cStub = null;
     }
 
     // Warning: called by NativeUtil.c
@@ -111,8 +106,6 @@ public class GSSNameElement implements GSSNameSpi {
         pName = pNativeName;
         cStub = stub;
         setPrintables();
-
-        cleanable = Krb5Util.cleaner.register(this, disposerFor(stub, pName));
     }
 
     GSSNameElement(byte[] nameBytes, Oid nameType, GSSLibStub stub)
@@ -133,7 +126,7 @@ public class GSSNameElement implements GSSNameSpi {
                 // Need to add back the mech Oid portion (stripped
                 // off by GSSNameImpl class prior to calling this
                 // method) for "NT_EXPORT_NAME"
-                byte[] mechBytes;
+                byte[] mechBytes = null;
                 DerOutputStream dout = new DerOutputStream();
                 Oid mech = cStub.getMech();
                 try {
@@ -158,8 +151,6 @@ public class GSSNameElement implements GSSNameSpi {
             }
         }
         pName = cStub.importName(name, nameType);
-        cleanable = Krb5Util.cleaner.register(this, disposerFor(stub, pName));
-
         setPrintables();
 
         @SuppressWarnings("removal")
@@ -190,7 +181,7 @@ public class GSSNameElement implements GSSNameSpi {
     }
 
     private void setPrintables() throws GSSException {
-        Object[] printables;
+        Object[] printables = null;
         printables = cStub.displayName(pName);
         assert((printables != null) && (printables.length == 2));
         printableName = (String) printables[0];
@@ -203,7 +194,7 @@ public class GSSNameElement implements GSSNameSpi {
 
     // Need to be public for GSSUtil.getSubject()
     public String getKrbName() throws GSSException {
-        long mName;
+        long mName = 0;
         GSSLibStub stub = cStub;
         if (!GSSUtil.isKerberosMech(cStub.getMech())) {
             stub = GSSLibStub.getInstance(GSSUtil.GSS_KRB5_MECH_OID);
@@ -253,7 +244,7 @@ public class GSSNameElement implements GSSNameSpi {
 
         int mechOidLen  = (((0xFF & nameVal[pos++]) << 8) |
                            (0xFF & nameVal[pos++]));
-        ObjectIdentifier temp;
+        ObjectIdentifier temp = null;
         try {
             DerInputStream din = new DerInputStream(nameVal, pos,
                                                     mechOidLen);
@@ -293,14 +284,14 @@ public class GSSNameElement implements GSSNameSpi {
     }
 
     public void dispose() {
-        if (cleanable != null) {
-            cleanable.clean();
+        if (pName != 0) {
+            cStub.releaseName(pName);
+            pName = 0;
         }
     }
 
-    private static Runnable disposerFor(GSSLibStub stub, long pName) {
-        return () -> {
-            stub.releaseName(pName);
-        };
+    @SuppressWarnings("deprecation")
+    protected void finalize() throws Throwable {
+        dispose();
     }
 }

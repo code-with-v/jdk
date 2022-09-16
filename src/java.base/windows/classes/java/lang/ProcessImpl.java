@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1995, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1995, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -47,7 +47,7 @@ import java.util.regex.Pattern;
 import jdk.internal.access.JavaIOFileDescriptorAccess;
 import jdk.internal.access.SharedSecrets;
 import jdk.internal.ref.CleanerFactory;
-import jdk.internal.misc.Blocker;
+import sun.security.action.GetBooleanAction;
 import sun.security.action.GetPropertyAction;
 
 /* This class is for the exclusive use of ProcessBuilder.start() to
@@ -269,22 +269,11 @@ final class ProcessImpl extends Process {
                 // command line parser. The case of the [""] tail escape
                 // sequence could not be realized due to the argument validation
                 // procedure.
-                if (verificationType == VERIFICATION_WIN32_SAFE ||
-                    verificationType == VERIFICATION_LEGACY) {
-                    int count = countLeadingBackslash(verificationType, s, s.length());
-                    while (count-- > 0) {
-                        cmdbuf.append(BACKSLASH);   // double the number of backslashes
-                    }
+                int count = countLeadingBackslash(verificationType, s, s.length());
+                while (count-- > 0) {
+                    cmdbuf.append(BACKSLASH);   // double the number of backslashes
                 }
                 cmdbuf.append('"');
-            } else if (verificationType == VERIFICATION_WIN32_SAFE &&
-                 (s.startsWith("\"") && s.endsWith("\"") && s.length() > 2)) {
-                // Check that quoted argument does not escape the final quote
-                cmdbuf.append(s);
-                int count = countLeadingBackslash(verificationType, s, s.length() - 1);
-                while (count-- > 0) {
-                    cmdbuf.insert(cmdbuf.length() - 1, BACKSLASH);    // double the number of backslashes
-                }
             } else {
                 cmdbuf.append(s);
             }
@@ -293,7 +282,9 @@ final class ProcessImpl extends Process {
     }
 
     /**
-     * Return the argument without quotes (first and last) if quoted, otherwise the arg.
+     * Return the argument without quotes (1st and last) if properly quoted, else the arg.
+     * A properly quoted string has first and last characters as quote and
+     * the last quote is not escaped.
      * @param str a string
      * @return the string without quotes
      */
@@ -301,6 +292,9 @@ final class ProcessImpl extends Process {
         if (!str.startsWith("\"") || !str.endsWith("\"") || str.length() < 2)
             return str;    // no beginning or ending quote, or too short not quoted
 
+        if (str.endsWith("\\\"")) {
+            return str;    // not properly quoted, treat as unquoted
+        }
         // Strip leading and trailing quotes
         return str.substring(1, str.length() - 1);
     }
@@ -564,12 +558,7 @@ final class ProcessImpl extends Process {
     private static native int getExitCodeProcess(long handle);
 
     public int waitFor() throws InterruptedException {
-        long comp = Blocker.begin();
-        try {
-            waitForInterruptibly(handle);
-        } finally {
-            Blocker.end(comp);
-        }
+        waitForInterruptibly(handle);
         if (Thread.interrupted())
             throw new InterruptedException();
         return exitValue();
@@ -593,12 +582,7 @@ final class ProcessImpl extends Process {
                 // if wraps around then wait a long while
                 msTimeout = Integer.MAX_VALUE;
             }
-            long comp = Blocker.begin();
-            try {
-                waitForTimeoutInterruptibly(handle, msTimeout);
-            } finally {
-                Blocker.end(comp);
-            }
+            waitForTimeoutInterruptibly(handle, msTimeout);
             if (Thread.interrupted())
                 throw new InterruptedException();
             if (getExitCodeProcess(handle) != STILL_ACTIVE) {

@@ -133,6 +133,20 @@ final class RepositoryChunk {
         }
     }
 
+    @Override
+    @SuppressWarnings("deprecation")
+    protected void finalize() {
+        boolean destroy = false;
+        synchronized (this) {
+            if (refCount > 0) {
+                destroy = true;
+            }
+        }
+        if (destroy) {
+            destroy();
+        }
+    }
+
     public long getSize() {
         return size;
     }

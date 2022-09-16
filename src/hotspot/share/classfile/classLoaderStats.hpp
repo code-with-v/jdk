@@ -97,6 +97,10 @@ public:
 
 class ClassLoaderStatsClosure : public CLDClosure {
 protected:
+  static bool oop_equals(oop const& s1, oop const& s2) {
+    return s1 == s2;
+  }
+
   static unsigned oop_hash(oop const& s1) {
     // Robert Jenkins 1996 & Thomas Wang 1997
     // http://web.archive.org/web/20071223173210/http://www.concentric.net/~Ttwang/tech/inthash.htm
@@ -112,8 +116,7 @@ protected:
   }
 
   typedef ResourceHashtable<oop, ClassLoaderStats,
-                            256, ResourceObj::RESOURCE_AREA, mtInternal,
-                            ClassLoaderStatsClosure::oop_hash> StatsTable;
+      ClassLoaderStatsClosure::oop_hash, ClassLoaderStatsClosure::oop_equals> StatsTable;
 
   outputStream* _out;
   StatsTable* _stats;

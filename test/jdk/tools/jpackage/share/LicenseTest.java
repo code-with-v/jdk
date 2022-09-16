@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -282,11 +282,11 @@ public class LicenseTest {
                 return licenseFileText("APPLICATION_COPYRIGHT",
                         "APPLICATION_LICENSE_TEXT");
             } else {
-                return expectedLicenseFileText();
+                return expetedLicenseFileText();
             }
         }
 
-        private List<String> expectedLicenseFileText() {
+        private List<String> expetedLicenseFileText() {
             return licenseFileText(copyright, licenseText);
         }
 
@@ -326,7 +326,7 @@ public class LicenseTest {
             })
             .addInstallVerifier(cmd -> {
                 Path installedLicenseFile = linuxLicenseFile(cmd);
-                TKit.assertStringListEquals(expectedLicenseFileText(),
+                TKit.assertStringListEquals(expetedLicenseFileText(),
                         DEBIAN_COPYRIGT_FILE_STRIPPER.apply(Files.readAllLines(
                                 installedLicenseFile)), String.format(
                                 "Check contents of package license file [%s] are the same as contents of source license file [%s]",

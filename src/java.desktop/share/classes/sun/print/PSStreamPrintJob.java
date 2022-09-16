@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,6 +34,7 @@ import java.util.Vector;
 import javax.print.CancelablePrintJob;
 import javax.print.Doc;
 import javax.print.DocFlavor;
+import javax.print.DocPrintJob;
 import javax.print.PrintService;
 import javax.print.PrintException;
 import javax.print.event.PrintJobEvent;
@@ -41,6 +42,7 @@ import javax.print.event.PrintJobListener;
 import javax.print.event.PrintJobAttributeListener;
 
 import javax.print.attribute.Attribute;
+import javax.print.attribute.AttributeSet;
 import javax.print.attribute.AttributeSetUtilities;
 import javax.print.attribute.DocAttributeSet;
 import javax.print.attribute.HashPrintJobAttributeSet;
@@ -302,9 +304,12 @@ public class PSStreamPrintJob implements CancelablePrintJob {
                 instream = doc.getStreamForBytes();
                 printableJob(new ImagePrinter(instream), reqAttrSet);
                 return;
-            } catch (ClassCastException | IOException e) {
+            } catch (ClassCastException cce) {
                 notifyEvent(PrintJobEvent.JOB_FAILED);
-                throw new PrintException(e);
+                throw new PrintException(cce);
+            } catch (IOException ioe) {
+                notifyEvent(PrintJobEvent.JOB_FAILED);
+                throw new PrintException(ioe);
             }
         } else if (flavor.equals(DocFlavor.URL.GIF) ||
                    flavor.equals(DocFlavor.URL.JPEG) ||
@@ -320,17 +325,23 @@ public class PSStreamPrintJob implements CancelablePrintJob {
             try {
                 pageableJob((Pageable)doc.getPrintData(), reqAttrSet);
                 return;
-            } catch (ClassCastException | IOException e) {
+            } catch (ClassCastException cce) {
                 notifyEvent(PrintJobEvent.JOB_FAILED);
-                throw new PrintException(e);
+                throw new PrintException(cce);
+            } catch (IOException ioe) {
+                notifyEvent(PrintJobEvent.JOB_FAILED);
+                throw new PrintException(ioe);
             }
         } else if (repClassName.equals("java.awt.print.Printable")) {
             try {
                 printableJob((Printable)doc.getPrintData(), reqAttrSet);
                 return;
-            } catch (ClassCastException | IOException e) {
+            } catch (ClassCastException cce) {
                 notifyEvent(PrintJobEvent.JOB_FAILED);
-                throw new PrintException(e);
+                throw new PrintException(cce);
+            } catch (IOException ioe) {
+                notifyEvent(PrintJobEvent.JOB_FAILED);
+                throw new PrintException(ioe);
             }
         } else {
             notifyEvent(PrintJobEvent.JOB_FAILED);

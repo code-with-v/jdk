@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -66,7 +66,7 @@ import sun.reflect.misc.ReflectUtil;
  * @since 1.5
  */
 public class Introspector {
-    public static final boolean ALLOW_NONPUBLIC_MBEAN;
+    final public static boolean ALLOW_NONPUBLIC_MBEAN;
     static {
         @SuppressWarnings("removal")
         String val = AccessController.doPrivileged(new GetPropertyAction("jdk.jmx.mbeans.allowNonPublic"));
@@ -397,7 +397,7 @@ public class Introspector {
     public static Descriptor descriptorForAnnotations(Annotation[] annots) {
         if (annots.length == 0)
             return ImmutableDescriptor.EMPTY_DESCRIPTOR;
-        Map<String, Object> descriptorMap = new HashMap<>();
+        Map<String, Object> descriptorMap = new HashMap<String, Object>();
         for (Annotation a : annots) {
             Class<? extends Annotation> c = a.annotationType();
             Method[] elements = c.getMethods();
@@ -592,7 +592,8 @@ public class Introspector {
 
         // cache to avoid repeated lookups
         private static final Map<Class<?>,SoftReference<List<Method>>> cache =
-            Collections.synchronizedMap(new WeakHashMap<>());
+            Collections.synchronizedMap(
+                new WeakHashMap<Class<?>,SoftReference<List<Method>>> ());
 
         /**
          * Returns the list of methods cached for the given class, or {@code null}
@@ -653,7 +654,7 @@ public class Introspector {
             methods = MBeanAnalyzer.eliminateCovariantMethods(methods);
 
             // filter out the non-getter methods
-            List<Method> result = new LinkedList<>();
+            List<Method> result = new LinkedList<Method>();
             for (Method m: methods) {
                 if (isReadMethod(m)) {
                     // favor isXXX over getXXX
@@ -666,7 +667,7 @@ public class Introspector {
             }
 
             // add result to cache
-            cache.put(clazz, new SoftReference<>(result));
+            cache.put(clazz, new SoftReference<List<Method>>(result));
 
             return result;
         }

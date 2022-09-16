@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,7 +23,7 @@
 
 /*
  * @test
- * @bug 8259401 8266225 8267319
+ * @bug 8259401 8266225
  * @summary Check certificates in signer's cert chain to see if warning emitted
  * @library /test/lib
  */
@@ -39,8 +39,6 @@ import java.nio.file.Paths;
 public class CheckSignerCertChain {
 
     private static final String JAVA_SECURITY_FILE = "java.security";
-
-    private static final String keysizeOpt = "-keysize 2048";
 
     static OutputAnalyzer kt(String cmd, String ks) throws Exception {
         return SecurityTools.keytool("-storepass changeit " + cmd +
@@ -59,11 +57,8 @@ public class CheckSignerCertChain {
         System.out.println("Generating a root cert using SHA1withRSA and 1024-bit key");
         kt("-genkeypair -keyalg rsa -alias ca -dname CN=CA -ext bc:c " +
                 "-keysize 1024 -sigalg SHA1withRSA", "ks");
-
-        kt("-genkeypair -keyalg rsa -alias ca1 -dname CN=CA1 " + keysizeOpt,
-                "ks");
-        kt("-genkeypair -keyalg rsa -alias e1 -dname CN=E1 " + keysizeOpt,
-                "ks");
+        kt("-genkeypair -keyalg rsa -alias ca1 -dname CN=CA1", "ks");
+        kt("-genkeypair -keyalg rsa -alias e1 -dname CN=E1", "ks");
 
         // intermediate certificate using SHA1withRSA and 2048-bit key
         System.out.println("Generating an intermediate cert using SHA1withRSA and 2048-bit key");
@@ -81,7 +76,7 @@ public class CheckSignerCertChain {
                 "-sigalg SHA256withRSA " +
                 "-verbose" +
                 " a.jar e1")
-                .shouldContain("Signature algorithm: SHA1withRSA (disabled), 2048-bit key")
+                .shouldContain("Signature algorithm: SHA1withRSA (weak), 2048-bit key")
                 // For trusted cert, warning should be generated for its weak 1024-bit
                 // key, but not for its SHA1withRSA algorithm.
                 .shouldContain("Signature algorithm: SHA1withRSA, 1024-bit key (weak)")
@@ -92,7 +87,7 @@ public class CheckSignerCertChain {
 
         SecurityTools.jarsigner("-verify -certs signeda.jar " +
                 "-keystore caks -storepass changeit -verbose -debug")
-                .shouldContain("Signature algorithm: SHA1withRSA (disabled), 2048-bit key")
+                .shouldContain("Signature algorithm: SHA1withRSA (weak), 2048-bit key")
                 // For trusted cert, warning should be generated for its weak 1024-bit
                 // key, but not for its SHA1withRSA algorithm.
                 .shouldContain("Signature algorithm: SHA1withRSA, 1024-bit key (weak)")
@@ -102,10 +97,8 @@ public class CheckSignerCertChain {
          * Generate a non-self-signed certificate using MD5withRSA as its signature
          * algorithm to sign a JAR file.
          */
-        kt("-genkeypair -keyalg rsa -alias cacert -dname CN=CACERT -ext bc:c "
-                + keysizeOpt, "ks");
-        kt("-genkeypair -keyalg rsa -alias ee -dname CN=EE -ext bc:c "
-                + keysizeOpt, "ks");
+        kt("-genkeypair -keyalg rsa -alias cacert -dname CN=CACERT -ext bc:c ", "ks");
+        kt("-genkeypair -keyalg rsa -alias ee -dname CN=EE -ext bc:c ", "ks");
         gencert("ee", "-alias cacert -ext san=dns:ee -sigalg MD5withRSA");
 
         Files.writeString(Files.createFile(Paths.get(JAVA_SECURITY_FILE)),
@@ -119,7 +112,7 @@ public class CheckSignerCertChain {
                 JAVA_SECURITY_FILE +
                 " a.jar ee")
                 .shouldNotContain("Signature algorithm: MD5withRSA (disabled), 2048-bit key")
-                .shouldContain("Signature algorithm: SHA384withRSA, 2048-bit key")
+                .shouldContain("Signature algorithm: SHA256withRSA, 2048-bit key")
                 .shouldNotContain("Invalid certificate chain: Algorithm constraints check failed on signature algorithm: MD5withRSA")
                 .shouldHaveExitValue(0);
 
@@ -135,8 +128,8 @@ public class CheckSignerCertChain {
                 JAVA_SECURITY_FILE +
                 " a.jar ee")
                 .shouldContain("Signature algorithm: MD5withRSA (disabled), 2048-bit key")
-                .shouldContain("Signature algorithm: SHA384withRSA, 2048-bit key")
-                .shouldContain("Invalid certificate chain: Algorithm constraints check failed on disabled algorithm: MD5 used with certificate: CN=EE")
+                .shouldContain("Signature algorithm: SHA256withRSA, 2048-bit key")
+                .shouldContain("Invalid certificate chain: Algorithm constraints check failed on signature algorithm: MD5withRSA")
                 .shouldHaveExitValue(0);
 
         kt("-exportcert -alias cacert -rfc -file cacert", "ks");
@@ -145,8 +138,8 @@ public class CheckSignerCertChain {
         SecurityTools.jarsigner("-verify -certs signeda.jar " +
                 "-keystore caks1 -storepass changeit -verbose -debug")
                 .shouldContain("Signature algorithm: MD5withRSA (disabled), 2048-bit key")
-                .shouldContain("Signature algorithm: SHA384withRSA, 2048-bit key")
-                .shouldContain("Invalid certificate chain: Algorithm constraints check failed on disabled algorithm: MD5 used with certificate: CN=EE")
+                .shouldContain("Signature algorithm: SHA256withRSA, 2048-bit key")
+                .shouldContain("Invalid certificate chain: Algorithm constraints check failed on signature algorithm: MD5withRSA")
                 .shouldHaveExitValue(0);
     }
 }

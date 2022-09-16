@@ -57,6 +57,7 @@ import sun.awt.SunToolkit;
 import sun.awt.OSInfo;
 import sun.security.action.GetPropertyAction;
 import sun.swing.SwingUtilities2;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Objects;
 import sun.awt.AppContext;
@@ -1300,9 +1301,9 @@ public class UIManager implements Serializable
                         if (file.exists()) {
                             // InputStream has been buffered in Properties
                             // class
-                            try (FileInputStream ins = new FileInputStream(file)) {
-                                props.load(ins);
-                            }
+                            FileInputStream ins = new FileInputStream(file);
+                            props.load(ins);
+                            ins.close();
                         }
                     }
                     catch (Exception e) {
@@ -1352,28 +1353,28 @@ public class UIManager implements Serializable
          * property.  For example given "swing.installedlafs=motif,windows"
          * lafs = {"motif", "windows"}.
          */
-        ArrayList<String> lafs = new ArrayList<String>();
+        Vector<String> lafs = new Vector<String>();
         StringTokenizer st = new StringTokenizer(ilafsString, ",", false);
         while (st.hasMoreTokens()) {
-            lafs.add(st.nextToken());
+            lafs.addElement(st.nextToken());
         }
 
         /* Look up the name and class for each name in the "swing.installedlafs"
          * list.  If they both exist then add a LookAndFeelInfo to
          * the installedLafs array.
          */
-        ArrayList<LookAndFeelInfo> ilafs = new ArrayList<LookAndFeelInfo>(lafs.size());
+        Vector<LookAndFeelInfo> ilafs = new Vector<LookAndFeelInfo>(lafs.size());
         for (String laf : lafs) {
             String name = swingProps.getProperty(makeInstalledLAFKey(laf, "name"), laf);
             String cls = swingProps.getProperty(makeInstalledLAFKey(laf, "class"));
             if (cls != null) {
-                ilafs.add(new LookAndFeelInfo(name, cls));
+                ilafs.addElement(new LookAndFeelInfo(name, cls));
             }
         }
 
         LookAndFeelInfo[] installedLAFs = new LookAndFeelInfo[ilafs.size()];
         for(int i = 0; i < ilafs.size(); i++) {
-            installedLAFs[i] = ilafs.get(i);
+            installedLAFs[i] = ilafs.elementAt(i);
         }
         getLAFState().installedLAFs = installedLAFs;
     }

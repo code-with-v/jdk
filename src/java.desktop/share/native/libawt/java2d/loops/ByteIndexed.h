@@ -44,7 +44,7 @@ typedef jubyte  ByteIndexedDataType;
 
 #define DeclareByteIndexedStoreVars(PREFIX) \
     int PREFIX ## XDither, PREFIX ## YDither, PREFIX ## RepPrims; \
-    signed char *PREFIX ## rerr, *PREFIX ## gerr, *PREFIX ## berr; \
+    char *PREFIX ## rerr, *PREFIX ## gerr, *PREFIX ## berr; \
     unsigned char *PREFIX ## InvLut;
 
 #define SetByteIndexedStoreVarsYPos(PREFIX, pRasInfo, LOC) \

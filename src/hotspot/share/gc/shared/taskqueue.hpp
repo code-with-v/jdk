@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -56,11 +56,7 @@ public:
     pop,              // number of taskqueue pops
     pop_slow,         // subset of taskqueue pops that were done slow-path
     steal_attempt,    // number of taskqueue steal attempts
-    steal_empty,      // number of empty taskqueues
-    steal_contended,  // number of contended steals
-    steal_success,    // number of successful steals
-    steal_max_contended_in_a_row, // maximum number of contended steals in a row
-    steal_bias_drop,  // number of times the bias has been dropped
+    steal,            // number of taskqueue steals
     overflow,         // number of overflow pushes
     overflow_max_len, // max length of overflow stack
     last_stat_id
@@ -72,16 +68,8 @@ public:
   inline void record_push()          { ++_stats[push]; }
   inline void record_pop()           { ++_stats[pop]; }
   inline void record_pop_slow()      { record_pop(); ++_stats[pop_slow]; }
-  inline void record_steal_attempt(uint kind) {
-    ++_stats[steal_attempt];
-    ++_stats[steal_empty + kind];
-  }
-  inline void record_contended_in_a_row(uint in_a_row) {
-    if (_stats[steal_max_contended_in_a_row] < in_a_row) {
-      _stats[steal_max_contended_in_a_row] = in_a_row;
-    }
-  }
-  inline void record_bias_drop() { ++_stats[steal_bias_drop]; }
+  inline void record_steal_attempt() { ++_stats[steal_attempt]; }
+  inline void record_steal()         { ++_stats[steal]; }
   inline void record_overflow(size_t new_length);
 
   TaskQueueStats & operator +=(const TaskQueueStats & addend);
@@ -93,9 +81,9 @@ public:
 
   // Print the specified line of the header (does not include a line separator).
   static void print_header(unsigned int line, outputStream* const stream = tty,
-                           unsigned int width = 11);
+                           unsigned int width = 10);
   // Print the statistics (does not include a line separator).
-  void print(outputStream* const stream = tty, unsigned int width = 11) const;
+  void print(outputStream* const stream = tty, unsigned int width = 10) const;
 
   DEBUG_ONLY(void verify() const;)
 
@@ -280,16 +268,6 @@ public:
   // in GenericTaskQueue.
   uint max_elems() const { return N - 2; }
 
-  // The result of a pop_global operation. The value order of this must correspond
-  // to the order in the corresponding TaskQueueStats StatId.
-  enum class PopResult : uint {
-    Empty     = 0, // Queue has been empty. t is undefined.
-    Contended = 1, // Contention prevented successful retrieval, queue most likely contains elements. t is undefined.
-    Success   = 2  // Successfully retrieved an element, t contains it.
-  };
-
-  TASKQUEUE_STATS_ONLY(void record_steal_attempt(PopResult kind) { stats.record_steal_attempt((uint)kind); })
-
   TASKQUEUE_STATS_ONLY(TaskQueueStats stats;)
 };
 
@@ -350,8 +328,6 @@ protected:
   using TaskQueueSuper<N, F>::assert_not_underflow;
 
 public:
-  typedef typename TaskQueueSuper<N, F>::PopResult PopResult;
-
   using TaskQueueSuper<N, F>::max_elems;
   using TaskQueueSuper<N, F>::size;
 
@@ -369,6 +345,8 @@ public:
   // Initializes the queue to empty.
   GenericTaskQueue();
 
+  void initialize();
+
   // Push the task "t" on the queue.  Returns "false" iff the queue is full.
   inline bool push(E t);
 
@@ -381,7 +359,7 @@ public:
 
   // Like pop_local(), but uses the "global" end of the queue (the least
   // recently pushed).
-  PopResult pop_global(E& t);
+  bool pop_global(E& t);
 
   // Delete any resource associated with the queue.
   ~GenericTaskQueue();
@@ -411,11 +389,13 @@ public:
   void set_last_stolen_queue_id(uint id)     { _last_stolen_queue_id = id; }
   uint last_stolen_queue_id() const          { return _last_stolen_queue_id; }
   bool is_last_stolen_queue_id_valid() const { return _last_stolen_queue_id != InvalidQueueId; }
-  void invalidate_last_stolen_queue_id()     {
-    TASKQUEUE_STATS_ONLY(stats.record_bias_drop();)
-    _last_stolen_queue_id = InvalidQueueId;
-  }
+  void invalidate_last_stolen_queue_id()     { _last_stolen_queue_id = InvalidQueueId; }
 };
+
+template<class E, MEMFLAGS F, unsigned int N>
+GenericTaskQueue<E, F, N>::GenericTaskQueue() : _last_stolen_queue_id(InvalidQueueId), _seed(17 /* random number */) {
+  assert(sizeof(Age) == sizeof(size_t), "Depends on this.");
+}
 
 // OverflowTaskQueue is a TaskQueue that also includes an overflow stack for
 // elements that do not fit in the TaskQueue.
@@ -474,16 +454,12 @@ template<class T, MEMFLAGS F>
 class GenericTaskQueueSet: public TaskQueueSetSuperImpl<F> {
 public:
   typedef typename T::element_type E;
-  typedef typename T::PopResult PopResult;
 
 private:
   uint _n;
   T** _queues;
 
-  // Attempts to steal an element from a foreign queue (!= queue_num), setting
-  // the result in t. Validity of this value and the return value is the same
-  // as for the last pop_global() operation.
-  PopResult steal_best_of_2(uint queue_num, E& t);
+  bool steal_best_of_2(uint queue_num, E& t);
 
 public:
   GenericTaskQueueSet(uint n);
@@ -504,18 +480,6 @@ public:
   virtual uint tasks() const;
 
   uint size() const { return _n; }
-
-#if TASKQUEUE_STATS
-private:
-  static void print_taskqueue_stats_hdr(outputStream* const st, const char* label);
-public:
-  void print_taskqueue_stats(outputStream* const st, const char* label);
-  void reset_taskqueue_stats();
-
-  // Prints taskqueue set statistics into gc+task+stats=trace and resets
-  // its statistics.
-  void print_and_reset_taskqueue_stats(const char* label);
-#endif // TASKQUEUE_STATS
 };
 
 template<class T, MEMFLAGS F> void
@@ -526,7 +490,6 @@ GenericTaskQueueSet<T, F>::register_queue(uint i, T* q) {
 
 template<class T, MEMFLAGS F> T*
 GenericTaskQueueSet<T, F>::queue(uint i) {
-  assert(i < _n, "index out of range.");
   return _queues[i];
 }
 
@@ -580,6 +543,7 @@ class PartialArrayScanTask {
   oop _src;
 
 public:
+  PartialArrayScanTask() : _src() {}
   explicit PartialArrayScanTask(oop src_array) : _src(src_array) {}
   // Trivially copyable.
 

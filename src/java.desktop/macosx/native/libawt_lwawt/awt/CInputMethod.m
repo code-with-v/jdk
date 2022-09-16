@@ -115,7 +115,9 @@ static void initializeInputMethodController() {
     AWT_ASSERT_APPKIT_THREAD;
 
     if (!view) return;
-    [view setInputMethod:inputMethod]; // inputMethod is a GlobalRef or null to disable.
+    if (!inputMethod) return;
+
+    [view setInputMethod:inputMethod]; // inputMethod is a GlobalRef
 }
 
 + (void) _nativeEndComposition:(AWTView *)view {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -135,8 +135,9 @@ final class ServerNameExtension {
                             nameType + "), name=" +
                             (new String(encoded, StandardCharsets.UTF_8)) +
                             ", value={" +
-                            Utilities.toHexString(encoded) + "}", iae);
-                        throw hc.conContext.fatal(Alert.ILLEGAL_PARAMETER, spe);
+                            Utilities.toHexString(encoded) + "}");
+                        throw hc.conContext.fatal(Alert.ILLEGAL_PARAMETER,
+                                (SSLProtocolException)spe.initCause(iae));
                     }
                 } else {
                     try {
@@ -145,8 +146,9 @@ final class ServerNameExtension {
                         SSLProtocolException spe = new SSLProtocolException(
                             "Illegal server name, type=(" + nameType +
                             "), value={" +
-                            Utilities.toHexString(encoded) + "}", iae);
-                        throw hc.conContext.fatal(Alert.ILLEGAL_PARAMETER, spe);
+                            Utilities.toHexString(encoded) + "}");
+                        throw hc.conContext.fatal(Alert.ILLEGAL_PARAMETER,
+                                (SSLProtocolException)spe.initCause(iae));
                     }
                 }
 

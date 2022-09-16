@@ -24,7 +24,6 @@
 package jdk.jfr.javaagent;
 
 import java.lang.instrument.Instrumentation;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -32,7 +31,6 @@ import jdk.jfr.Configuration;
 import jdk.jfr.Event;
 import jdk.jfr.Name;
 import jdk.jfr.Recording;
-import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordingFile;
 import jdk.test.lib.Asserts;
 import jdk.test.lib.jfr.EventNames;
@@ -40,7 +38,7 @@ import jdk.test.lib.jfr.EventNames;
 // Java agent that emits events
 public class EventEmitterAgent {
 
-    private static final long EVENTS = 15_000;
+    private static final long EVENTS = 150_000;
     private static final Path DUMP_PATH = Paths.get("dump.jfr").toAbsolutePath();
 
     // Called when agent is loaded from command line
@@ -90,21 +88,10 @@ public class EventEmitterAgent {
     }
 
     public static void validateRecording() throws Exception {
-        long testEventCount = 0;
-        try (RecordingFile rf = new RecordingFile(DUMP_PATH)) {
-            while (rf.hasMoreEvents()) {
-                RecordedEvent e = rf.readEvent();
-                switch (e.getEventType().getName()) {
-                case "Test":
-                    testEventCount++;
-                    break;
-                case "jdk.DataLoss":
-                    System.out.println(e);
-                    break;
-                }
-            }
-        }
-        System.out.println("File size: " + Files.size(DUMP_PATH));
+        long testEventCount = RecordingFile.readAllEvents(DUMP_PATH)
+                .stream()
+                .filter(e -> e.getEventType().getName().equals("Test"))
+                .count();
         Asserts.assertEquals(testEventCount, EVENTS, "Mismatch in TestEvent count");
     }
 }

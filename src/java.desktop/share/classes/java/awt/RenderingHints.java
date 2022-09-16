@@ -1064,7 +1064,7 @@ public class RenderingHints
      * {@code RenderingHints} is to be tested.
      * @return {@code true} if this {@code RenderingHints}
      *          contains a mapping for the specified key.
-     * @throws ClassCastException if the key can not
+     * @exception ClassCastException if the key can not
      *            be cast to {@code RenderingHints.Key}
      */
     public boolean containsKey(Object key) {
@@ -1099,7 +1099,7 @@ public class RenderingHints
      * @return  the value to which the key is mapped in this object or
      *          {@code null} if the key is not mapped to any value in
      *          this object.
-     * @throws ClassCastException if the key can not
+     * @exception ClassCastException if the key can not
      *            be cast to {@code RenderingHints.Key}
      * @see     #put(Object, Object)
      */
@@ -1117,11 +1117,11 @@ public class RenderingHints
      * @param      value   the rendering hint value.
      * @return     the previous value of the specified key in this object
      *             or {@code null} if it did not have one.
-     * @throws NullPointerException if the key is
+     * @exception NullPointerException if the key is
      *            {@code null}.
-     * @throws ClassCastException if the key can not
+     * @exception ClassCastException if the key can not
      *            be cast to {@code RenderingHints.Key}
-     * @throws IllegalArgumentException if the
+     * @exception IllegalArgumentException if the
      *            {@link Key#isCompatibleValue(java.lang.Object)
      *                   Key.isCompatibleValue()}
      *            method of the specified key returns false for the
@@ -1163,7 +1163,7 @@ public class RenderingHints
      * {@code RenderingHints} object. This method does nothing if the
      * key is not in this {@code RenderingHints} object.
      * @param   key   the rendering hints key that needs to be removed
-     * @throws ClassCastException if the key can not
+     * @exception ClassCastException if the key can not
      *            be cast to {@code RenderingHints.Key}
      * @return  the value to which the key had previously been mapped in this
      *          {@code RenderingHints} object, or {@code null}
@@ -1179,10 +1179,10 @@ public class RenderingHints
      * any mappings that this {@code RenderingHints} had for any
      * of the keys currently in the specified {@code Map}.
      * @param m the specified {@code Map}
-     * @throws ClassCastException class of a key or value
+     * @exception ClassCastException class of a key or value
      *          in the specified {@code Map} prevents it from being
      *          stored in this {@code RenderingHints}.
-     * @throws IllegalArgumentException some aspect
+     * @exception IllegalArgumentException some aspect
      *          of a key or value in the specified {@code Map}
      *           prevents it from being stored in
      *            this {@code RenderingHints}.

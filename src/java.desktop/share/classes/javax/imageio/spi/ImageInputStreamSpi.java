@@ -79,9 +79,9 @@ public abstract class ImageInputStreamSpi extends IIOServiceProvider {
      * legal object type for use by the
      * {@code createInputStreamInstance} method.
      *
-     * @throws IllegalArgumentException if {@code vendorName}
+     * @exception IllegalArgumentException if {@code vendorName}
      * is {@code null}.
-     * @throws IllegalArgumentException if {@code version}
+     * @exception IllegalArgumentException if {@code version}
      * is {@code null}.
      */
     public ImageInputStreamSpi(String vendorName,
@@ -159,12 +159,12 @@ public abstract class ImageInputStreamSpi extends IIOServiceProvider {
      *
      * @return an {@code ImageInputStream} instance.
      *
-     * @throws IllegalArgumentException if {@code input} is
+     * @exception IllegalArgumentException if {@code input} is
      * not an instance of the correct class or is {@code null}.
-     * @throws IllegalArgumentException if a cache file is needed
+     * @exception IllegalArgumentException if a cache file is needed
      * but {@code cacheDir} is non-{@code null} and is not a
      * directory.
-     * @throws IOException if a cache file is needed but cannot be
+     * @exception IOException if a cache file is needed but cannot be
      * created.
      *
      * @see #getInputClass
@@ -187,9 +187,9 @@ public abstract class ImageInputStreamSpi extends IIOServiceProvider {
      *
      * @return an {@code ImageInputStream} instance.
      *
-     * @throws IllegalArgumentException if {@code input} is
+     * @exception IllegalArgumentException if {@code input} is
      * not an instance of the correct class or is {@code null}.
-     * @throws IOException if a cache file is needed but cannot be
+     * @exception IOException if a cache file is needed but cannot be
      * created.
      *
      * @see #getInputClass()

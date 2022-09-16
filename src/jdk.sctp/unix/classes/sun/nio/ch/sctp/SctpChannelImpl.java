@@ -71,6 +71,7 @@ import static sun.nio.ch.sctp.ResultContainer.SHUTDOWN;
 /**
  * An implementation of an SctpChannel
  */
+@SuppressWarnings("removal")
 public class SctpChannelImpl extends SctpChannel
     implements SelChImpl
 {
@@ -187,7 +188,6 @@ public class SctpChannelImpl extends SctpChannel
                         SctpNet.throwAlreadyBoundException();
                     InetSocketAddress isa = (local == null) ?
                         new InetSocketAddress(0) : Net.checkAddress(local);
-                    @SuppressWarnings("removal")
                     SecurityManager sm = System.getSecurityManager();
                     if (sm != null) {
                         sm.checkListen(isa.getPort());
@@ -358,7 +358,6 @@ public class SctpChannelImpl extends SctpChannel
             synchronized (sendLock) {
                 ensureOpenAndUnconnected();
                 InetSocketAddress isa = Net.checkAddress(endpoint);
-                @SuppressWarnings("removal")
                 SecurityManager sm = System.getSecurityManager();
                 if (sm != null)
                     sm.checkConnect(isa.getAddress().getHostAddress(),
@@ -543,8 +542,7 @@ public class SctpChannelImpl extends SctpChannel
     @Override
     public void implCloseSelectableChannel() throws IOException {
         synchronized (stateLock) {
-            if (state != ChannelState.KILLED)
-                SctpNet.preClose(fdVal);
+            SctpNet.preClose(fdVal);
 
             if (receiverThread != 0)
                 NativeThread.signal(receiverThread);
@@ -642,7 +640,6 @@ public class SctpChannelImpl extends SctpChannel
                 return;
             if (state == ChannelState.UNINITIALIZED) {
                 state = ChannelState.KILLED;
-                SctpNet.close(fdVal);
                 return;
             }
             assert !isOpen() && !isRegistered();
@@ -650,8 +647,8 @@ public class SctpChannelImpl extends SctpChannel
             /* Postpone the kill if there is a waiting reader
              * or writer thread. */
             if (receiverThread == 0 && senderThread == 0) {
-                state = ChannelState.KILLED;
                 SctpNet.close(fdVal);
+                state = ChannelState.KILLED;
             } else {
                 state = ChannelState.KILLPENDING;
             }
@@ -1092,11 +1089,6 @@ public class SctpChannelImpl extends SctpChannel
             boolean unordered, int ppid) throws IOException;
 
     static {
-        loadSctpLibrary();
-    }
-
-    @SuppressWarnings("removal")
-    private static void loadSctpLibrary() {
         IOUtil.load();   /* loads nio & net native libraries */
         java.security.AccessController.doPrivileged(
             new java.security.PrivilegedAction<Void>() {

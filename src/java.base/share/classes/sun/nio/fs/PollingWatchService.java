@@ -61,11 +61,6 @@ import java.util.concurrent.TimeUnit;
 class PollingWatchService
     extends AbstractWatchService
 {
-    // Wait between polling thread creation and first poll (seconds)
-    private static final int POLLING_INIT_DELAY = 1;
-    // Default time between polls (seconds)
-    private static final int DEFAULT_POLLING_INTERVAL = 2;
-
     // map of registrations
     private final Map<Object, PollingWatchKey> map = new HashMap<>();
 
@@ -95,7 +90,7 @@ class PollingWatchService
          throws IOException
     {
         // check events - CCE will be thrown if there are invalid elements
-        final Set<WatchEvent.Kind<?>> eventSet = HashSet.newHashSet(events.length);
+        final Set<WatchEvent.Kind<?>> eventSet = new HashSet<>(events.length);
         for (WatchEvent.Kind<?> event: events) {
             // standard events
             if (event == StandardWatchEventKinds.ENTRY_CREATE ||
@@ -120,7 +115,7 @@ class PollingWatchService
             throw new IllegalArgumentException("No events to register");
 
         // Extended modifiers may be used to specify the sensitivity level
-        int sensitivity = DEFAULT_POLLING_INTERVAL;
+        int sensitivity = 10;
         if (modifiers.length > 0) {
             for (WatchEvent.Modifier modifier: modifiers) {
                 if (modifier == null)
@@ -252,7 +247,6 @@ class PollingWatchService
      * directory and queue keys when entries are added, modified, or deleted.
      */
     private class PollingWatchKey extends AbstractWatchKey {
-
         private final Object fileKey;
 
         // current event set
@@ -311,10 +305,10 @@ class PollingWatchService
                 // update the events
                 this.events = events;
 
-                // create the periodic task with initialDelay set to the specified constant
+                // create the periodic task
                 Runnable thunk = new Runnable() { public void run() { poll(); }};
                 this.poller = scheduledExecutor
-                    .scheduleAtFixedRate(thunk, POLLING_INIT_DELAY, period, TimeUnit.SECONDS);
+                    .scheduleAtFixedRate(thunk, period, period, TimeUnit.SECONDS);
             }
         }
 

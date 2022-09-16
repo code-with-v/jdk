@@ -42,7 +42,7 @@ using ZHeapIteratorQueues = GenericTaskQueueSet<ZHeapIteratorQueue, mtGC>;
 using ZHeapIteratorArrayQueue = OverflowTaskQueue<ObjArrayTask, mtGC>;
 using ZHeapIteratorArrayQueues = GenericTaskQueueSet<ZHeapIteratorArrayQueue, mtGC>;
 
-class ZHeapIterator : public ParallelObjectIteratorImpl {
+class ZHeapIterator : public ParallelObjectIterator {
   friend class ZHeapIteratorContext;
 
 private:

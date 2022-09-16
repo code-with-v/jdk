@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  *  DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  *  This code is free software; you can redistribute it and/or modify it
@@ -24,16 +24,18 @@
 
 /*
  * @test
- * @enablePreview
  * @run testng/othervm -Djava.lang.invoke.VarHandle.VAR_HANDLE_GUARDS=true -Djava.lang.invoke.VarHandle.VAR_HANDLE_IDENTITY_ADAPT=false -Xverify:all TestAdaptVarHandles
  * @run testng/othervm -Djava.lang.invoke.VarHandle.VAR_HANDLE_GUARDS=true -Djava.lang.invoke.VarHandle.VAR_HANDLE_IDENTITY_ADAPT=true -Xverify:all TestAdaptVarHandles
  * @run testng/othervm -Djava.lang.invoke.VarHandle.VAR_HANDLE_GUARDS=false -Djava.lang.invoke.VarHandle.VAR_HANDLE_IDENTITY_ADAPT=false -Xverify:all TestAdaptVarHandles
  * @run testng/othervm -Djava.lang.invoke.VarHandle.VAR_HANDLE_GUARDS=false -Djava.lang.invoke.VarHandle.VAR_HANDLE_IDENTITY_ADAPT=true -Xverify:all TestAdaptVarHandles
  */
 
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.MemorySession;
-import java.lang.foreign.ValueLayout;
+import jdk.incubator.foreign.MemoryHandles;
+import jdk.incubator.foreign.MemoryLayout;
+import jdk.incubator.foreign.MemoryLayouts;
+import jdk.incubator.foreign.MemorySegment;
+import jdk.incubator.foreign.ResourceScope;
+import jdk.incubator.foreign.ValueLayout;
 import org.testng.annotations.*;
 import static org.testng.Assert.*;
 
@@ -84,18 +86,19 @@ public class TestAdaptVarHandles {
         }
     }
 
-    static final VarHandle intHandleIndexed = ValueLayout.JAVA_INT.arrayElementVarHandle();
+    static final VarHandle intHandleIndexed = MemoryLayout.sequenceLayout(MemoryLayouts.JAVA_INT)
+            .varHandle(int.class, MemoryLayout.PathElement.sequenceElement());
 
-    static final VarHandle intHandle = ValueLayout.JAVA_INT.varHandle();
+    static final VarHandle intHandle = MemoryLayouts.JAVA_INT.varHandle(int.class);
 
-    static final VarHandle floatHandle = ValueLayout.JAVA_FLOAT.varHandle();
+    static final VarHandle floatHandle = MemoryLayouts.JAVA_FLOAT.varHandle(float.class);
 
     @Test
     public void testFilterValue() throws Throwable {
-        ValueLayout layout = ValueLayout.JAVA_INT;
-        MemorySegment segment = MemorySegment.allocateNative(layout, MemorySession.openImplicit());
-        VarHandle intHandle = layout.varHandle();
-        VarHandle i2SHandle = MethodHandles.filterValue(intHandle, S2I, I2S);
+        ValueLayout layout = MemoryLayouts.JAVA_INT;
+        MemorySegment segment = MemorySegment.allocateNative(layout, ResourceScope.newImplicitScope());
+        VarHandle intHandle = layout.varHandle(int.class);
+        VarHandle i2SHandle = MemoryHandles.filterValue(intHandle, S2I, I2S);
         i2SHandle.set(segment, "1");
         String oldValue = (String)i2SHandle.getAndAdd(segment, "42");
         assertEquals(oldValue, "1");
@@ -111,12 +114,12 @@ public class TestAdaptVarHandles {
 
     @Test
     public void testFilterValueComposite() throws Throwable {
-        ValueLayout layout = ValueLayout.JAVA_INT;
-        MemorySegment segment = MemorySegment.allocateNative(layout, MemorySession.openImplicit());
-        VarHandle intHandle = layout.varHandle();
+        ValueLayout layout = MemoryLayouts.JAVA_INT;
+        MemorySegment segment = MemorySegment.allocateNative(layout, ResourceScope.newImplicitScope());
+        VarHandle intHandle = layout.varHandle(int.class);
         MethodHandle CTX_S2I = MethodHandles.dropArguments(S2I, 0, String.class, String.class);
-        VarHandle i2SHandle = MethodHandles.filterValue(intHandle, CTX_S2I, CTX_I2S);
-        i2SHandle = MethodHandles.insertCoordinates(i2SHandle, 1, "a", "b");
+        VarHandle i2SHandle = MemoryHandles.filterValue(intHandle, CTX_S2I, CTX_I2S);
+        i2SHandle = MemoryHandles.insertCoordinates(i2SHandle, 1, "a", "b");
         i2SHandle.set(segment, "1");
         String oldValue = (String)i2SHandle.getAndAdd(segment, "42");
         assertEquals(oldValue, "ab1");
@@ -132,10 +135,10 @@ public class TestAdaptVarHandles {
 
     @Test
     public void testFilterValueLoose() throws Throwable {
-        ValueLayout layout = ValueLayout.JAVA_INT;
-        MemorySegment segment = MemorySegment.allocateNative(layout, MemorySession.openImplicit());
-        VarHandle intHandle = layout.varHandle();
-        VarHandle i2SHandle = MethodHandles.filterValue(intHandle, O2I, I2O);
+        ValueLayout layout = MemoryLayouts.JAVA_INT;
+        MemorySegment segment = MemorySegment.allocateNative(layout, ResourceScope.newImplicitScope());
+        VarHandle intHandle = layout.varHandle(int.class);
+        VarHandle i2SHandle = MemoryHandles.filterValue(intHandle, O2I, I2O);
         i2SHandle.set(segment, "1");
         String oldValue = (String)i2SHandle.getAndAdd(segment, "42");
         assertEquals(oldValue, "1");
@@ -151,67 +154,58 @@ public class TestAdaptVarHandles {
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testBadFilterCarrier() {
-        MethodHandles.filterValue(floatHandle, S2I, I2S);
+        MemoryHandles.filterValue(floatHandle, S2I, I2S);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testBadFilterUnboxArity() {
-        VarHandle floatHandle = ValueLayout.JAVA_INT.varHandle();
-        MethodHandles.filterValue(floatHandle, S2I.bindTo(""), I2S);
+        VarHandle floatHandle = MemoryLayouts.JAVA_INT.varHandle(int.class);
+        MemoryHandles.filterValue(floatHandle, S2I.bindTo(""), I2S);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testBadFilterBoxArity() {
-        VarHandle intHandle = ValueLayout.JAVA_INT.varHandle();
-        MethodHandles.filterValue(intHandle, S2I, I2S.bindTo(42));
+        VarHandle intHandle = MemoryLayouts.JAVA_INT.varHandle(int.class);
+        MemoryHandles.filterValue(intHandle, S2I, I2S.bindTo(42));
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testBadFilterBoxPrefixCoordinates() {
-        VarHandle intHandle = ValueLayout.JAVA_INT.varHandle();
-        MethodHandles.filterValue(intHandle,
+        VarHandle intHandle = MemoryLayouts.JAVA_INT.varHandle(int.class);
+        MemoryHandles.filterValue(intHandle,
                 MethodHandles.dropArguments(S2I, 1, int.class),
                 MethodHandles.dropArguments(I2S, 1, long.class));
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testBadFilterBoxException() {
-        VarHandle intHandle = ValueLayout.JAVA_INT.varHandle();
-        MethodHandles.filterValue(intHandle, I2S, S2L_EX);
+        VarHandle intHandle = MemoryLayouts.JAVA_INT.varHandle(int.class);
+        MemoryHandles.filterValue(intHandle, I2S, S2L_EX);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testBadFilterUnboxException() {
-        VarHandle intHandle = ValueLayout.JAVA_INT.varHandle();
-        MethodHandles.filterValue(intHandle, S2L_EX, I2S);
+        VarHandle intHandle = MemoryLayouts.JAVA_INT.varHandle(int.class);
+        MemoryHandles.filterValue(intHandle, S2L_EX, I2S);
     }
 
-    @Test(expectedExceptions = IllegalStateException.class)
+    @Test(expectedExceptions = IllegalArgumentException.class)
     public void testBadFilterBoxHandleException() {
-        VarHandle intHandle = ValueLayout.JAVA_INT.varHandle();
-        VarHandle vh = MethodHandles.filterValue(intHandle, S2I, I2S_EX);
-        try (MemorySession session = MemorySession.openConfined()) {
-            MemorySegment seg = MemorySegment.allocateNative(ValueLayout.JAVA_INT, session);
-            vh.set(seg, "42");
-            String x = (String) vh.get(seg); // should throw
-        }
+        VarHandle intHandle = MemoryLayouts.JAVA_INT.varHandle(int.class);
+        MemoryHandles.filterValue(intHandle, S2I, I2S_EX);
     }
 
-    @Test(expectedExceptions = IllegalStateException.class)
+    @Test(expectedExceptions = IllegalArgumentException.class)
     public void testBadFilterUnboxHandleException() {
-        VarHandle intHandle = ValueLayout.JAVA_INT.varHandle();
-        VarHandle vh = MethodHandles.filterValue(intHandle, S2I_EX, I2S);
-        try (MemorySession session = MemorySession.openConfined()) {
-            MemorySegment seg = MemorySegment.allocateNative(ValueLayout.JAVA_INT, session);
-            vh.set(seg, "42"); // should throw
-        }
+        VarHandle intHandle = MemoryLayouts.JAVA_INT.varHandle(int.class);
+        MemoryHandles.filterValue(intHandle, S2I_EX, I2S);
     }
 
     @Test
     public void testFilterCoordinates() throws Throwable {
-        ValueLayout layout = ValueLayout.JAVA_INT;
-        MemorySegment segment = MemorySegment.allocateNative(layout, MemorySession.openImplicit());
-        VarHandle intHandle_longIndex = MethodHandles.filterCoordinates(intHandleIndexed, 0, BASE_ADDR, S2L);
+        ValueLayout layout = MemoryLayouts.JAVA_INT;
+        MemorySegment segment = MemorySegment.allocateNative(layout, ResourceScope.newImplicitScope());
+        VarHandle intHandle_longIndex = MemoryHandles.filterCoordinates(intHandleIndexed, 0, BASE_ADDR, S2L);
         intHandle_longIndex.set(segment, "0", 1);
         int oldValue = (int)intHandle_longIndex.getAndAdd(segment, "0", 42);
         assertEquals(oldValue, 1);
@@ -227,34 +221,34 @@ public class TestAdaptVarHandles {
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testBadFilterCoordinatesNegativePos() {
-        MethodHandles.filterCoordinates(intHandle, -1, SUM_OFFSETS);
+        MemoryHandles.filterCoordinates(intHandle, -1, SUM_OFFSETS);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testBadFilterCoordinatesPosTooBig() {
-        MethodHandles.filterCoordinates(intHandle, 1, SUM_OFFSETS);
+        MemoryHandles.filterCoordinates(intHandle, 1, SUM_OFFSETS);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testBadFilterCoordinatesWrongFilterType() {
-        MethodHandles.filterCoordinates(intHandleIndexed, 1, S2I);
+        MemoryHandles.filterCoordinates(intHandleIndexed, 1, S2I);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testBadFilterCoordinatesWrongFilterException() {
-        MethodHandles.filterCoordinates(intHandleIndexed, 1, S2L_EX);
+        MemoryHandles.filterCoordinates(intHandleIndexed, 1, S2L_EX);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testBadFilterCoordinatesTooManyFilters() {
-        MethodHandles.filterCoordinates(intHandleIndexed, 1, S2L, S2L);
+        MemoryHandles.filterCoordinates(intHandleIndexed, 1, S2L, S2L);
     }
 
     @Test
     public void testInsertCoordinates() throws Throwable {
-        ValueLayout layout = ValueLayout.JAVA_INT;
-        MemorySegment segment = MemorySegment.allocateNative(layout, MemorySession.openImplicit());
-        VarHandle intHandle_longIndex = MethodHandles.insertCoordinates(intHandleIndexed, 0, segment, 0L);
+        ValueLayout layout = MemoryLayouts.JAVA_INT;
+        MemorySegment segment = MemorySegment.allocateNative(layout, ResourceScope.newImplicitScope());
+        VarHandle intHandle_longIndex = MemoryHandles.insertCoordinates(intHandleIndexed, 0, segment, 0L);
         intHandle_longIndex.set(1);
         int oldValue = (int)intHandle_longIndex.getAndAdd(42);
         assertEquals(oldValue, 1);
@@ -270,29 +264,29 @@ public class TestAdaptVarHandles {
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testBadInsertCoordinatesNegativePos() {
-        MethodHandles.insertCoordinates(intHandle, -1, 42);
+        MemoryHandles.insertCoordinates(intHandle, -1, 42);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testBadInsertCoordinatesPosTooBig() {
-        MethodHandles.insertCoordinates(intHandle, 1, 42);
+        MemoryHandles.insertCoordinates(intHandle, 1, 42);
     }
 
     @Test(expectedExceptions = ClassCastException.class)
     public void testBadInsertCoordinatesWrongCoordinateType() {
-        MethodHandles.insertCoordinates(intHandleIndexed, 1, "Hello");
+        MemoryHandles.insertCoordinates(intHandleIndexed, 1, "Hello");
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testBadInsertCoordinatesTooManyValues() {
-        MethodHandles.insertCoordinates(intHandleIndexed, 1, 0L, 0L);
+        MemoryHandles.insertCoordinates(intHandleIndexed, 1, 0L, 0L);
     }
 
     @Test
     public void testPermuteCoordinates() throws Throwable {
-        ValueLayout layout = ValueLayout.JAVA_INT;
-        MemorySegment segment = MemorySegment.allocateNative(layout, MemorySession.openImplicit());
-        VarHandle intHandle_swap = MethodHandles.permuteCoordinates(intHandleIndexed,
+        ValueLayout layout = MemoryLayouts.JAVA_INT;
+        MemorySegment segment = MemorySegment.allocateNative(layout, ResourceScope.newImplicitScope());
+        VarHandle intHandle_swap = MemoryHandles.permuteCoordinates(intHandleIndexed,
                 List.of(long.class, MemorySegment.class), 1, 0);
         intHandle_swap.set(0L, segment, 1);
         int oldValue = (int)intHandle_swap.getAndAdd(0L, segment, 42);
@@ -309,29 +303,29 @@ public class TestAdaptVarHandles {
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testBadPermuteCoordinatesTooManyCoordinates() {
-        MethodHandles.permuteCoordinates(intHandle, List.of(int.class, int.class), new int[2]);
+        MemoryHandles.permuteCoordinates(intHandle, List.of(int.class, int.class), new int[2]);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testBadPermuteCoordinatesTooFewCoordinates() {
-        MethodHandles.permuteCoordinates(intHandle, List.of());
+        MemoryHandles.permuteCoordinates(intHandle, List.of());
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testBadPermuteCoordinatesIndexTooBig() {
-        MethodHandles.permuteCoordinates(intHandle, List.of(int.class, int.class), 3);
+        MemoryHandles.permuteCoordinates(intHandle, List.of(int.class, int.class), 3);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testBadPermuteCoordinatesIndexTooSmall() {
-        MethodHandles.permuteCoordinates(intHandle, List.of(int.class, int.class), -1);
+        MemoryHandles.permuteCoordinates(intHandle, List.of(int.class, int.class), -1);
     }
 
     @Test
     public void testCollectCoordinates() throws Throwable {
-        ValueLayout layout = ValueLayout.JAVA_INT;
-        MemorySegment segment = MemorySegment.allocateNative(layout, MemorySession.openImplicit());
-        VarHandle intHandle_sum = MethodHandles.collectCoordinates(intHandleIndexed, 1, SUM_OFFSETS);
+        ValueLayout layout = MemoryLayouts.JAVA_INT;
+        MemorySegment segment = MemorySegment.allocateNative(layout, ResourceScope.newImplicitScope());
+        VarHandle intHandle_sum = MemoryHandles.collectCoordinates(intHandleIndexed, 1, SUM_OFFSETS);
         intHandle_sum.set(segment, -2L, 2L, 1);
         int oldValue = (int)intHandle_sum.getAndAdd(segment, -2L, 2L, 42);
         assertEquals(oldValue, 1);
@@ -347,34 +341,34 @@ public class TestAdaptVarHandles {
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testBadCollectCoordinatesNegativePos() {
-        MethodHandles.collectCoordinates(intHandle, -1, SUM_OFFSETS);
+        MemoryHandles.collectCoordinates(intHandle, -1, SUM_OFFSETS);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testBadCollectCoordinatesPosTooBig() {
-        MethodHandles.collectCoordinates(intHandle, 1, SUM_OFFSETS);
+        MemoryHandles.collectCoordinates(intHandle, 1, SUM_OFFSETS);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testBadCollectCoordinatesWrongFilterType() {
-        MethodHandles.collectCoordinates(intHandle, 0, SUM_OFFSETS);
+        MemoryHandles.collectCoordinates(intHandle, 0, SUM_OFFSETS);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testBadCollectCoordinatesWrongVoidFilterType() {
-        MethodHandles.collectCoordinates(intHandle, 0, VOID_FILTER);
+        MemoryHandles.collectCoordinates(intHandle, 0, VOID_FILTER);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testBadCollectCoordinatesWrongFilterException() {
-        MethodHandles.collectCoordinates(intHandle, 0, S2L_EX);
+        MemoryHandles.collectCoordinates(intHandle, 0, S2L_EX);
     }
 
     @Test
     public void testDropCoordinates() throws Throwable {
-        ValueLayout layout = ValueLayout.JAVA_INT;
-        MemorySegment segment = MemorySegment.allocateNative(layout, MemorySession.openImplicit());
-        VarHandle intHandle_dummy = MethodHandles.dropCoordinates(intHandleIndexed, 1, float.class, String.class);
+        ValueLayout layout = MemoryLayouts.JAVA_INT;
+        MemorySegment segment = MemorySegment.allocateNative(layout, ResourceScope.newImplicitScope());
+        VarHandle intHandle_dummy = MemoryHandles.dropCoordinates(intHandleIndexed, 1, float.class, String.class);
         intHandle_dummy.set(segment, 1f, "hello", 0L, 1);
         int oldValue = (int)intHandle_dummy.getAndAdd(segment, 1f, "hello", 0L, 42);
         assertEquals(oldValue, 1);
@@ -390,12 +384,12 @@ public class TestAdaptVarHandles {
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testBadDropCoordinatesNegativePos() {
-        MethodHandles.dropCoordinates(intHandle, -1);
+        MemoryHandles.dropCoordinates(intHandle, -1);
     }
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testBadDropCoordinatesPosTooBig() {
-        MethodHandles.dropCoordinates(intHandle, 2);
+        MemoryHandles.dropCoordinates(intHandle, 2);
     }
 
     //helper methods

@@ -41,6 +41,7 @@ import java.util.regex.*;
 import javax.annotation.processing.*;
 import javax.lang.model.element.*;
 import static javax.lang.model.util.ElementFilter.*;
+import static javax.tools.Diagnostic.Kind.*;
 
 /**
  * Test some basic workings of javax.lang.element.ExecutableElement
@@ -61,12 +62,12 @@ public class TestExecutableElement extends JavacTestingAbstractProcessor impleme
         } else {
             String expectedMethodCountStr = processingEnv.getOptions().get("expectedMethodCount");
             if (expectedMethodCountStr == null) {
-                messager.printError("No expected method count specified.");
+                messager.printMessage(ERROR, "No expected method count specified.");
             } else {
                 int expectedMethodCount = Integer.parseInt(expectedMethodCountStr);
 
                 if (seenMethods != expectedMethodCount) {
-                    messager.printError("Wrong number of seen methods: " + seenMethods);
+                    messager.printMessage(ERROR, "Wrong number of seen methods: " + seenMethods);
                 }
             }
         }
@@ -86,8 +87,9 @@ public class TestExecutableElement extends JavacTestingAbstractProcessor impleme
 
         if (expectedDefault) {
             if (!method.getModifiers().contains(Modifier.DEFAULT)) {
-                messager.printError("Modifier \"default\" not present as expected.",
-                                    method);
+                messager.printMessage(ERROR,
+                                      "Modifier \"default\" not present as expected.",
+                                      method);
             }
 
             // Check printing output
@@ -96,26 +98,29 @@ public class TestExecutableElement extends JavacTestingAbstractProcessor impleme
             Pattern p = Pattern.compile(expectedIsDefault.expectedTextRegex(), Pattern.DOTALL);
 
             if (! p.matcher(stringWriter.toString()).matches()) {
-                messager.printError(new Formatter().format("Unexpected printing ouptput:%n\tgot %s,%n\texpected pattern %s.",
-                                                           stringWriter.toString(),
-                                                           expectedIsDefault.expectedTextRegex()).toString(),
-                                    method);
+                messager.printMessage(ERROR,
+                                      new Formatter().format("Unexpected printing ouptput:%n\tgot %s,%n\texpected pattern %s.",
+                                                             stringWriter.toString(),
+                                                             expectedIsDefault.expectedTextRegex()).toString(),
+                                      method);
             }
 
             System.out.println("\t" + stringWriter.toString());
 
         } else {
             if (method.getModifiers().contains(Modifier.DEFAULT)) {
-                messager.printError("Modifier \"default\" present when not expected.",
-                                    method);
+                messager.printMessage(ERROR,
+                                      "Modifier \"default\" present when not expected.",
+                                      method);
             }
         }
 
         if (methodIsDefault != expectedDefault) {
-            messager.printError(new Formatter().format("Unexpected Executable.isDefault result: got ``%s'', expected ``%s''.",
-                                                       expectedDefault,
-                                                       methodIsDefault).toString(),
-                                method);
+            messager.printMessage(ERROR,
+                                  new Formatter().format("Unexpected Executable.isDefault result: got ``%s'', expected ``%s''.",
+                                                         expectedDefault,
+                                                         methodIsDefault).toString(),
+                                  method);
         }
     }
 }

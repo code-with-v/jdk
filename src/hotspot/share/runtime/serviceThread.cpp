@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -47,12 +47,11 @@
 #include "prims/resolvedMethodTable.hpp"
 #include "services/diagnosticArgument.hpp"
 #include "services/diagnosticFramework.hpp"
-#include "services/finalizerService.hpp"
 #include "services/gcNotifier.hpp"
 #include "services/lowMemoryDetector.hpp"
 #include "services/threadIdTable.hpp"
 
-DEBUG_ONLY(JavaThread* ServiceThread::_instance = NULL;)
+ServiceThread* ServiceThread::_instance = NULL;
 JvmtiDeferredEvent* ServiceThread::_jvmti_event = NULL;
 // The service thread has it's own static deferred event queue.
 // Events can be posted before JVMTI vm_start, so it's too early to call JvmtiThreadState::state_for
@@ -93,13 +92,39 @@ void ServiceThread::initialize() {
   EXCEPTION_MARK;
 
   const char* name = "Service Thread";
-  Handle thread_oop = JavaThread::create_system_thread_object(name, false /* not visible */, CHECK);
+  Handle string = java_lang_String::create_from_str(name, CHECK);
 
-  ServiceThread* thread = new ServiceThread(&service_thread_entry);
-  JavaThread::vm_exit_on_osthread_failure(thread);
+  // Initialize thread_oop to put it into the system threadGroup
+  Handle thread_group (THREAD, Universe::system_thread_group());
+  Handle thread_oop = JavaCalls::construct_new_instance(
+                          vmClasses::Thread_klass(),
+                          vmSymbols::threadgroup_string_void_signature(),
+                          thread_group,
+                          string,
+                          CHECK);
 
-  JavaThread::start_internal_daemon(THREAD, thread, thread_oop, NearMaxPriority);
-  DEBUG_ONLY(_instance = thread;)
+  {
+    MutexLocker mu(THREAD, Threads_lock);
+    ServiceThread* thread =  new ServiceThread(&service_thread_entry);
+
+    // At this point it may be possible that no osthread was created for the
+    // JavaThread due to lack of memory. We would have to throw an exception
+    // in that case. However, since this must work and we do not allow
+    // exceptions anyway, check and abort if this fails.
+    if (thread == NULL || thread->osthread() == NULL) {
+      vm_exit_during_initialization("java.lang.OutOfMemoryError",
+                                    os::native_thread_creation_failed_msg());
+    }
+
+    java_lang_Thread::set_thread(thread_oop(), thread);
+    java_lang_Thread::set_priority(thread_oop(), NearMaxPriority);
+    java_lang_Thread::set_daemon(thread_oop());
+    thread->set_threadObj(thread_oop());
+    _instance = thread;
+
+    Threads::add(thread);
+    Thread::start(thread);
+  }
 }
 
 static void cleanup_oopstorages() {
@@ -116,7 +141,6 @@ void ServiceThread::service_thread_entry(JavaThread* jt, TRAPS) {
     bool has_dcmd_notification_event = false;
     bool stringtable_work = false;
     bool symboltable_work = false;
-    bool finalizerservice_work = false;
     bool resolved_method_table_work = false;
     bool thread_id_table_work = false;
     bool protection_domain_table_work = false;
@@ -147,10 +171,9 @@ void ServiceThread::service_thread_entry(JavaThread* jt, TRAPS) {
               (has_dcmd_notification_event = (!UseNotificationThread && DCmdFactory::has_pending_jmx_notification())) |
               (stringtable_work = StringTable::has_work()) |
               (symboltable_work = SymbolTable::has_work()) |
-              (finalizerservice_work = FinalizerService::has_work()) |
               (resolved_method_table_work = ResolvedMethodTable::has_work()) |
               (thread_id_table_work = ThreadIdTable::has_work()) |
-              (protection_domain_table_work = ProtectionDomainCacheTable::has_work()) |
+              (protection_domain_table_work = SystemDictionary::pd_cache_table()->has_work()) |
               (oopstorage_work = OopStorage::has_cleanup_work_and_reset()) |
               (oop_handles_to_release = (_oop_handle_list != NULL)) |
               (cldg_cleanup_work = ClassLoaderDataGraph::should_clean_metaspaces_and_reset()) |
@@ -173,10 +196,6 @@ void ServiceThread::service_thread_entry(JavaThread* jt, TRAPS) {
 
     if (symboltable_work) {
       SymbolTable::do_concurrent_work(jt);
-    }
-
-    if (finalizerservice_work) {
-      FinalizerService::do_concurrent_work(jt);
     }
 
     if (has_jvmti_events) {
@@ -207,7 +226,7 @@ void ServiceThread::service_thread_entry(JavaThread* jt, TRAPS) {
     }
 
     if (protection_domain_table_work) {
-      ProtectionDomainCacheTable::unlink();
+      SystemDictionary::pd_cache_table()->unlink();
     }
 
     if (oopstorage_work) {
@@ -230,7 +249,7 @@ void ServiceThread::service_thread_entry(JavaThread* jt, TRAPS) {
 
 void ServiceThread::enqueue_deferred_event(JvmtiDeferredEvent* event) {
   MutexLocker ml(Service_lock, Mutex::_no_safepoint_check_flag);
-  // If you enqueue events before the service thread runs, gc
+  // If you enqueue events before the service thread runs, gc and the sweeper
   // cannot keep the nmethod alive.  This could be restricted to compiled method
   // load and unload events, if we wanted to be picky.
   assert(_instance != NULL, "cannot enqueue events before the service thread runs");

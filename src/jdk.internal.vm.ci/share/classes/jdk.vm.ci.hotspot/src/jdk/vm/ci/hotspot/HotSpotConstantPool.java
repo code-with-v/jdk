@@ -27,10 +27,6 @@ import static jdk.vm.ci.hotspot.HotSpotJVMCIRuntime.runtime;
 import static jdk.vm.ci.hotspot.HotSpotVMConfig.config;
 import static jdk.vm.ci.hotspot.UnsafeAccess.UNSAFE;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import jdk.vm.ci.common.JVMCIError;
 import jdk.vm.ci.common.NativeImageReinitialize;
 import jdk.vm.ci.meta.ConstantPool;
@@ -197,38 +193,34 @@ public final class HotSpotConstantPool implements ConstantPool, MetaspaceHandleO
     }
 
     /**
-     * A {@code jmetadata} value that is a handle to {@code ConstantPool*} value.
+     * Handle to the {@code ConstantPool} VM object. The handle is in
+     * {@code JVMCI::_metadata_handles}.
      */
-    private final long constantPoolHandle;
+    private final long metadataHandle;
 
     private volatile LookupTypeCacheElement lastLookupType;
     private final JvmConstants constants;
 
     /**
-     * Cache for {@link #getHolder()}.
-     */
-    private HotSpotResolvedObjectTypeImpl holder;
-
-    /**
-     * Gets the JVMCI mirror from a HotSpot constant pool. The VM is responsible for ensuring that
+     * Gets the JVMCI mirror from a HotSpot constant pool.The VM is responsible for ensuring that
      * the ConstantPool is kept alive for the duration of this call and the
      * {@link HotSpotJVMCIRuntime} keeps it alive after that.
      *
      * Called from the VM.
      *
-     * @param constantPoolHandle a {@code jmetaspace} handle to a raw {@code ConstantPool*} value
-     * @return the {@link HotSpotConstantPool} corresponding to {@code constantPoolHandle}
+     * @param metaspaceConstantPool a metaspace ConstantPool object
+     * @return the {@link HotSpotConstantPool} corresponding to {@code metaspaceConstantPool}
      */
     @SuppressWarnings("unused")
     @VMEntryPoint
-    private static HotSpotConstantPool fromMetaspace(long constantPoolHandle) {
-        return new HotSpotConstantPool(constantPoolHandle);
+    private static HotSpotConstantPool fromMetaspace(long metaspaceConstantPool) {
+        return new HotSpotConstantPool(metaspaceConstantPool);
     }
 
-    private HotSpotConstantPool(long constantPoolHandle) {
-        this.constantPoolHandle = constantPoolHandle;
+    private HotSpotConstantPool(long metadataHandle) {
+        this.metadataHandle = metadataHandle;
         this.constants = JvmConstants.instance();
-        HandleCleaner.create(this, constantPoolHandle);
+        HandleCleaner.create(this, metadataHandle);
     }
 
     /**
@@ -237,10 +229,7 @@ public final class HotSpotConstantPool implements ConstantPool, MetaspaceHandleO
      * @return holder for this constant pool
      */
     private HotSpotResolvedObjectType getHolder() {
-        if (holder == null) {
-            holder = compilerToVM().getResolvedJavaType(this, config().constantPoolHolderOffset, false);
-        }
-        return holder;
+        return compilerToVM().getResolvedJavaType(this, config().constantPoolHolderOffset, false);
     }
 
     /**
@@ -296,16 +285,13 @@ public final class HotSpotConstantPool implements ConstantPool, MetaspaceHandleO
         return ~i;
     }
 
-    /**
-     * Gets the raw {@code ConstantPool*} value for the this constant pool.
-     */
-    long getConstantPoolPointer() {
+    long getMetaspaceConstantPool() {
         return getMetaspacePointer();
     }
 
     @Override
     public long getMetadataHandle() {
-        return constantPoolHandle;
+        return metadataHandle;
     }
 
     /**
@@ -317,7 +303,7 @@ public final class HotSpotConstantPool implements ConstantPool, MetaspaceHandleO
     private JvmConstant getTagAt(int index) {
         assert checkBounds(index);
         HotSpotVMConfig config = config();
-        final long metaspaceConstantPoolTags = UNSAFE.getAddress(getConstantPoolPointer() + config.constantPoolTagsOffset);
+        final long metaspaceConstantPoolTags = UNSAFE.getAddress(getMetaspaceConstantPool() + config.constantPoolTagsOffset);
         final int tag = UNSAFE.getByteVolatile(null, metaspaceConstantPoolTags + config.arrayU1DataOffset + index);
         if (tag == 0) {
             return null;
@@ -334,7 +320,7 @@ public final class HotSpotConstantPool implements ConstantPool, MetaspaceHandleO
     long getEntryAt(int index) {
         assert checkBounds(index);
         int offset = index * runtime().getHostJVMCIBackend().getTarget().wordSize;
-        return UNSAFE.getAddress(getConstantPoolPointer() + config().constantPoolSize + offset);
+        return UNSAFE.getAddress(getMetaspaceConstantPool() + config().constantPoolSize + offset);
     }
 
     /**
@@ -346,7 +332,7 @@ public final class HotSpotConstantPool implements ConstantPool, MetaspaceHandleO
     private int getIntAt(int index) {
         assert checkTag(index, constants.jvmInteger);
         int offset = index * runtime().getHostJVMCIBackend().getTarget().wordSize;
-        return UNSAFE.getInt(getConstantPoolPointer() + config().constantPoolSize + offset);
+        return UNSAFE.getInt(getMetaspaceConstantPool() + config().constantPoolSize + offset);
     }
 
     /**
@@ -358,7 +344,7 @@ public final class HotSpotConstantPool implements ConstantPool, MetaspaceHandleO
     private long getLongAt(int index) {
         assert checkTag(index, constants.jvmLong);
         int offset = index * runtime().getHostJVMCIBackend().getTarget().wordSize;
-        return UNSAFE.getLong(getConstantPoolPointer() + config().constantPoolSize + offset);
+        return UNSAFE.getLong(getMetaspaceConstantPool() + config().constantPoolSize + offset);
     }
 
     /**
@@ -370,7 +356,7 @@ public final class HotSpotConstantPool implements ConstantPool, MetaspaceHandleO
     private float getFloatAt(int index) {
         assert checkTag(index, constants.jvmFloat);
         int offset = index * runtime().getHostJVMCIBackend().getTarget().wordSize;
-        return UNSAFE.getFloat(getConstantPoolPointer() + config().constantPoolSize + offset);
+        return UNSAFE.getFloat(getMetaspaceConstantPool() + config().constantPoolSize + offset);
     }
 
     /**
@@ -382,7 +368,7 @@ public final class HotSpotConstantPool implements ConstantPool, MetaspaceHandleO
     private double getDoubleAt(int index) {
         assert checkTag(index, constants.jvmDouble);
         int offset = index * runtime().getHostJVMCIBackend().getTarget().wordSize;
-        return UNSAFE.getDouble(getConstantPoolPointer() + config().constantPoolSize + offset);
+        return UNSAFE.getDouble(getMetaspaceConstantPool() + config().constantPoolSize + offset);
     }
 
     /**
@@ -394,7 +380,7 @@ public final class HotSpotConstantPool implements ConstantPool, MetaspaceHandleO
     private int getNameAndTypeAt(int index) {
         assert checkTag(index, constants.jvmNameAndType);
         int offset = index * runtime().getHostJVMCIBackend().getTarget().wordSize;
-        return UNSAFE.getInt(getConstantPoolPointer() + config().constantPoolSize + offset);
+        return UNSAFE.getInt(getMetaspaceConstantPool() + config().constantPoolSize + offset);
     }
 
     /**
@@ -476,7 +462,7 @@ public final class HotSpotConstantPool implements ConstantPool, MetaspaceHandleO
     private int getUncachedKlassRefIndexAt(int index) {
         assert checkTagIsFieldOrMethod(index);
         int offset = index * runtime().getHostJVMCIBackend().getTarget().wordSize;
-        final int refIndex = UNSAFE.getInt(getConstantPoolPointer() + config().constantPoolSize + offset);
+        final int refIndex = UNSAFE.getInt(getMetaspaceConstantPool() + config().constantPoolSize + offset);
         // klass ref index is in the low 16-bits.
         return refIndex & 0xFFFF;
     }
@@ -521,7 +507,7 @@ public final class HotSpotConstantPool implements ConstantPool, MetaspaceHandleO
 
     @Override
     public int length() {
-        return UNSAFE.getInt(getConstantPoolPointer() + config().constantPoolLengthOffset);
+        return UNSAFE.getInt(getMetaspaceConstantPool() + config().constantPoolLengthOffset);
     }
 
     public boolean hasDynamicConstant() {
@@ -529,94 +515,7 @@ public final class HotSpotConstantPool implements ConstantPool, MetaspaceHandleO
     }
 
     private int flags() {
-        return UNSAFE.getInt(getConstantPoolPointer() + config().constantPoolFlagsOffset);
-    }
-
-    static class BootstrapMethodInvocationImpl implements BootstrapMethodInvocation {
-        private final boolean indy;
-        private final ResolvedJavaMethod method;
-        private final String name;
-        private final JavaConstant type;
-        private final List<JavaConstant> staticArguments;
-
-        BootstrapMethodInvocationImpl(boolean indy, ResolvedJavaMethod method, String name, JavaConstant type, List<JavaConstant> staticArguments) {
-            this.indy = indy;
-            this.method = method;
-            this.name = name;
-            this.type = type;
-            this.staticArguments = staticArguments;
-        }
-
-        @Override
-        public ResolvedJavaMethod getMethod() {
-            return method;
-        }
-
-        @Override
-        public String getName() {
-            return name;
-        }
-
-        @Override
-        public boolean isInvokeDynamic() {
-            return indy;
-        }
-
-        @Override
-        public JavaConstant getType() {
-            return type;
-        }
-
-        @Override
-        public List<JavaConstant> getStaticArguments() {
-            return staticArguments;
-        }
-
-        @Override
-        public String toString() {
-            String static_args = staticArguments.stream().map(BootstrapMethodInvocationImpl::argumentAsString).collect(Collectors.joining(", ", "[", "]"));
-            return "BootstrapMethod[" + (indy ? "indy" : "condy") +
-                            ", method:" + method.format("%H.%n(%p)") +
-                            ", name: " + name +
-                            ", type: " + type.toValueString() +
-                            ", static arguments:" + static_args;
-        }
-
-        private static String argumentAsString(JavaConstant arg) {
-            String type = arg.getJavaKind().getJavaName();
-            String value = arg.toValueString();
-            return type + ":" + value;
-        }
-    }
-
-    @Override
-    public BootstrapMethodInvocation lookupBootstrapMethodInvocation(int rawCpi, int opcode) {
-        int cpi = opcode == -1 ? rawCpi : rawIndexToConstantPoolIndex(rawCpi, opcode);
-        final JvmConstant tag = getTagAt(cpi);
-        switch (tag.name) {
-            case "InvokeDynamic":
-            case "Dynamic":
-                Object[] bsmi = compilerToVM().resolveBootstrapMethod(this, cpi);
-                ResolvedJavaMethod method = (ResolvedJavaMethod) bsmi[0];
-                String name = (String) bsmi[1];
-                JavaConstant type = (JavaConstant) bsmi[2];
-                Object staticArguments = bsmi[3];
-                List<JavaConstant> staticArgumentsList;
-                if (staticArguments == null) {
-                    staticArgumentsList = List.of();
-                } else if (staticArguments instanceof JavaConstant) {
-                    staticArgumentsList = List.of((JavaConstant) staticArguments);
-                } else if (staticArguments instanceof JavaConstant[]) {
-                    staticArgumentsList = List.of((JavaConstant[]) staticArguments);
-                } else {
-                    int[] bsciArgs = (int[]) staticArguments;
-                    String message = String.format("Resolving bootstrap static arguments for %s using BootstrapCallInfo %s not supported", method.format("%H.%n(%p)"), Arrays.toString(bsciArgs));
-                    throw new IllegalArgumentException(message);
-                }
-                return new BootstrapMethodInvocationImpl(tag.name.equals("InvokeDynamic"), method, name, type, staticArgumentsList);
-            default:
-                return null;
-        }
+        return UNSAFE.getInt(getMetaspaceConstantPool() + config().constantPoolFlagsOffset);
     }
 
     @Override
@@ -689,9 +588,9 @@ public final class HotSpotConstantPool implements ConstantPool, MetaspaceHandleO
     }
 
     @Override
-    public JavaMethod lookupMethod(int cpi, int opcode, ResolvedJavaMethod caller) {
+    public JavaMethod lookupMethod(int cpi, int opcode) {
         final int index = rawIndexToConstantPoolCacheIndex(cpi, opcode);
-        final HotSpotResolvedJavaMethod method = compilerToVM().lookupMethodInPool(this, index, (byte) opcode, (HotSpotResolvedJavaMethodImpl) caller);
+        final HotSpotResolvedJavaMethod method = compilerToVM().lookupMethodInPool(this, index, (byte) opcode);
         if (method != null) {
             return method;
         } else {
@@ -699,11 +598,13 @@ public final class HotSpotConstantPool implements ConstantPool, MetaspaceHandleO
             String name = getNameOf(index);
             HotSpotSignature signature = new HotSpotSignature(runtime(), getSignatureOf(index));
             if (opcode == Bytecodes.INVOKEDYNAMIC) {
-                return new UnresolvedJavaMethod(name, signature, runtime().getMethodHandleClass());
+                HotSpotResolvedObjectType holder = runtime().getMethodHandleClass();
+                return new UnresolvedJavaMethod(name, signature, holder);
             } else {
                 final int klassIndex = getKlassRefIndexAt(index);
                 final Object type = compilerToVM().lookupKlassInPool(this, klassIndex);
-                return new UnresolvedJavaMethod(name, signature, getJavaType(type));
+                JavaType holder = getJavaType(type);
+                return new UnresolvedJavaMethod(name, signature, holder);
             }
         }
     }
@@ -765,9 +666,9 @@ public final class HotSpotConstantPool implements ConstantPool, MetaspaceHandleO
         JavaType type = runtime().lookupType(typeName, getHolder(), false);
 
         final int holderIndex = getKlassRefIndexAt(index);
-        JavaType fieldHolder = lookupType(holderIndex, opcode);
+        JavaType holder = lookupType(holderIndex, opcode);
 
-        if (fieldHolder instanceof HotSpotResolvedObjectTypeImpl) {
+        if (holder instanceof HotSpotResolvedObjectTypeImpl) {
             int[] info = new int[3];
             HotSpotResolvedObjectTypeImpl resolvedHolder;
             try {
@@ -777,7 +678,7 @@ public final class HotSpotConstantPool implements ConstantPool, MetaspaceHandleO
                  * If there was an exception resolving the field we give up and return an unresolved
                  * field.
                  */
-                return new UnresolvedJavaField(fieldHolder, lookupUtf8(getNameRefIndexAt(nameAndTypeIndex)), type);
+                return new UnresolvedJavaField(holder, lookupUtf8(getNameRefIndexAt(nameAndTypeIndex)), type);
             }
             final int flags = info[0];
             final int offset = info[1];
@@ -785,7 +686,7 @@ public final class HotSpotConstantPool implements ConstantPool, MetaspaceHandleO
             HotSpotResolvedJavaField result = resolvedHolder.createField(type, offset, flags, fieldIndex);
             return result;
         } else {
-            return new UnresolvedJavaField(fieldHolder, lookupUtf8(getNameRefIndexAt(nameAndTypeIndex)), type);
+            return new UnresolvedJavaField(holder, lookupUtf8(getNameRefIndexAt(nameAndTypeIndex)), type);
         }
     }
 
@@ -936,7 +837,7 @@ public final class HotSpotConstantPool implements ConstantPool, MetaspaceHandleO
     }
 
     public String getSourceFileName() {
-        final int sourceFileNameIndex = UNSAFE.getChar(getConstantPoolPointer() + config().constantPoolSourceFileNameIndexOffset);
+        final int sourceFileNameIndex = UNSAFE.getChar(getMetaspaceConstantPool() + config().constantPoolSourceFileNameIndexOffset);
         if (sourceFileNameIndex == 0) {
             return null;
         }
@@ -945,6 +846,7 @@ public final class HotSpotConstantPool implements ConstantPool, MetaspaceHandleO
 
     @Override
     public String toString() {
-        return "HotSpotConstantPool<" + getHolder().toJavaName() + ">";
+        HotSpotResolvedObjectType holder = getHolder();
+        return "HotSpotConstantPool<" + holder.toJavaName() + ">";
     }
 }

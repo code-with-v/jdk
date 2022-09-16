@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -48,6 +48,10 @@
 #undef F1
 #undef F2
 
+// A work around for GCC math header bug leaving isfinite() undefined,
+// see: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=14608
+#include "utilities/globalDefinitions.hpp"
+
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
@@ -68,9 +72,6 @@
   #endif
 #endif
 
-// Wrapper around os::exit so we don't need to include os.hpp here.
-extern void gtest_exit_from_child_vm(int num);
-
 #define CONCAT(a, b) a ## b
 
 #define TEST(category, name) GTEST_TEST(category, name)
@@ -87,17 +88,8 @@ extern void gtest_exit_from_child_vm(int num);
   static void child_ ## category ## _ ## name ## _() {              \
     ::testing::GTEST_FLAG(throw_on_failure) = true;                 \
     test_ ## category ## _ ## name ## _();                          \
-    JavaVM* jvm[1];                                                 \
-    jsize nVMs = 0;                                                 \
-    JNI_GetCreatedJavaVMs(&jvm[0], 1, &nVMs);                       \
-    if (nVMs == 1) {                                                \
-      int ret = jvm[0]->DestroyJavaVM();                            \
-      if (ret != 0) {                                               \
-        fprintf(stderr, "Warning: DestroyJavaVM error %d\n", ret);  \
-      }                                                             \
-    }                                                               \
     fprintf(stderr, "OKIDOKI");                                     \
-    gtest_exit_from_child_vm(0);                                    \
+    exit(0);                                                        \
   }                                                                 \
                                                                     \
   TEST(category, CONCAT(name, _other_vm)) {                         \
@@ -115,7 +107,7 @@ extern void gtest_exit_from_child_vm(int num);
   static void child_ ## category ## _ ## name ## _() {              \
     ::testing::GTEST_FLAG(throw_on_failure) = true;                 \
     test_ ## category ## _ ## name ## _();                          \
-    gtest_exit_from_child_vm(0);                                    \
+    exit(0);                                                        \
   }                                                                 \
                                                                     \
   TEST(category, CONCAT(name, _vm_assert)) {                        \
@@ -137,7 +129,7 @@ extern void gtest_exit_from_child_vm(int num);
   static void child_ ## category ## _ ## name ## _() {              \
     ::testing::GTEST_FLAG(throw_on_failure) = true;                 \
     test_ ## category ## _ ## name ## _();                          \
-    gtest_exit_from_child_vm(0);                                    \
+    exit(0);                                                        \
   }                                                                 \
                                                                     \
   TEST(category, CONCAT(name, _vm_assert)) {                        \
@@ -151,22 +143,5 @@ extern void gtest_exit_from_child_vm(int num);
 #define TEST_VM_ASSERT_MSG(...)                                     \
     TEST_VM_ASSERT_MSG is only available in debug builds
 #endif
-
-#define TEST_VM_FATAL_ERROR_MSG(category, name, msg)                \
-  static void test_  ## category ## _ ## name ## _();               \
-                                                                    \
-  static void child_ ## category ## _ ## name ## _() {              \
-    ::testing::GTEST_FLAG(throw_on_failure) = true;                 \
-    test_ ## category ## _ ## name ## _();                          \
-    gtest_exit_from_child_vm(0);                                    \
-  }                                                                 \
-                                                                    \
-  TEST(category, CONCAT(name, _vm_assert)) {                        \
-    ASSERT_EXIT(child_ ## category ## _ ## name ## _(),             \
-                ::testing::ExitedWithCode(1),                       \
-                msg);                                               \
-  }                                                                 \
-                                                                    \
-  void test_ ## category ## _ ## name ## _()
 
 #endif // UNITTEST_HPP

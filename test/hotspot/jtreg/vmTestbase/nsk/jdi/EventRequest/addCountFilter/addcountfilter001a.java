@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,7 @@
 package nsk.jdi.EventRequest.addCountFilter;
 
 import nsk.share.*;
+import nsk.share.jpda.*;
 import nsk.share.jdi.*;
 
 /**
@@ -53,7 +54,7 @@ public class addcountfilter001a {
 
     //====================================================== test program
 
-    static Thread thread1 = null;
+    static Thread1addcountfilter001a thread1 = null;
 
     static TestClass11 obj = new TestClass11();
 
@@ -99,7 +100,7 @@ public class addcountfilter001a {
     //------------------------------------------------------  section tested
 
                     case 0:
-                            thread1 = JDIThreadFactory.newThread(new Thread1addcountfilter001a("thread1"));
+                            thread1 = new Thread1addcountfilter001a("thread1");
 
                             synchronized (lockObj) {
                                 threadStart(thread1);
@@ -201,21 +202,24 @@ class TestClass11 extends TestClass10{
     }
 }
 
-class Thread1addcountfilter001a extends NamedTask {
+class Thread1addcountfilter001a extends Thread {
+
+    String tName = null;
 
     public Thread1addcountfilter001a(String threadName) {
         super(threadName);
+        tName = threadName;
     }
 
     public void run() {
-        addcountfilter001a.log1("  'run': enter  :: threadName == " + getName());
+        addcountfilter001a.log1("  'run': enter  :: threadName == " + tName);
         synchronized(addcountfilter001a.waitnotifyObj) {
             addcountfilter001a.waitnotifyObj.notify();
         }
         synchronized(addcountfilter001a.lockObj) {
             TestClass11.method11();
         }
-        addcountfilter001a.log1("  'run': exit   :: threadName == " + getName());
+        addcountfilter001a.log1("  'run': exit   :: threadName == " + tName);
         return;
     }
 }

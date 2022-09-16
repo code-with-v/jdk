@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2015, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -182,7 +182,7 @@ class LinuxDosFileAttributeView
             x.rethrowAsIOException(file);
             return null;    // keep compiler happy
         } finally {
-            close(fd, e -> null);
+            close(fd);
         }
     }
 
@@ -212,7 +212,8 @@ class LinuxDosFileAttributeView
     private int getDosAttribute(int fd) throws UnixException {
         final int size = 24;
 
-        try (NativeBuffer buffer = NativeBuffers.getNativeBuffer(size)) {
+        NativeBuffer buffer = NativeBuffers.getNativeBuffer(size);
+        try {
             int len = LinuxNativeDispatcher
                 .fgetxattr(fd, DOS_XATTR_NAME_AS_BYTES, buffer.address(), size);
 
@@ -242,6 +243,8 @@ class LinuxDosFileAttributeView
             if (x.errno() == ENODATA)
                 return 0;
             throw x;
+        } finally {
+            buffer.release();
         }
     }
 
@@ -263,15 +266,18 @@ class LinuxDosFileAttributeView
             }
             if (newValue != oldValue) {
                 byte[] value = Util.toBytes("0x" + Integer.toHexString(newValue));
-                try (NativeBuffer buffer = NativeBuffers.asNativeBuffer(value)) {
+                NativeBuffer buffer = NativeBuffers.asNativeBuffer(value);
+                try {
                     LinuxNativeDispatcher.fsetxattr(fd, DOS_XATTR_NAME_AS_BYTES,
                         buffer.address(), value.length+1);
+                } finally {
+                    buffer.release();
                 }
             }
         } catch (UnixException x) {
             x.rethrowAsIOException(file);
         } finally {
-            close(fd, e -> null);
+            close(fd);
         }
     }
 }

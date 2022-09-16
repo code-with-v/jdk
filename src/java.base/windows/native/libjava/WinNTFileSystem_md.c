@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,6 +22,11 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
+
+/* Access APIs for WinXP and above */
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0501
+#endif
 
 #include <assert.h>
 #include <stdio.h>
@@ -406,8 +411,8 @@ static BOOL isReservedDeviceNameW(WCHAR* path) {
 }
 
 JNIEXPORT jint JNICALL
-Java_java_io_WinNTFileSystem_getBooleanAttributes0(JNIEnv *env, jobject this,
-                                                   jobject file)
+Java_java_io_WinNTFileSystem_getBooleanAttributes(JNIEnv *env, jobject this,
+                                                  jobject file)
 {
     jint rv = 0;
 
@@ -431,8 +436,8 @@ Java_java_io_WinNTFileSystem_getBooleanAttributes0(JNIEnv *env, jobject this,
 
 
 JNIEXPORT jboolean
-JNICALL Java_java_io_WinNTFileSystem_checkAccess0(JNIEnv *env, jobject this,
-                                                  jobject file, jint access)
+JNICALL Java_java_io_WinNTFileSystem_checkAccess(JNIEnv *env, jobject this,
+                                                 jobject file, jint access)
 {
     DWORD attr;
     WCHAR *pathbuf = fileToNTPath(env, file, ids.path);
@@ -461,11 +466,11 @@ JNICALL Java_java_io_WinNTFileSystem_checkAccess0(JNIEnv *env, jobject this,
 }
 
 JNIEXPORT jboolean JNICALL
-Java_java_io_WinNTFileSystem_setPermission0(JNIEnv *env, jobject this,
-                                            jobject file,
-                                            jint access,
-                                            jboolean enable,
-                                            jboolean owneronly)
+Java_java_io_WinNTFileSystem_setPermission(JNIEnv *env, jobject this,
+                                           jobject file,
+                                           jint access,
+                                           jboolean enable,
+                                           jboolean owneronly)
 {
     jboolean rv = JNI_FALSE;
     WCHAR *pathbuf;
@@ -507,8 +512,8 @@ Java_java_io_WinNTFileSystem_setPermission0(JNIEnv *env, jobject this,
 }
 
 JNIEXPORT jlong JNICALL
-Java_java_io_WinNTFileSystem_getLastModifiedTime0(JNIEnv *env, jobject this,
-                                                  jobject file)
+Java_java_io_WinNTFileSystem_getLastModifiedTime(JNIEnv *env, jobject this,
+                                                 jobject file)
 {
     jlong rv = 0;
     ULARGE_INTEGER modTime;
@@ -544,7 +549,7 @@ Java_java_io_WinNTFileSystem_getLastModifiedTime0(JNIEnv *env, jobject this,
 }
 
 JNIEXPORT jlong JNICALL
-Java_java_io_WinNTFileSystem_getLength0(JNIEnv *env, jobject this, jobject file)
+Java_java_io_WinNTFileSystem_getLength(JNIEnv *env, jobject this, jobject file)
 {
     jlong rv = 0;
     WIN32_FILE_ATTRIBUTE_DATA wfad;
@@ -610,8 +615,8 @@ Java_java_io_WinNTFileSystem_getLength0(JNIEnv *env, jobject this, jobject file)
 /* -- File operations -- */
 
 JNIEXPORT jboolean JNICALL
-Java_java_io_WinNTFileSystem_createFileExclusively0(JNIEnv *env, jclass cls,
-                                                    jstring path)
+Java_java_io_WinNTFileSystem_createFileExclusively(JNIEnv *env, jclass cls,
+                                                   jstring path)
 {
     HANDLE h = NULL;
     WCHAR *pathbuf = pathToNTPath(env, path, JNI_FALSE);
@@ -683,7 +688,7 @@ Java_java_io_WinNTFileSystem_delete0(JNIEnv *env, jobject this, jobject file)
 }
 
 JNIEXPORT jobjectArray JNICALL
-Java_java_io_WinNTFileSystem_list0(JNIEnv *env, jobject this, jobject file)
+Java_java_io_WinNTFileSystem_list(JNIEnv *env, jobject this, jobject file)
 {
     WCHAR *search_path;
     HANDLE handle;
@@ -805,8 +810,8 @@ Java_java_io_WinNTFileSystem_list0(JNIEnv *env, jobject this, jobject file)
 
 
 JNIEXPORT jboolean JNICALL
-Java_java_io_WinNTFileSystem_createDirectory0(JNIEnv *env, jobject this,
-                                              jobject file)
+Java_java_io_WinNTFileSystem_createDirectory(JNIEnv *env, jobject this,
+                                             jobject file)
 {
     BOOL h = FALSE;
     WCHAR *pathbuf = fileToNTPath(env, file, ids.path);
@@ -843,8 +848,8 @@ Java_java_io_WinNTFileSystem_rename0(JNIEnv *env, jobject this, jobject from,
 
 
 JNIEXPORT jboolean JNICALL
-Java_java_io_WinNTFileSystem_setLastModifiedTime0(JNIEnv *env, jobject this,
-                                                  jobject file, jlong time)
+Java_java_io_WinNTFileSystem_setLastModifiedTime(JNIEnv *env, jobject this,
+                                                 jobject file, jlong time)
 {
     jboolean rv = JNI_FALSE;
     WCHAR *pathbuf = fileToNTPath(env, file, ids.path);
@@ -876,8 +881,8 @@ Java_java_io_WinNTFileSystem_setLastModifiedTime0(JNIEnv *env, jobject this,
 
 
 JNIEXPORT jboolean JNICALL
-Java_java_io_WinNTFileSystem_setReadOnly0(JNIEnv *env, jobject this,
-                                          jobject file)
+Java_java_io_WinNTFileSystem_setReadOnly(JNIEnv *env, jobject this,
+                                         jobject file)
 {
     jboolean rv = JNI_FALSE;
     DWORD a;

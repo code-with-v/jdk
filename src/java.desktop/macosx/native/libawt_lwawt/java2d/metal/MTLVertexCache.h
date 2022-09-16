@@ -30,14 +30,7 @@
 #include "fontscalerdefs.h"
 
 /**
- * The max size of the vertex cache.
- *
- * Note:
- * This is the max number of vertices (of struct J2DVertex - 16 bytes)
- * that can be accommodated in 4KB.
- *
- * [MTLRenderCommandEncoder setVertexBytes] expects the data size
- * to be less than or equal to 4KB.
+ * Constants that control the size of the vertex cache.
  */
 #define MTLVC_MAX_INDEX         250
 

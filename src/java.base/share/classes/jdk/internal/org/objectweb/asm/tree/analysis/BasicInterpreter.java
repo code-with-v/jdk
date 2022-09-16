@@ -56,7 +56,6 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package jdk.internal.org.objectweb.asm.tree.analysis;
 
 import java.util.List;
@@ -93,7 +92,7 @@ public class BasicInterpreter extends Interpreter<BasicValue> implements Opcodes
       * version.
       */
     public BasicInterpreter() {
-        super(/* latest api = */ ASM9);
+        super(/* latest api = */ ASM8);
         if (getClass() != BasicInterpreter.class) {
             throw new IllegalStateException();
         }
@@ -102,8 +101,10 @@ public class BasicInterpreter extends Interpreter<BasicValue> implements Opcodes
     /**
       * Constructs a new {@link BasicInterpreter}.
       *
-      * @param api the ASM API version supported by this interpreter. Must be one of the {@code
-      *     ASM}<i>x</i> values in {@link Opcodes}.
+      * @param api the ASM API version supported by this interpreter. Must be one of {@link
+      *     jdk.internal.org.objectweb.asm.Opcodes#ASM4}, {@link jdk.internal.org.objectweb.asm.Opcodes#ASM5}, {@link
+      *     jdk.internal.org.objectweb.asm.Opcodes#ASM6}, {@link jdk.internal.org.objectweb.asm.Opcodes#ASM7} or {@link
+      *     jdk.internal.org.objectweb.asm.Opcodes#ASM8}.
       */
     protected BasicInterpreter(final int api) {
         super(api);
@@ -405,4 +406,3 @@ public class BasicInterpreter extends Interpreter<BasicValue> implements Opcodes
         return value1;
     }
 }
-

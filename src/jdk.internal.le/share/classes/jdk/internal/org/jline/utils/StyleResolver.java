@@ -33,38 +33,6 @@ public class StyleResolver {
     }
 
     /**
-     * Returns the RGB color for the given name.
-     * <p>
-     * Bright color can be specified with: {@code !<color>} or {@code bright-<color>}.
-     * <p>
-     * Full xterm256 color can be specified with: {@code ~<color>}.
-     * RGB colors can be specified with: {@code x<rgb>} or {@code #<rgb>} where {@code rgb} is
-     * a 24 bits hexadecimal color.
-     *
-     * @param name the name of the color
-     * @return color code, or {@code null} if unable to determine.
-     */
-    private static Integer colorRgb(String name) {
-        name = name.toLowerCase(Locale.US);
-        // check hexadecimal color
-        if (name.charAt(0) == 'x' || name.charAt(0) == '#') {
-            try {
-                return Integer.parseInt(name.substring(1), 16);
-            } catch (NumberFormatException e) {
-//                log.warning("Invalid hexadecimal color: " + name);
-                return null;
-            }
-        } else {
-           // load indexed color
-           Integer color = color(name);
-           if (color != null && color != -1) {
-               color = Colors.DEFAULT_COLORS_256[color];
-           }
-           return color;
-        }
-    }
-
-    /**
      * Returns the color identifier for the given name.
      * <p>
      * Bright color can be specified with: {@code !<color>} or {@code bright-<color>}.
@@ -76,20 +44,21 @@ public class StyleResolver {
      */
     private static Integer color(String name) {
         int flags = 0;
+        name = name.toLowerCase(Locale.US);
 
-        if (name.equals("default")) {
-            return -1;
-        }
         // extract bright flag from color name
-        else if (name.charAt(0) == '!') {
-            name = name.substring(1);
+        if (name.charAt(0) == '!') {
+            name = name.substring(1, name.length());
             flags = BRIGHT;
         } else if (name.startsWith("bright-")) {
-            name = name.substring(7);
+            name = name.substring(7, name.length());
             flags = BRIGHT;
         } else if (name.charAt(0) == '~') {
-            name = name.substring(1);
             try {
+                // TODO: if the palette is not the default one, should be
+                // TODO: translate into 24-bits first and let the #toAnsi() call
+                // TODO: round with the current palette ?
+                name = name.substring(1, name.length());
                 return Colors.rgbColor(name);
             } catch (IllegalArgumentException e) {
 //                log.warning("Invalid style-color name: " + name);
@@ -328,51 +297,25 @@ public class StyleResolver {
         String colorName = parts[1].trim();
 
         // resolve the color-name
-        Integer color;
-        // resolve and apply color-mode
-        switch (colorMode.toLowerCase(Locale.US)) {
-            case "foreground":
-            case "fg":
-            case "f":
-                color = color(colorName);
-                if (color == null) {
-//                    log.warning("Invalid color-name: " + colorName);
-                    break;
-                }
-                return color >= 0 ? style.foreground(color) : style.foregroundDefault();
+        Integer color = color(colorName);
+        if (color == null) {
+//            log.warning("Invalid color-name: " + colorName);
+        } else {
+            // resolve and apply color-mode
+            switch (colorMode.toLowerCase(Locale.US)) {
+                case "foreground":
+                case "fg":
+                case "f":
+                    return style.foreground(color);
 
-            case "background":
-            case "bg":
-            case "b":
-                color = color(colorName);
-                if (color == null) {
-//                    log.warning("Invalid color-name: " + colorName);
-                    break;
-                }
-                return color >= 0 ? style.background(color) : style.backgroundDefault();
+                case "background":
+                case "bg":
+                case "b":
+                    return style.background(color);
 
-            case "foreground-rgb":
-            case "fg-rgb":
-            case "f-rgb":
-                color = colorRgb(colorName);
-                if (color == null) {
-//                    log.warning("Invalid color-name: " + colorName);
-                    break;
-                }
-                return color >= 0 ? style.foregroundRgb(color) : style.foregroundDefault();
-
-            case "background-rgb":
-            case "bg-rgb":
-            case "b-rgb":
-                color = colorRgb(colorName);
-                if (color == null) {
-//                    log.warning("Invalid color-name: " + colorName);
-                    break;
-                }
-                return color >= 0 ? style.backgroundRgb(color) : style.backgroundDefault();
-
-            default:
-//                log.warning("Invalid color-mode: " + colorMode);
+                default:
+//                    log.warning("Invalid color-mode: " + colorMode);
+            }
         }
         return style;
     }

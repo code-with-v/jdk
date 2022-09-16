@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -42,22 +42,6 @@ template <typename CONFIG, MEMFLAGS F>
 class ConcurrentHashTable : public CHeapObj<F> {
   typedef typename CONFIG::Value VALUE;
  private:
-  // _stats_rate is null if statistics are not enabled.
-  TableRateStatistics* _stats_rate;
-  inline void safe_stats_add() {
-    if (_stats_rate != nullptr) {
-      _stats_rate->add();
-    }
-  }
-  inline void safe_stats_remove() {
-    if (_stats_rate != nullptr) {
-      _stats_rate->remove();
-    }
-  }
-  // Calculate statistics. Item sizes are calculated with VALUE_SIZE_FUNC.
-  template <typename VALUE_SIZE_FUNC>
-  TableStatistics statistics_calculate(Thread* thread, VALUE_SIZE_FUNC& vs_f);
-
   // This is the internal node structure.
   // Only constructed with placement new from memory allocated with MEMFLAGS of
   // the InternalTable or user-defined memory.
@@ -205,10 +189,6 @@ class ConcurrentHashTable : public CHeapObj<F> {
 
     Bucket* get_buckets() { return _buckets; }
     Bucket* get_bucket(size_t idx) { return &_buckets[idx]; }
-
-    size_t get_mem_size() {
-      return sizeof(*this) + _size * sizeof(Bucket);
-    }
   };
 
   // For materializing a supplied value.
@@ -224,6 +204,11 @@ class ConcurrentHashTable : public CHeapObj<F> {
 
   InternalTable* _table;      // Active table.
   InternalTable* _new_table;  // Table we are resizing to.
+
+  // Default sizes
+  static const size_t DEFAULT_MAX_SIZE_LOG2 = 21;
+  static const size_t DEFAULT_START_SIZE_LOG2 = 13;
+  static const size_t DEFAULT_GROW_HINT = 4; // Chain length
 
   const size_t _log2_size_limit;  // The biggest size.
   const size_t _log2_start_size;  // Start size.
@@ -387,26 +372,20 @@ class ConcurrentHashTable : public CHeapObj<F> {
   void delete_in_bucket(Thread* thread, Bucket* bucket, LOOKUP_FUNC& lookup_f);
 
  public:
-  // Default sizes
-  static const size_t DEFAULT_MAX_SIZE_LOG2 = 21;
-  static const size_t DEFAULT_START_SIZE_LOG2 = 13;
-  static const size_t DEFAULT_GROW_HINT = 4; // Chain length
-  static const bool DEFAULT_ENABLE_STATISTICS = false;
   ConcurrentHashTable(size_t log2size = DEFAULT_START_SIZE_LOG2,
                       size_t log2size_limit = DEFAULT_MAX_SIZE_LOG2,
                       size_t grow_hint = DEFAULT_GROW_HINT,
-                      bool enable_statistics = DEFAULT_ENABLE_STATISTICS,
-                      void* context = nullptr);
+                      void* context = NULL);
 
-  explicit ConcurrentHashTable(void* context, size_t log2size = DEFAULT_START_SIZE_LOG2, bool enable_statistics = DEFAULT_ENABLE_STATISTICS) :
-    ConcurrentHashTable(log2size, DEFAULT_MAX_SIZE_LOG2, DEFAULT_GROW_HINT, enable_statistics, context) {}
+  explicit ConcurrentHashTable(void* context, size_t log2size = DEFAULT_START_SIZE_LOG2) :
+    ConcurrentHashTable(log2size, DEFAULT_MAX_SIZE_LOG2, DEFAULT_GROW_HINT, context) {}
 
   ~ConcurrentHashTable();
 
-  size_t get_mem_size(Thread* thread);
+  TableRateStatistics _stats_rate;
 
   size_t get_size_log2(Thread* thread);
-  static size_t get_node_size() { return sizeof(Node); }
+  size_t get_node_size() const { return sizeof(Node); }
   bool is_max_size_reached() { return _size_limit_reached; }
 
   // This means no paused bucket resize operation is going to resume
@@ -496,6 +475,10 @@ class ConcurrentHashTable : public CHeapObj<F> {
   // DELETE_FUNC is called, when the resize lock is successfully obtained.
   template <typename EVALUATE_FUNC, typename DELETE_FUNC>
   void bulk_delete(Thread* thread, EVALUATE_FUNC& eval_f, DELETE_FUNC& del_f);
+
+  // Calcuate statistics. Item sizes are calculated with VALUE_SIZE_FUNC.
+  template <typename VALUE_SIZE_FUNC>
+  TableStatistics statistics_calculate(Thread* thread, VALUE_SIZE_FUNC& vs_f);
 
   // Gets statistics if available, if not return old one. Item sizes are calculated with
   // VALUE_SIZE_FUNC.

@@ -244,11 +244,6 @@ final class SSLSocketOutputRecord extends OutputRecord implements SSLRecord {
     }
 
     @Override
-    void disposeWriteCipher() {
-        writeCipher.dispose();
-    }
-
-    @Override
     public void flush() throws IOException {
         recordLock.lock();
         try {

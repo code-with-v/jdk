@@ -33,11 +33,10 @@
 #include "runtime/handles.inline.hpp"
 #include "runtime/init.hpp"
 #include "runtime/interfaceSupport.inline.hpp"
-#include "runtime/javaThread.hpp"
 #include "runtime/os.hpp"
+#include "runtime/thread.inline.hpp"
 #include "runtime/safepointVerifiers.hpp"
 #include "runtime/stackFrameStream.inline.hpp"
-#include "runtime/threads.hpp"
 #include "runtime/vframe.hpp"
 #include "runtime/vmOperations.hpp"
 #include "runtime/vmThread.hpp"
@@ -79,13 +78,13 @@ VMNativeEntryWrapper::~VMNativeEntryWrapper() {
 
 unsigned int InterfaceSupport::_scavenge_alot_counter = 1;
 unsigned int InterfaceSupport::_fullgc_alot_counter   = 1;
-intx InterfaceSupport::_fullgc_alot_invocation = 0;
+int InterfaceSupport::_fullgc_alot_invocation = 0;
 
 void InterfaceSupport::gc_alot() {
   Thread *thread = Thread::current();
   if (!thread->is_Java_thread()) return; // Avoid concurrent calls
   // Check for new, not quite initialized thread. A thread in new mode cannot initiate a GC.
-  JavaThread *current_thread = JavaThread::cast(thread);
+  JavaThread *current_thread = thread->as_Java_thread();
   if (current_thread->active_handles() == NULL) return;
 
   // Short-circuit any possible re-entrant gc-a-lot attempt
@@ -162,10 +161,7 @@ void InterfaceSupport::walk_stack() {
   walk_stack_counter++;
   if (!thread->has_last_Java_frame()) return;
   ResourceMark rm(thread);
-  RegisterMap reg_map(thread,
-                      RegisterMap::UpdateMap::include,
-                      RegisterMap::ProcessFrames::include,
-                      RegisterMap::WalkContinuation::skip);
+  RegisterMap reg_map(thread);
   walk_stack_from(thread->last_java_vframe(&reg_map));
 }
 
@@ -232,10 +228,7 @@ void InterfaceSupport::verify_stack() {
 void InterfaceSupport::verify_last_frame() {
   JavaThread* thread = JavaThread::current();
   ResourceMark rm(thread);
-  RegisterMap reg_map(thread,
-                      RegisterMap::UpdateMap::include,
-                      RegisterMap::ProcessFrames::include,
-                      RegisterMap::WalkContinuation::skip);
+  RegisterMap reg_map(thread);
   frame fr = thread->last_frame();
   fr.verify(&reg_map);
 }

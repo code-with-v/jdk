@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -1275,10 +1275,8 @@ class GTKPainter extends SynthPainter {
                 ENGINE.startPainting(g, x, y, w, h, id, state);
                 // the string arg should alternate based on row being painted,
                 // but we currently don't pass that in.
-                if (context.getComponent().isOpaque()) {
-                    ENGINE.paintFlatBox(g, context, id, gtkState, ShadowType.NONE,
-                            "cell_odd", x, y, w, h, ColorType.TEXT_BACKGROUND);
-                }
+                ENGINE.paintFlatBox(g, context, id, gtkState, ShadowType.NONE,
+                        "cell_odd", x, y, w, h, ColorType.TEXT_BACKGROUND);
                 ENGINE.finishPainting();
             }
         }
@@ -1359,7 +1357,9 @@ class GTKPainter extends SynthPainter {
                 ENGINE.startPainting(g, x, y, w, h, state, paintMethod);
                 try {
                     paintMethod.invoke(this, context, g, state, x, y, w, h);
-                } catch (IllegalAccessException | InvocationTargetException e) {
+                } catch (IllegalAccessException iae) {
+                    assert false;
+                } catch (InvocationTargetException ite) {
                     assert false;
                 }
                 ENGINE.finishPainting();
@@ -1378,7 +1378,9 @@ class GTKPainter extends SynthPainter {
                 try {
                     paintMethod.invoke(this, context,
                             g, state, x, y, w, h, direction);
-                } catch (IllegalAccessException | InvocationTargetException e) {
+                } catch (IllegalAccessException iae) {
+                    assert false;
+                } catch (InvocationTargetException ite) {
                     assert false;
                 }
                 ENGINE.finishPainting();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -310,8 +310,10 @@ abstract class AbstractLdapNamingEnumeration<T extends NameClassPair>
      */
     protected final boolean hasMoreReferrals() throws NamingException {
 
-        if ((refEx != null) && !(errEx instanceof LimitExceededException) &&
-            (refEx.hasMoreReferrals() || refEx.hasMoreReferralExceptions())) {
+        if ((refEx != null) &&
+            (refEx.hasMoreReferrals() ||
+             refEx.hasMoreReferralExceptions()
+                && !(errEx instanceof LimitExceededException))) {
 
             if (homeCtx.handleReferrals == LdapClient.LDAP_REF_THROW) {
                 throw (NamingException)(refEx.fillInStackTrace());
@@ -331,13 +333,9 @@ abstract class AbstractLdapNamingEnumeration<T extends NameClassPair>
 
                 } catch (LdapReferralException re) {
 
-                    // record a previous exception and quit if any limit is reached
-                    var namingException = re.getNamingException();
-                    if (namingException instanceof LimitExceededException) {
-                        errEx = namingException;
-                        break;
-                    } else if (errEx == null) {
-                        errEx = namingException;
+                    // record a previous exception
+                    if (errEx == null) {
+                        errEx = re.getNamingException();
                     }
                     refEx = re;
                     continue;
@@ -383,13 +381,9 @@ abstract class AbstractLdapNamingEnumeration<T extends NameClassPair>
         entries = ne.entries;
         refEx = ne.refEx;
         listArg = ne.listArg;
-        // record a previous exception and quit if any limit is reached
-        if (errEx == null || ne.errEx instanceof LimitExceededException) {
-            errEx = ne.errEx;
-        }
     }
 
-    @SuppressWarnings("removal")
+    @SuppressWarnings("deprecation")
     protected final void finalize() {
         cleanup();
     }

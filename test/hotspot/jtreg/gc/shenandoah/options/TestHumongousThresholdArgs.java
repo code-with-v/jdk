@@ -23,7 +23,7 @@
  */
 
 /*
- * @test
+ * @test TestHumongousThresholdArgs
  * @summary Test that Shenandoah humongous threshold args are checked
  * @requires vm.gc.Shenandoah
  * @library /test/lib

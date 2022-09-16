@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -169,7 +169,7 @@ enum AccessModifier {
     };
 
     public static AccessModifier getRandomAccessModifier(Random rnd) {
-        AccessModifier[] a = AccessModifier.values();
+        AccessModifier[] a = AccessModifier.class.getEnumConstants();
         return a[rnd.nextInt(a.length)];
     }
 }
@@ -198,6 +198,8 @@ enum Type {
         }
     }
 
+    ;
+
     public String init(Random rnd) {
         switch (this) {
             case LONG:
@@ -220,7 +222,7 @@ enum Type {
     }
 
     public static Type getRandomType(Random rnd) {
-        Type[] a = Type.values();
+        Type[] a = Type.class.getEnumConstants();
         return a[rnd.nextInt(a.length)];
     }
 }

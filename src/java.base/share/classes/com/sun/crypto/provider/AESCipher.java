@@ -72,7 +72,9 @@ abstract class AESCipher extends CipherSpi {
                 engineSetPadding(padding);
             } catch (GeneralSecurityException gse) {
                 // internal error; re-throw as provider exception
-                throw new ProviderException("Internal Error", gse);
+                ProviderException pe =new ProviderException("Internal Error");
+                pe.initCause(gse);
+                throw pe;
             }
         }
     }

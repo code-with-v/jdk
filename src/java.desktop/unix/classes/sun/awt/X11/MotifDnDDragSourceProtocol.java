@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -77,9 +77,12 @@ class MotifDnDDragSourceProtocol extends XDragSourceProtocol
             int index = MotifDnDConstants.getIndexForTargetList(formats);
 
             MotifDnDConstants.writeDragInitiatorInfoStruct(window, index);
-        } catch (XException | InvalidDnDOperationException e) {
+        } catch (XException xe) {
             cleanup();
-            throw e;
+            throw xe;
+        } catch (InvalidDnDOperationException idoe) {
+            cleanup();
+            throw idoe;
         }
 
         if (!MotifDnDConstants.MotifDnDSelection.setOwner(contents, formatMap,

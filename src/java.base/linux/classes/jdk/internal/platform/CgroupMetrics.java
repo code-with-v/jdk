@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2021, Red Hat Inc.
+ * Copyright (c) 2020, Red Hat Inc.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -121,13 +121,7 @@ public class CgroupMetrics implements Metrics {
 
     @Override
     public long getMemoryLimit() {
-        long subsMem = subsystem.getMemoryLimit();
-        // Catch the cgroup memory limit exceeding host physical memory.
-        // Treat this as unlimited.
-        if (subsMem >= getTotalMemorySize0()) {
-            return CgroupSubsystem.LONG_RETVAL_UNLIMITED;
-        }
-        return subsMem;
+        return subsystem.getMemoryLimit();
     }
 
     @Override
@@ -156,16 +150,6 @@ public class CgroupMetrics implements Metrics {
     }
 
     @Override
-    public long getPidsMax() {
-        return subsystem.getPidsMax();
-    }
-
-    @Override
-    public long getPidsCurrent() {
-        return subsystem.getPidsCurrent();
-    }
-
-    @Override
     public long getBlkIOServiceCount() {
         return subsystem.getBlkIOServiceCount();
     }
@@ -184,6 +168,5 @@ public class CgroupMetrics implements Metrics {
     }
 
     private static native boolean isUseContainerSupport();
-    private static native long getTotalMemorySize0();
 
 }

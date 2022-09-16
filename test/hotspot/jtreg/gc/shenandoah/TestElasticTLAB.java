@@ -23,7 +23,7 @@
  */
 
 /*
- * @test
+ * @test TestElasticTLAB
  * @key randomness
  * @summary Test that Shenandoah is able to work with elastic TLABs
  * @requires vm.gc.Shenandoah

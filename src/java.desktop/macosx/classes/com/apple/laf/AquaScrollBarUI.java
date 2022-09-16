@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2012, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -144,8 +144,7 @@ public class AquaScrollBarUI extends ScrollBarUI {
 
     public void paint(final Graphics g, final JComponent c) {
         syncState(c);
-        Rectangle trackBounds = getTrackBounds();
-        painter.paint(g, c, trackBounds.x, trackBounds.y, trackBounds.width, trackBounds.height);
+        painter.paint(g, c, 0, 0, fScrollBar.getWidth(), fScrollBar.getHeight());
     }
 
     protected State getState(final JComponent c, final ScrollBarPart pressedPart) {
@@ -189,17 +188,11 @@ public class AquaScrollBarUI extends ScrollBarUI {
     }
 
     protected Rectangle getTrackBounds() {
-        Insets insets = fScrollBar.getInsets();
-        return new Rectangle(insets.left, insets.top,
-                fScrollBar.getWidth() - (insets.left + insets.right),
-                fScrollBar.getHeight() - (insets.top + insets.bottom));
+        return new Rectangle(0, 0, fScrollBar.getWidth(), fScrollBar.getHeight());
     }
 
     protected Rectangle getDragBounds() {
-        Insets insets = fScrollBar.getInsets();
-        return new Rectangle(insets.left, insets.top,
-            fScrollBar.getWidth() - (insets.left + insets.right),
-            fScrollBar.getHeight() - (insets.top + insets.bottom));
+        return new Rectangle(0, 0, fScrollBar.getWidth(), fScrollBar.getHeight());
     }
 
     protected void startTimer(final boolean initial) {
@@ -235,10 +228,7 @@ public class AquaScrollBarUI extends ScrollBarUI {
 
     protected Hit getPartHit(final int x, final int y) {
         syncState(fScrollBar);
-        Insets insets = fScrollBar.getInsets();
-        return JRSUIUtils.HitDetection.getHitForPoint(painter.getControl(), insets.left, insets.top,
-                fScrollBar.getWidth() - (insets.left + insets.right),
-                fScrollBar.getHeight() - (insets.top + insets.bottom), x, y);
+        return JRSUIUtils.HitDetection.getHitForPoint(painter.getControl(), 0, 0, fScrollBar.getWidth(), fScrollBar.getHeight(), x, y);
     }
 
     protected class PropertyChangeHandler implements PropertyChangeListener {
@@ -354,9 +344,7 @@ public class AquaScrollBarUI extends ScrollBarUI {
             // scroller goes 0-100 with a visible area of 20 we are getting a ratio of the
             // remaining 80.
             syncState(fScrollBar);
-            final Rectangle limitRect = getDragBounds(); // GetThemeTrackDragRect
-            final double offsetChange = JRSUIUtils.ScrollBar.getNativeOffsetChange(painter.getControl(),
-                    limitRect.x, limitRect.y, limitRect.width, limitRect.height, offsetWeCareAbout, visibleAmt, extent);
+            final double offsetChange = JRSUIUtils.ScrollBar.getNativeOffsetChange(painter.getControl(), 0, 0, fScrollBar.getWidth(), fScrollBar.getHeight(), offsetWeCareAbout, visibleAmt, extent);
 
             // the scrollable area is the extent - visible amount;
             final int scrollableArea = extent - visibleAmt;
@@ -609,7 +597,7 @@ public class AquaScrollBarUI extends ScrollBarUI {
         // determine the bounding rectangle for our thumb region
         syncState(fScrollBar);
         double[] rect = new double[4];
-        JRSUIUtils.ScrollBar.getPartBounds(rect, painter.getControl(), limitRect.x, limitRect.y, limitRect.width, limitRect.height, ScrollBarPart.THUMB);
+        JRSUIUtils.ScrollBar.getPartBounds(rect, painter.getControl(), 0, 0, fScrollBar.getWidth(), fScrollBar.getHeight(), ScrollBarPart.THUMB);
         final Rectangle r = new Rectangle((int)rect[0], (int)rect[1], (int)rect[2], (int)rect[3]);
 
         // figure out the scroll-to-here start location based on our orientation, the

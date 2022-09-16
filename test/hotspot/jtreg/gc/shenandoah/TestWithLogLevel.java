@@ -23,7 +23,7 @@
  */
 
  /*
- * @test
+ * @test TestWithLogLevel
  * @summary Test Shenandoah with different log levels
  * @requires vm.gc.Shenandoah
  *

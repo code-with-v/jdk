@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,6 +23,7 @@
 
 package nsk.jdi.VirtualMachine.dispose;
 
+import nsk.share.*;
 import nsk.share.jpda.*;
 import nsk.share.jdi.*;
 
@@ -95,8 +96,8 @@ public class dispose004a {
     //------------------------------------------------------  section tested
 
                 case 0:
-                         Thread test_thread =
-                                 JDIThreadFactory.newThread(new Threaddispose004a("testedThread"));
+                         Threaddispose004a test_thread =
+                             new Threaddispose004a("testedThread");
                          log1("       thread2 is created");
 
                          label:
@@ -169,7 +170,7 @@ public class dispose004a {
     }
 }
 
-class Threaddispose004a extends NamedTask {
+class Threaddispose004a extends Thread {
 
     public Threaddispose004a(String threadName) {
         super(threadName);

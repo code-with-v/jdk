@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -42,8 +42,6 @@ import jdk.test.lib.process.StreamPumper;
 public class Jdb implements AutoCloseable {
     public Jdb(String... args) {
         ProcessBuilder pb = new ProcessBuilder(JDKToolFinder.getTestJDKTool("jdb"));
-        pb.command().add("-J-Duser.language=en");
-        pb.command().add("-J-Duser.country=US");
         pb.command().addAll(Arrays.asList(args));
         try {
             jdb = pb.start();
@@ -123,9 +121,6 @@ public class Jdb implements AutoCloseable {
         # to appear in the last line of jdb output.  Normally, the prompt is
         #
         # 1) ^main[89] @
-        # or
-        # 1) ^[89] @
-        # for virtual threads
         #
         # where ^ means start of line, and @ means end of file with no end of line
         # and 89 is the current command counter. But we have complications e.g.,
@@ -155,7 +150,7 @@ public class Jdb implements AutoCloseable {
         # i.e., the > prompt comes out AFTER the prompt we we need to wait for.
     */
     // compile regexp once
-    private final static String promptPattern = "<?[a-zA-Z0-9_-]*>?\\[[1-9][0-9]*\\] [ >]*$";
+    private final static String promptPattern = "[a-zA-Z0-9_-][a-zA-Z0-9_-]*\\[[1-9][0-9]*\\] [ >]*$";
     final static Pattern PROMPT_REGEXP = Pattern.compile(promptPattern);
 
     public List<String> waitForPrompt(int lines, boolean allowExit) {
@@ -330,3 +325,4 @@ public class Jdb implements AutoCloseable {
         }
     }
 }
+

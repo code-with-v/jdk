@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -263,7 +263,9 @@ class WindowsFileAttributes
     static WindowsFileAttributes readAttributes(long handle)
         throws WindowsException
     {
-        try (NativeBuffer buffer = NativeBuffers.getNativeBuffer(SIZEOF_FILE_INFORMATION)) {
+        NativeBuffer buffer = NativeBuffers
+            .getNativeBuffer(SIZEOF_FILE_INFORMATION);
+        try {
             long address = buffer.address();
             GetFileInformationByHandle(handle, address);
 
@@ -273,13 +275,18 @@ class WindowsFileAttributes
                 .getInt(address + OFFSETOF_FILE_INFORMATION_ATTRIBUTES);
             if (isReparsePoint(fileAttrs)) {
                 int size = MAXIMUM_REPARSE_DATA_BUFFER_SIZE;
-                try (NativeBuffer reparseBuffer = NativeBuffers.getNativeBuffer(size)) {
+                NativeBuffer reparseBuffer = NativeBuffers.getNativeBuffer(size);
+                try {
                     DeviceIoControlGetReparsePoint(handle, reparseBuffer.address(), size);
                     reparseTag = (int)unsafe.getLong(reparseBuffer.address());
+                } finally {
+                    reparseBuffer.release();
                 }
             }
 
             return fromFileInformation(address, reparseTag);
+        } finally {
+            buffer.release();
         }
     }
 
@@ -293,8 +300,9 @@ class WindowsFileAttributes
             WindowsException firstException = null;
 
             // GetFileAttributesEx is the fastest way to read the attributes
-            try (NativeBuffer buffer =
-                NativeBuffers.getNativeBuffer(SIZEOF_FILE_ATTRIBUTE_DATA)) {
+            NativeBuffer buffer =
+                NativeBuffers.getNativeBuffer(SIZEOF_FILE_ATTRIBUTE_DATA);
+            try {
                 long address = buffer.address();
                 GetFileAttributesEx(path.getPathForWin32Calls(), address);
                 // if reparse point then file may be a sym link; otherwise
@@ -307,6 +315,8 @@ class WindowsFileAttributes
                 if (x.lastError() != ERROR_SHARING_VIOLATION)
                     throw x;
                 firstException = x;
+            } finally {
+                buffer.release();
             }
 
             // For sharing violations, fallback to FindFirstFile if the file
@@ -316,7 +326,8 @@ class WindowsFileAttributes
                 char last = search.charAt(search.length() -1);
                 if (last == ':' || last == '\\')
                     throw firstException;
-                try (NativeBuffer buffer = getBufferForFindData()) {
+                buffer = getBufferForFindData();
+                try {
                     long handle = FindFirstFile(search, buffer.address());
                     FindClose(handle);
                     WindowsFileAttributes attrs = fromFindData(buffer.address());
@@ -329,6 +340,8 @@ class WindowsFileAttributes
                     return attrs;
                 } catch (WindowsException ignore) {
                     throw firstException;
+                } finally {
+                    buffer.release();
                 }
             }
         }

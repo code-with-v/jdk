@@ -24,8 +24,7 @@
 
 #include "precompiled.hpp"
 #include "gc/shared/preservedMarks.inline.hpp"
-#include "gc/shared/workerThread.hpp"
-#include "gc/shared/workerUtils.hpp"
+#include "gc/shared/workgroup.hpp"
 #include "memory/allocation.inline.hpp"
 #include "memory/resourceArea.hpp"
 #include "oops/oop.inline.hpp"
@@ -71,6 +70,12 @@ void PreservedMarks::assert_empty() {
 }
 #endif // ndef PRODUCT
 
+void RemoveForwardedPointerClosure::do_object(oop obj) {
+  if (obj->is_forwarded()) {
+    PreservedMarks::init_forwarded_mark(obj);
+  }
+}
+
 void PreservedMarksSet::init(uint num) {
   assert(_stacks == nullptr && _num == 0, "do not re-initialize");
   assert(num > 0, "pre-condition");
@@ -87,7 +92,7 @@ void PreservedMarksSet::init(uint num) {
   assert_empty();
 }
 
-class RestorePreservedMarksTask : public WorkerTask {
+class RestorePreservedMarksTask : public AbstractGangTask {
   PreservedMarksSet* const _preserved_marks_set;
   SequentialSubTasksDone _sub_tasks;
   volatile size_t _total_size;
@@ -104,7 +109,7 @@ public:
   }
 
   RestorePreservedMarksTask(PreservedMarksSet* preserved_marks_set)
-    : WorkerTask("Restore Preserved Marks"),
+    : AbstractGangTask("Restore Preserved Marks"),
       _preserved_marks_set(preserved_marks_set),
       _sub_tasks(preserved_marks_set->num()),
       _total_size(0)
@@ -119,14 +124,12 @@ public:
 
   ~RestorePreservedMarksTask() {
     assert(_total_size == _total_size_before, "total_size = %zu before = %zu", _total_size, _total_size_before);
-    size_t mem_size = _total_size * (sizeof(oop) + sizeof(markWord));
-    log_trace(gc)("Restored %zu marks, occupying %zu %s", _total_size,
-                                                          byte_size_in_proper_unit(mem_size),
-                                                          proper_unit_for_byte_size(mem_size));
+
+    log_trace(gc)("Restored %zu marks", _total_size);
   }
 };
 
-void PreservedMarksSet::restore(WorkerThreads* workers) {
+void PreservedMarksSet::restore(WorkGang* workers) {
   {
     RestorePreservedMarksTask cl(this);
     if (workers == nullptr) {
@@ -139,7 +142,7 @@ void PreservedMarksSet::restore(WorkerThreads* workers) {
   assert_empty();
 }
 
-WorkerTask* PreservedMarksSet::create_task() {
+AbstractGangTask* PreservedMarksSet::create_task() {
   return new RestorePreservedMarksTask(this);
 }
 

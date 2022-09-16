@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,24 +24,15 @@
  */
 package javax.swing.text.html;
 
-import java.io.IOException;
+import javax.swing.text.*;
 import java.io.Writer;
-import java.util.Enumeration;
 import java.util.Stack;
+import java.util.Enumeration;
 import java.util.Vector;
-
-import javax.swing.text.AbstractWriter;
-import javax.swing.text.AttributeSet;
-import javax.swing.text.BadLocationException;
-import javax.swing.text.Document;
-import javax.swing.text.Element;
-import javax.swing.text.ElementIterator;
-import javax.swing.text.MutableAttributeSet;
-import javax.swing.text.Segment;
-import javax.swing.text.SimpleAttributeSet;
-import javax.swing.text.Style;
-import javax.swing.text.StyleConstants;
-import javax.swing.text.StyleContext;
+import java.io.IOException;
+import java.util.StringTokenizer;
+import java.util.NoSuchElementException;
+import java.net.URL;
 
 /**
  * This is a writer for HTMLDocuments.
@@ -134,8 +125,8 @@ public class HTMLWriter extends AbstractWriter {
      * Element tree and controls the writing out of
      * all the tags and its attributes.
      *
-     * @throws IOException on any I/O error
-     * @throws BadLocationException if pos represents an invalid
+     * @exception IOException on any I/O error
+     * @exception BadLocationException if pos represents an invalid
      *            location within the document.
      *
      */
@@ -257,7 +248,7 @@ public class HTMLWriter extends AbstractWriter {
      * HTML.Attribute.ENDTAG.
      *
      * @param attr   an AttributeSet
-     * @throws IOException on any I/O error
+     * @exception IOException on any I/O error
      *
      */
     protected void writeAttributes(AttributeSet attr) throws IOException {
@@ -282,8 +273,8 @@ public class HTMLWriter extends AbstractWriter {
      * corresponding end tag).
      *
      * @param elem   an Element
-     * @throws IOException on any I/O error
-     * @throws BadLocationException if pos represents an invalid
+     * @exception IOException on any I/O error
+     * @exception BadLocationException if pos represents an invalid
      *            location within the document.
      */
     protected void emptyTag(Element elem) throws BadLocationException, IOException {
@@ -317,7 +308,9 @@ public class HTMLWriter extends AbstractWriter {
             // If an instance of an UNKNOWN Tag, or an instance of a
             // tag that is only visible during editing
             //
-            if (nameTag != null && "true".equals(endTag)) {
+            if (nameTag != null && endTag != null &&
+                (endTag instanceof String) &&
+                endTag.equals("true")) {
                 outputEndTag = true;
             }
 
@@ -460,8 +453,8 @@ public class HTMLWriter extends AbstractWriter {
      * element.
      *
      * @param attr  an AttributeSet
-     * @throws IOException on any I/O error
-     * @throws BadLocationException if pos represents an invalid
+     * @exception IOException on any I/O error
+     * @exception BadLocationException if pos represents an invalid
      *            location within the document.
      */
     protected void textAreaContent(AttributeSet attr) throws BadLocationException, IOException {
@@ -494,8 +487,8 @@ public class HTMLWriter extends AbstractWriter {
      * out.
      *
      * @param elem   an Element
-     * @throws IOException on any I/O error
-     * @throws BadLocationException if pos represents an invalid
+     * @exception IOException on any I/O error
+     * @exception BadLocationException if pos represents an invalid
      *            location within the document.
      */
     protected void text(Element elem) throws BadLocationException, IOException {
@@ -532,7 +525,7 @@ public class HTMLWriter extends AbstractWriter {
      * Writes out the content of the SELECT form element.
      *
      * @param attr the AttributeSet associated with the form element
-     * @throws IOException on any I/O error
+     * @exception IOException on any I/O error
      */
     protected void selectContent(AttributeSet attr) throws IOException {
         Object model = attr.getAttribute(StyleConstants.ModelAttribute);
@@ -561,7 +554,7 @@ public class HTMLWriter extends AbstractWriter {
     /**
      * Writes out the content of the Option form element.
      * @param option  an Option
-     * @throws IOException on any I/O error
+     * @exception IOException on any I/O error
      *
      */
     protected void writeOption(Option option) throws IOException {
@@ -589,7 +582,7 @@ public class HTMLWriter extends AbstractWriter {
      * Writes out an end tag for the element.
      *
      * @param elem    an Element
-     * @throws IOException on any I/O error
+     * @exception IOException on any I/O error
      */
     protected void endTag(Element elem) throws IOException {
         if (synthesizedElement(elem)) {
@@ -624,8 +617,8 @@ public class HTMLWriter extends AbstractWriter {
      * Writes out comments.
      *
      * @param elem    an Element
-     * @throws IOException on any I/O error
-     * @throws BadLocationException if pos represents an invalid
+     * @exception IOException on any I/O error
+     * @exception BadLocationException if pos represents an invalid
      *            location within the document.
      */
     protected void comment(Element elem) throws BadLocationException, IOException {
@@ -646,8 +639,8 @@ public class HTMLWriter extends AbstractWriter {
      * Writes out comment string.
      *
      * @param string   the comment
-     * @throws IOException on any I/O error
-     * @throws BadLocationException if pos represents an invalid
+     * @exception IOException on any I/O error
+     * @exception BadLocationException if pos represents an invalid
      *            location within the document.
      */
     void writeComment(String string) throws IOException {
@@ -721,7 +714,7 @@ public class HTMLWriter extends AbstractWriter {
      * written out.
      *
      * @param attr a set of attributes
-     * @throws IOException on any I/O error
+     * @exception IOException on any I/O error
      */
     protected void writeEmbeddedTags(AttributeSet attr) throws IOException {
 
@@ -739,8 +732,8 @@ public class HTMLWriter extends AbstractWriter {
                 write('<');
                 write(tag.toString());
                 Object o = attr.getAttribute(tag);
-                if (o instanceof AttributeSet as) {
-                    writeAttributes(as);
+                if (o != null && o instanceof AttributeSet) {
+                    writeAttributes((AttributeSet)o);
                 }
                 write('>');
                 tags.addElement(tag);
@@ -776,7 +769,7 @@ public class HTMLWriter extends AbstractWriter {
      * end tag is written out.
      *
      * @param attr a set of attributes
-     * @throws IOException on any I/O error
+     * @exception IOException on any I/O error
      */
     protected void closeOutUnwantedEmbeddedTags(AttributeSet attr) throws IOException {
 
@@ -820,8 +813,8 @@ public class HTMLWriter extends AbstractWriter {
                 write('<');
                 write(t.toString());
                 Object o = tagValues.elementAt(i);
-                if (o instanceof AttributeSet as) {
-                    writeAttributes(as);
+                if (o != null && o instanceof AttributeSet) {
+                    writeAttributes((AttributeSet)o);
                 }
                 write('>');
             }
@@ -849,7 +842,7 @@ public class HTMLWriter extends AbstractWriter {
     }
 
     /**
-     * Determines whether the indentation needs to be
+     * Determines whether a the indentation needs to be
      * incremented.  Basically, if next is a child of current, and
      * next is NOT a synthesized element, the indent level will be
      * incremented.  If there is a parent-child relationship and "next"
@@ -1081,23 +1074,23 @@ public class HTMLWriter extends AbstractWriter {
                     }
                 } else if (key == CSS.Attribute.FONT_STYLE) {
                     String s = from.getAttribute(key).toString();
-                    if (s.contains("italic")) {
+                    if (s.indexOf("italic") >= 0) {
                         addAttribute(to, HTML.Tag.I, SimpleAttributeSet.EMPTY);
                     }
                 } else if (key == CSS.Attribute.TEXT_DECORATION) {
                     String decor = from.getAttribute(key).toString();
-                    if (decor.contains("underline")) {
+                    if (decor.indexOf("underline") >= 0) {
                         addAttribute(to, HTML.Tag.U, SimpleAttributeSet.EMPTY);
                     }
-                    if (decor.contains("line-through")) {
+                    if (decor.indexOf("line-through") >= 0) {
                         addAttribute(to, HTML.Tag.STRIKE, SimpleAttributeSet.EMPTY);
                     }
                 } else if (key == CSS.Attribute.VERTICAL_ALIGN) {
                     String vAlign = from.getAttribute(key).toString();
-                    if (vAlign.contains("sup")) {
+                    if (vAlign.indexOf("sup") >= 0) {
                         addAttribute(to, HTML.Tag.SUP, SimpleAttributeSet.EMPTY);
                     }
-                    if (vAlign.contains("sub")) {
+                    if (vAlign.indexOf("sub") >= 0) {
                         addAttribute(to, HTML.Tag.SUB, SimpleAttributeSet.EMPTY);
                     }
                 } else if (key == CSS.Attribute.TEXT_ALIGN) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -47,11 +47,7 @@ void TemplateInterpreter::initialize_stub() {
   // allocate interpreter
   int code_size = InterpreterCodeSize;
   NOT_PRODUCT(code_size *= 4;)  // debug uses extra interpreter code space
-  // 270+ interpreter codelets are generated and each of them is aligned to HeapWordSize,
-  // plus their code section is aligned to CodeEntryAlignement. So we need additional size due to alignment.
-  int max_aligned_codelets = 280;
-  int max_aligned_bytes = max_aligned_codelets * (HeapWordSize + CodeEntryAlignment);
-  _code = new StubQueue(new InterpreterCodeletInterface, code_size + max_aligned_bytes, NULL,
+  _code = new StubQueue(new InterpreterCodeletInterface, code_size, NULL,
                         "Interpreter");
 }
 
@@ -63,7 +59,7 @@ void TemplateInterpreter::initialize_code() {
   // generate interpreter
   { ResourceMark rm;
     TraceTime timer("Interpreter generation", TRACETIME_LOG(Info, startuptime));
-    TemplateInterpreterGenerator g;
+    TemplateInterpreterGenerator g(_code);
     // Free the unused memory not occupied by the interpreter and the stubs
     _code->deallocate_unused_tail();
   }
@@ -287,7 +283,7 @@ address TemplateInterpreter::deopt_entry(TosState state, int length) {
 }
 
 //------------------------------------------------------------------------------------------------------------------------
-// Support for invokes
+// Suport for invokes
 
 int TemplateInterpreter::TosState_as_index(TosState state) {
   assert( state < number_of_states , "Invalid state in TosState_as_index");

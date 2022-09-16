@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -255,12 +255,6 @@ import static sun.security.util.SecurityConstants.GET_CLASSLOADER_PERMISSION;
  * <a href="{@docRoot}/java.base/java/util/spi/ResourceBundleProvider.html#obtain-resource-bundle">
  * resource bundle provider</a>, it does not fall back to the
  * class loader search.
- *
- * <p>
- * In cases where the {@code getBundle} factory method is called from a context
- * where there is no caller frame on the stack (e.g. when called directly from
- * a JNI attached thread), the caller module is default to the unnamed module for the
- * {@linkplain ClassLoader#getSystemClassLoader system class loader}.
  *
  * <h3>Resource bundles in automatic modules</h3>
  *
@@ -1511,8 +1505,7 @@ public abstract class ResourceBundle {
     }
 
     private static Control getDefaultControl(Class<?> caller, String baseName) {
-        Module callerModule = getCallerModule(caller);
-        return getDefaultControl(callerModule, baseName);
+        return getDefaultControl(caller.getModule(), baseName);
     }
 
     private static Control getDefaultControl(Module targetModule, String baseName) {
@@ -1543,8 +1536,7 @@ public abstract class ResourceBundle {
     }
 
     private static void checkNamedModule(Class<?> caller) {
-        Module callerModule = getCallerModule(caller);
-        if (callerModule.isNamed()) {
+        if (caller.getModule().isNamed()) {
             throw new UnsupportedOperationException(
                     "ResourceBundle.Control not supported in named modules");
         }
@@ -1554,19 +1546,7 @@ public abstract class ResourceBundle {
                                                 Locale locale,
                                                 Class<?> caller,
                                                 Control control) {
-        ClassLoader loader = getLoader(getCallerModule(caller));
-        return getBundleImpl(baseName, locale, caller, loader, control);
-    }
-
-    /*
-     * Determine the module to be used for the caller.  If
-     * Reflection::getCallerClass is called from JNI with an empty
-     * stack frame the caller will be null, so the system class loader unnamed
-     * module will be used.
-     */
-    private static Module getCallerModule(Class<?> caller) {
-        return  (caller != null) ? caller.getModule()
-                : ClassLoader.getSystemClassLoader().getUnnamedModule();
+        return getBundleImpl(baseName, locale, caller, caller.getClassLoader(), control);
     }
 
     /**
@@ -1585,7 +1565,10 @@ public abstract class ResourceBundle {
                                                 Class<?> caller,
                                                 ClassLoader loader,
                                                 Control control) {
-        Module callerModule = getCallerModule(caller);
+        if (caller == null) {
+            throw new InternalError("null caller");
+        }
+        Module callerModule = caller.getModule();
 
         // get resource bundles for a named module only if loader is the module's class loader
         if (callerModule.isNamed() && loader == getLoader(callerModule)) {
@@ -1609,7 +1592,7 @@ public abstract class ResourceBundle {
                                                       Locale locale,
                                                       Control control) {
         Objects.requireNonNull(module);
-        Module callerModule = getCallerModule(caller);
+        Module callerModule = caller.getModule();
         if (callerModule != module) {
             @SuppressWarnings("removal")
             SecurityManager sm = System.getSecurityManager();
@@ -2245,9 +2228,9 @@ public abstract class ResourceBundle {
      */
     @CallerSensitive
     public static final void clearCache() {
-        Module callerModule = getCallerModule(Reflection.getCallerClass());
+        Class<?> caller = Reflection.getCallerClass();
         cacheList.keySet().removeIf(
-            key -> key.getCallerModule() == callerModule
+            key -> key.getCallerModule() == caller.getModule()
         );
     }
 
@@ -2438,7 +2421,7 @@ public abstract class ResourceBundle {
      * import static java.util.ResourceBundle.Control.*;
      * ...
      * ResourceBundle bundle =
-     *   ResourceBundle.getBundle("MyResources", Locale.forLanguageTag("fr-CH"),
+     *   ResourceBundle.getBundle("MyResources", new Locale("fr", "CH"),
      *                            ResourceBundle.Control.getControl(FORMAT_PROPERTIES));
      * </pre>
      *
@@ -2905,7 +2888,7 @@ public abstract class ResourceBundle {
                 if (language.equals("nb") || isNorwegianBokmal) {
                     List<Locale> tmpList = getDefaultList("nb", script, region, variant);
                     // Insert a locale replacing "nb" with "no" for every list entry with precedence
-                    List<Locale> bokmalList = new ArrayList<>();
+                    List<Locale> bokmalList = new LinkedList<>();
                     for (Locale l_nb : tmpList) {
                         var isRoot = l_nb.getLanguage().isEmpty();
                         var l_no = Locale.getInstance(isRoot ? "" : "no",
@@ -2945,7 +2928,7 @@ public abstract class ResourceBundle {
                 List<String> variants = null;
 
                 if (!variant.isEmpty()) {
-                    variants = new ArrayList<>();
+                    variants = new LinkedList<>();
                     int idx = variant.length();
                     while (idx != -1) {
                         variants.add(variant.substring(0, idx));
@@ -2953,7 +2936,7 @@ public abstract class ResourceBundle {
                     }
                 }
 
-                List<Locale> list = new ArrayList<>();
+                List<Locale> list = new LinkedList<>();
 
                 if (variants != null) {
                     for (String v : variants) {
@@ -2969,7 +2952,7 @@ public abstract class ResourceBundle {
                     if (language.equals("zh")) {
                         if (region.isEmpty()) {
                             // Supply region(country) for users who still package Chinese
-                            // bundles using old convention.
+                            // bundles using old convension.
                             switch (script) {
                                 case "Hans" -> region = "CN";
                                 case "Hant" -> region = "TW";
@@ -3746,7 +3729,7 @@ public abstract class ResourceBundle {
 
     }
 
-    private static final boolean TRACE_ON = Boolean.parseBoolean(
+    private static final boolean TRACE_ON = Boolean.valueOf(
         GetPropertyAction.privilegedGetProperty("resource.bundle.debug", "false"));
 
     private static void trace(String format, Object... params) {

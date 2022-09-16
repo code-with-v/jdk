@@ -90,7 +90,6 @@ public class RecognizedActionTest implements AWTEventListener {
                     dragGestureListener);
 
             frame.getToolkit().addAWTEventListener(this, AWTEvent.MOUSE_EVENT_MASK);
-            frame.setLocationRelativeTo(null);
             frame.setVisible(true);
             Thread.sleep(100);
 
@@ -166,9 +165,9 @@ public class RecognizedActionTest implements AWTEventListener {
                         break;
 
                     case InputEvent.SHIFT_DOWN_MASK | InputEvent.CTRL_DOWN_MASK:
-                        robot.keyRelease(KeyEvent.VK_SHIFT);
-                        robot.waitForIdle();
                         robot.keyRelease(KeyEvent.VK_CONTROL);
+                        robot.waitForIdle();
+                        robot.keyRelease(KeyEvent.VK_SHIFT);
                         robot.waitForIdle();
                         break;
 

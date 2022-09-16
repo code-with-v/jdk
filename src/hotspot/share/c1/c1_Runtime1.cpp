@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -59,6 +59,7 @@
 #include "oops/oop.inline.hpp"
 #include "prims/jvmtiExport.hpp"
 #include "runtime/atomic.hpp"
+#include "runtime/biasedLocking.hpp"
 #include "runtime/fieldDescriptor.inline.hpp"
 #include "runtime/frame.inline.hpp"
 #include "runtime/handles.inline.hpp"
@@ -166,10 +167,7 @@ address Runtime1::arraycopy_count_address(BasicType type) {
 // entered the VM has been deoptimized
 
 static bool caller_is_deopted(JavaThread* current) {
-  RegisterMap reg_map(current,
-                      RegisterMap::UpdateMap::skip,
-                      RegisterMap::ProcessFrames::include,
-                      RegisterMap::WalkContinuation::skip);
+  RegisterMap reg_map(current, false);
   frame runtime_frame = current->last_frame();
   frame caller_frame = runtime_frame.sender(&reg_map);
   assert(caller_frame.is_compiled_frame(), "must be compiled");
@@ -179,10 +177,7 @@ static bool caller_is_deopted(JavaThread* current) {
 // Stress deoptimization
 static void deopt_caller(JavaThread* current) {
   if (!caller_is_deopted(current)) {
-    RegisterMap reg_map(current,
-                        RegisterMap::UpdateMap::skip,
-                        RegisterMap::ProcessFrames::include,
-                        RegisterMap::WalkContinuation::skip);
+    RegisterMap reg_map(current, false);
     frame runtime_frame = current->last_frame();
     frame caller_frame = runtime_frame.sender(&reg_map);
     Deoptimization::deoptimize_frame(current, caller_frame.id());
@@ -249,6 +244,9 @@ void Runtime1::generate_blob_for(BufferBlob* buffer_blob, StubID id) {
   case fpu2long_stub_id:
   case unwind_exception_id:
   case counter_overflow_id:
+#if defined(PPC32)
+  case handle_exception_nofpu_id:
+#endif
     expect_oop_map = false;
     break;
   default:
@@ -329,7 +327,7 @@ const char* Runtime1::name_for_address(address entry) {
   FUNCTION_CASE(entry, is_instance_of);
   FUNCTION_CASE(entry, trace_block_entry);
 #ifdef JFR_HAVE_INTRINSICS
-  FUNCTION_CASE(entry, JfrTime::time_function());
+  FUNCTION_CASE(entry, JFR_TIME_FUNCTION);
 #endif
   FUNCTION_CASE(entry, StubRoutines::updateBytesCRC32());
   FUNCTION_CASE(entry, StubRoutines::updateBytesCRC32C());
@@ -350,11 +348,8 @@ const char* Runtime1::name_for_address(address entry) {
 
 
 JRT_ENTRY(void, Runtime1::new_instance(JavaThread* current, Klass* klass))
-#ifndef PRODUCT
-  if (PrintC1Statistics) {
-    _new_instance_slowcase_cnt++;
-  }
-#endif
+  NOT_PRODUCT(_new_instance_slowcase_cnt++;)
+
   assert(klass->is_klass(), "not a class");
   Handle holder(current, klass->klass_holder()); // keep the klass alive
   InstanceKlass* h = InstanceKlass::cast(klass);
@@ -368,11 +363,7 @@ JRT_END
 
 
 JRT_ENTRY(void, Runtime1::new_type_array(JavaThread* current, Klass* klass, jint length))
-#ifndef PRODUCT
-  if (PrintC1Statistics) {
-    _new_type_array_slowcase_cnt++;
-  }
-#endif
+  NOT_PRODUCT(_new_type_array_slowcase_cnt++;)
   // Note: no handle for klass needed since they are not used
   //       anymore after new_typeArray() and no GC can happen before.
   //       (This may have to change if this code changes!)
@@ -390,11 +381,8 @@ JRT_END
 
 
 JRT_ENTRY(void, Runtime1::new_object_array(JavaThread* current, Klass* array_klass, jint length))
-#ifndef PRODUCT
-  if (PrintC1Statistics) {
-    _new_object_array_slowcase_cnt++;
-  }
-#endif
+  NOT_PRODUCT(_new_object_array_slowcase_cnt++;)
+
   // Note: no handle for klass needed since they are not used
   //       anymore after new_objArray() and no GC can happen before.
   //       (This may have to change if this code changes!)
@@ -412,11 +400,8 @@ JRT_END
 
 
 JRT_ENTRY(void, Runtime1::new_multi_array(JavaThread* current, Klass* klass, int rank, jint* dims))
-#ifndef PRODUCT
-  if (PrintC1Statistics) {
-    _new_multi_array_slowcase_cnt++;
-  }
-#endif
+  NOT_PRODUCT(_new_multi_array_slowcase_cnt++;)
+
   assert(klass->is_klass(), "not a class");
   assert(rank >= 1, "rank must be nonzero");
   Handle holder(current, klass->klass_holder()); // keep the klass alive
@@ -445,10 +430,7 @@ static nmethod* counter_overflow_helper(JavaThread* current, int branch_bci, Met
   nmethod* osr_nm = NULL;
   methodHandle method(current, m);
 
-  RegisterMap map(current,
-                  RegisterMap::UpdateMap::skip,
-                  RegisterMap::ProcessFrames::include,
-                  RegisterMap::WalkContinuation::skip);
+  RegisterMap map(current, false);
   frame fr =  current->last_frame().sender(&map);
   nmethod* nm = (nmethod*) fr.cb();
   assert(nm!= NULL && nm->is_nmethod(), "Sanity check");
@@ -487,10 +469,7 @@ JRT_BLOCK_ENTRY(address, Runtime1::counter_overflow(JavaThread* current, int bci
   JRT_BLOCK
     osr_nm = counter_overflow_helper(current, bci, method);
     if (osr_nm != NULL) {
-      RegisterMap map(current,
-                      RegisterMap::UpdateMap::skip,
-                      RegisterMap::ProcessFrames::include,
-                      RegisterMap::WalkContinuation::skip);
+      RegisterMap map(current, false);
       frame fr =  current->last_frame().sender(&map);
       Deoptimization::deoptimize_frame(current, fr.id());
     }
@@ -536,10 +515,7 @@ JRT_ENTRY_NO_ASYNC(static address, exception_handler_for_pc_helper(JavaThread* c
   assert(nm != NULL, "this is not an nmethod");
   // Adjust the pc as needed/
   if (nm->is_deopt_pc(pc)) {
-    RegisterMap map(current,
-                    RegisterMap::UpdateMap::skip,
-                    RegisterMap::ProcessFrames::include,
-                    RegisterMap::WalkContinuation::skip);
+    RegisterMap map(current, false);
     frame exception_frame = current->last_frame().sender(&map);
     // if the frame isn't deopted then pc must not correspond to the caller of last_frame
     assert(exception_frame.is_deoptimized_frame(), "must be deopted");
@@ -564,7 +540,7 @@ JRT_ENTRY_NO_ASYNC(static address, exception_handler_for_pc_helper(JavaThread* c
   // for AbortVMOnException flag
   Exceptions::debug_check_abort(exception);
 
-  // Check the stack guard pages and re-enable them if necessary and there is
+  // Check the stack guard pages and reenable them if necessary and there is
   // enough space on the stack to do so.  Use fast exceptions only if the guard
   // pages are enabled.
   bool guard_pages_enabled = current->stack_overflow_state()->reguard_stack_if_needed();
@@ -578,10 +554,7 @@ JRT_ENTRY_NO_ASYNC(static address, exception_handler_for_pc_helper(JavaThread* c
     // notifications since the interpreter would also notify about
     // these same catches and throws as it unwound the frame.
 
-    RegisterMap reg_map(current,
-                        RegisterMap::UpdateMap::include,
-                        RegisterMap::ProcessFrames::include,
-                        RegisterMap::WalkContinuation::skip);
+    RegisterMap reg_map(current);
     frame stub_frame = current->last_frame();
     frame caller_frame = stub_frame.sender(&reg_map);
 
@@ -680,11 +653,7 @@ address Runtime1::exception_handler_for_pc(JavaThread* current) {
 
 
 JRT_ENTRY(void, Runtime1::throw_range_check_exception(JavaThread* current, int index, arrayOopDesc* a))
-#ifndef PRODUCT
-  if (PrintC1Statistics) {
-    _throw_range_check_exception_count++;
-  }
-#endif
+  NOT_PRODUCT(_throw_range_check_exception_count++;)
   const int len = 35;
   assert(len < strlen("Index %d out of bounds for length %d"), "Must allocate more space for message.");
   char message[2 * jintAsStringSize + len];
@@ -694,11 +663,7 @@ JRT_END
 
 
 JRT_ENTRY(void, Runtime1::throw_index_exception(JavaThread* current, int index))
-#ifndef PRODUCT
-  if (PrintC1Statistics) {
-    _throw_index_exception_count++;
-  }
-#endif
+  NOT_PRODUCT(_throw_index_exception_count++;)
   char message[16];
   sprintf(message, "%d", index);
   SharedRuntime::throw_and_post_jvmti_exception(current, vmSymbols::java_lang_IndexOutOfBoundsException(), message);
@@ -706,31 +671,19 @@ JRT_END
 
 
 JRT_ENTRY(void, Runtime1::throw_div0_exception(JavaThread* current))
-#ifndef PRODUCT
-  if (PrintC1Statistics) {
-    _throw_div0_exception_count++;
-  }
-#endif
+  NOT_PRODUCT(_throw_div0_exception_count++;)
   SharedRuntime::throw_and_post_jvmti_exception(current, vmSymbols::java_lang_ArithmeticException(), "/ by zero");
 JRT_END
 
 
 JRT_ENTRY(void, Runtime1::throw_null_pointer_exception(JavaThread* current))
-#ifndef PRODUCT
-  if (PrintC1Statistics) {
-    _throw_null_pointer_exception_count++;
-  }
-#endif
+  NOT_PRODUCT(_throw_null_pointer_exception_count++;)
   SharedRuntime::throw_and_post_jvmti_exception(current, vmSymbols::java_lang_NullPointerException());
 JRT_END
 
 
 JRT_ENTRY(void, Runtime1::throw_class_cast_exception(JavaThread* current, oopDesc* object))
-#ifndef PRODUCT
-  if (PrintC1Statistics) {
-    _throw_class_cast_exception_count++;
-  }
-#endif
+  NOT_PRODUCT(_throw_class_cast_exception_count++;)
   ResourceMark rm(current);
   char* message = SharedRuntime::generate_class_cast_message(current, object->klass());
   SharedRuntime::throw_and_post_jvmti_exception(current, vmSymbols::java_lang_ClassCastException(), message);
@@ -738,23 +691,15 @@ JRT_END
 
 
 JRT_ENTRY(void, Runtime1::throw_incompatible_class_change_error(JavaThread* current))
-#ifndef PRODUCT
-  if (PrintC1Statistics) {
-    _throw_incompatible_class_change_error_count++;
-  }
-#endif
+  NOT_PRODUCT(_throw_incompatible_class_change_error_count++;)
   ResourceMark rm(current);
   SharedRuntime::throw_and_post_jvmti_exception(current, vmSymbols::java_lang_IncompatibleClassChangeError());
 JRT_END
 
 
 JRT_BLOCK_ENTRY(void, Runtime1::monitorenter(JavaThread* current, oopDesc* obj, BasicObjectLock* lock))
-#ifndef PRODUCT
-  if (PrintC1Statistics) {
-    _monitorenter_slowcase_cnt++;
-  }
-#endif
-  if (UseHeavyMonitors) {
+  NOT_PRODUCT(_monitorenter_slowcase_cnt++;)
+  if (!UseFastLocking) {
     lock->set_obj(obj);
   }
   assert(obj == lock->obj(), "must match");
@@ -763,11 +708,7 @@ JRT_END
 
 
 JRT_LEAF(void, Runtime1::monitorexit(JavaThread* current, BasicObjectLock* lock))
-#ifndef PRODUCT
-  if (PrintC1Statistics) {
-    _monitorexit_slowcase_cnt++;
-  }
-#endif
+  NOT_PRODUCT(_monitorexit_slowcase_cnt++;)
   assert(current->last_Java_sp(), "last_Java_sp must be set");
   oop obj = lock->obj();
   assert(oopDesc::is_oop(obj), "must be NULL or an object");
@@ -777,10 +718,7 @@ JRT_END
 // Cf. OptoRuntime::deoptimize_caller_frame
 JRT_ENTRY(void, Runtime1::deoptimize(JavaThread* current, jint trap_request))
   // Called from within the owner thread, so no need for safepoint
-  RegisterMap reg_map(current,
-                      RegisterMap::UpdateMap::skip,
-                      RegisterMap::ProcessFrames::include,
-                      RegisterMap::WalkContinuation::skip);
+  RegisterMap reg_map(current, false);
   frame stub_frame = current->last_frame();
   assert(stub_frame.is_runtime_frame(), "Sanity check");
   frame caller_frame = stub_frame.sender(&reg_map);
@@ -885,7 +823,7 @@ static Klass* resolve_field_return_klass(const methodHandle& caller, int bci, TR
 // If the class is being initialized the patch body is rewritten and
 // the patch site is rewritten to jump to being_init, instead of
 // patch_stub.  Whenever this code is executed it checks the current
-// thread against the initializing thread so other threads will enter
+// thread against the intializing thread so other threads will enter
 // the runtime and end up blocked waiting the class to finish
 // initializing inside the calls to resolve_field below.  The
 // initializing class will continue on it's way.  Once the class is
@@ -922,17 +860,10 @@ static Klass* resolve_field_return_klass(const methodHandle& caller, int bci, TR
 // patch only naturally aligned words, as single, full-word writes.
 
 JRT_ENTRY(void, Runtime1::patch_code(JavaThread* current, Runtime1::StubID stub_id ))
-#ifndef PRODUCT
-  if (PrintC1Statistics) {
-    _patch_code_slowcase_cnt++;
-  }
-#endif
+  NOT_PRODUCT(_patch_code_slowcase_cnt++;)
 
   ResourceMark rm(current);
-  RegisterMap reg_map(current,
-                      RegisterMap::UpdateMap::skip,
-                      RegisterMap::ProcessFrames::include,
-                      RegisterMap::WalkContinuation::skip);
+  RegisterMap reg_map(current, false);
   frame runtime_frame = current->last_frame();
   frame caller_frame = runtime_frame.sender(&reg_map);
 
@@ -1033,7 +964,6 @@ JRT_ENTRY(void, Runtime1::patch_code(JavaThread* current, Runtime1::StubID stub_
         break;
       case Bytecodes::_ldc:
       case Bytecodes::_ldc_w:
-      case Bytecodes::_ldc2_w:
         {
           Bytecode_loadconstant cc(caller_method, bci);
           oop m = cc.resolve_constant(CHECK);
@@ -1178,6 +1108,7 @@ JRT_ENTRY(void, Runtime1::patch_code(JavaThread* current, Runtime1::StubID stub_
               assert(load_klass != NULL, "klass not set");
               n_copy->set_data((intx) (load_klass));
             } else {
+              assert(mirror() != NULL, "klass not set");
               // Don't need a G1 pre-barrier here since we assert above that data isn't an oop.
               n_copy->set_data(cast_from_oop<intx>(mirror()));
             }
@@ -1200,6 +1131,40 @@ JRT_ENTRY(void, Runtime1::patch_code(JavaThread* current, Runtime1::StubID stub_
           ShouldNotReachHere();
         }
 
+#if defined(PPC32)
+        if (load_klass_or_mirror_patch_id ||
+            stub_id == Runtime1::load_appendix_patching_id) {
+          // Update the location in the nmethod with the proper
+          // metadata.  When the code was generated, a NULL was stuffed
+          // in the metadata table and that table needs to be update to
+          // have the right value.  On intel the value is kept
+          // directly in the instruction instead of in the metadata
+          // table, so set_data above effectively updated the value.
+          nmethod* nm = CodeCache::find_nmethod(instr_pc);
+          assert(nm != NULL, "invalid nmethod_pc");
+          RelocIterator mds(nm, copy_buff, copy_buff + 1);
+          bool found = false;
+          while (mds.next() && !found) {
+            if (mds.type() == relocInfo::oop_type) {
+              assert(stub_id == Runtime1::load_mirror_patching_id ||
+                     stub_id == Runtime1::load_appendix_patching_id, "wrong stub id");
+              oop_Relocation* r = mds.oop_reloc();
+              oop* oop_adr = r->oop_addr();
+              *oop_adr = stub_id == Runtime1::load_mirror_patching_id ? mirror() : appendix();
+              r->fix_oop_relocation();
+              found = true;
+            } else if (mds.type() == relocInfo::metadata_type) {
+              assert(stub_id == Runtime1::load_klass_patching_id, "wrong stub id");
+              metadata_Relocation* r = mds.metadata_reloc();
+              Metadata** metadata_adr = r->metadata_addr();
+              *metadata_adr = load_klass;
+              r->fix_metadata_relocation();
+              found = true;
+            }
+          }
+          assert(found, "the metadata must exist!");
+        }
+#endif
         if (do_patch) {
           // replace instructions
           // first replace the tail, then the call
@@ -1257,6 +1222,13 @@ JRT_ENTRY(void, Runtime1::patch_code(JavaThread* current, Runtime1::StubID stub_
             RelocIterator iter(nm, (address)instr_pc, (address)(instr_pc + 1));
             relocInfo::change_reloc_info_for_address(&iter, (address) instr_pc,
                                                      relocInfo::none, rtype);
+#ifdef PPC32
+          { address instr_pc2 = instr_pc + NativeMovConstReg::lo_offset;
+            RelocIterator iter2(nm, instr_pc2, instr_pc2 + 1);
+            relocInfo::change_reloc_info_for_address(&iter2, (address) instr_pc2,
+                                                     relocInfo::none, rtype);
+          }
+#endif
           }
 
         } else {
@@ -1282,43 +1254,8 @@ JRT_END
 
 #else // DEOPTIMIZE_WHEN_PATCHING
 
-static bool is_patching_needed(JavaThread* current, Runtime1::StubID stub_id) {
-  if (stub_id == Runtime1::load_klass_patching_id ||
-      stub_id == Runtime1::load_mirror_patching_id) {
-    // last java frame on stack
-    vframeStream vfst(current, true);
-    assert(!vfst.at_end(), "Java frame must exist");
-
-    methodHandle caller_method(current, vfst.method());
-    int bci = vfst.bci();
-    Bytecodes::Code code = caller_method()->java_code_at(bci);
-
-    switch (code) {
-      case Bytecodes::_new:
-      case Bytecodes::_anewarray:
-      case Bytecodes::_multianewarray:
-      case Bytecodes::_instanceof:
-      case Bytecodes::_checkcast: {
-        Bytecode bc(caller_method(), caller_method->bcp_from(bci));
-        constantTag tag = caller_method->constants()->tag_at(bc.get_index_u2(code));
-        if (tag.is_unresolved_klass_in_error()) {
-          return false; // throws resolution error
-        }
-        break;
-      }
-
-      default: break;
-    }
-  }
-  return true;
-}
-
 void Runtime1::patch_code(JavaThread* current, Runtime1::StubID stub_id) {
-#ifndef PRODUCT
-  if (PrintC1Statistics) {
-    _patch_code_slowcase_cnt++;
-  }
-#endif
+  NOT_PRODUCT(_patch_code_slowcase_cnt++);
 
   // Enable WXWrite: the function is called by c1 stub as a runtime function
   // (see another implementation above).
@@ -1328,21 +1265,16 @@ void Runtime1::patch_code(JavaThread* current, Runtime1::StubID stub_id) {
     tty->print_cr("Deoptimizing because patch is needed");
   }
 
-  RegisterMap reg_map(current,
-                      RegisterMap::UpdateMap::skip,
-                      RegisterMap::ProcessFrames::include,
-                      RegisterMap::WalkContinuation::skip);
+  RegisterMap reg_map(current, false);
 
   frame runtime_frame = current->last_frame();
   frame caller_frame = runtime_frame.sender(&reg_map);
   assert(caller_frame.is_compiled_frame(), "Wrong frame type");
 
-  if (is_patching_needed(current, stub_id)) {
-    // Make sure the nmethod is invalidated, i.e. made not entrant.
-    nmethod* nm = CodeCache::find_nmethod(caller_frame.pc());
-    if (nm != NULL) {
-      nm->make_not_entrant();
-    }
+  // Make sure the nmethod is invalidated, i.e. made not entrant.
+  nmethod* nm = CodeCache::find_nmethod(caller_frame.pc());
+  if (nm != NULL) {
+    nm->make_not_entrant();
   }
 
   Deoptimization::deoptimize_frame(current, caller_frame.id());
@@ -1460,10 +1392,7 @@ JRT_END
 JRT_ENTRY(void, Runtime1::predicate_failed_trap(JavaThread* current))
   ResourceMark rm;
 
-  RegisterMap reg_map(current,
-                      RegisterMap::UpdateMap::skip,
-                      RegisterMap::ProcessFrames::include,
-                      RegisterMap::WalkContinuation::skip);
+  RegisterMap reg_map(current, false);
   frame runtime_frame = current->last_frame();
   frame caller_frame = runtime_frame.sender(&reg_map);
 
@@ -1477,7 +1406,7 @@ JRT_ENTRY(void, Runtime1::predicate_failed_trap(JavaThread* current))
   if (mdo == NULL && !HAS_PENDING_EXCEPTION) {
     // Build an MDO.  Ignore errors like OutOfMemory;
     // that simply means we won't have an MDO to update.
-    Method::build_profiling_method_data(m, THREAD);
+    Method::build_interpreter_method_data(m, THREAD);
     if (HAS_PENDING_EXCEPTION) {
       // Only metaspace OOM is expected. No Java code executed.
       assert((PENDING_EXCEPTION->is_a(vmClasses::OutOfMemoryError_klass())), "we expect only an OOM error here");

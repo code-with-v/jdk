@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -150,7 +150,7 @@ char *getMacOSXLocale(int cat) {
  * and script designators of BCP 47.  So possible formats are:
  *
  * "en"         (language designator only)
- * "haw"        (3-letter language designator)
+ * "haw"        (3-letter lanuage designator)
  * "en-GB"      (language with alpha-2 region designator)
  * "es-419"     (language with 3-digit UN M.49 area code)
  * "zh-Hans"    (language with ISO 15924 script designator)
@@ -234,7 +234,6 @@ void setOSNameAndVersion(java_props_t *sprops) {
     // Hardcode os_name, and fill in os_version
     sprops->os_name = strdup("Mac OS X");
 
-    NSString *nsVerStr = NULL;
     char* osVersionCStr = NULL;
     // Mac OS 10.9 includes the [NSProcessInfo operatingSystemVersion] function,
     // but it's not in the 10.9 SDK.  So, call it via NSInvocation.
@@ -247,6 +246,7 @@ void setOSNameAndVersion(java_props_t *sprops) {
         [invoke invokeWithTarget:[NSProcessInfo processInfo]];
         [invoke getReturnValue:&osVer];
 
+        NSString *nsVerStr;
         // Copy out the char* if running on version other than 10.16 Mac OS (10.16 == 11.x)
         // or explicitly requesting version compatibility
         if (!((long)osVer.majorVersion == 10 && (long)osVer.minorVersion >= 16) ||
@@ -258,29 +258,35 @@ void setOSNameAndVersion(java_props_t *sprops) {
                 nsVerStr = [NSString stringWithFormat:@"%ld.%ld.%ld",
                         (long)osVer.majorVersion, (long)osVer.minorVersion, (long)osVer.patchVersion];
             }
+            // Copy out the char*
+            osVersionCStr = strdup([nsVerStr UTF8String]);
         } else {
             // Version 10.16, without explicit env setting of SYSTEM_VERSION_COMPAT
-            // AKA 11+ Read the *real* ProductVersion from the hidden link to avoid SYSTEM_VERSION_COMPAT
-            // If not found, fallback below to the SystemVersion.plist
+            // AKA 11.x; compute the version number from the letter in the ProductBuildVersion
             NSDictionary *version = [NSDictionary dictionaryWithContentsOfFile :
-                             @"/System/Library/CoreServices/.SystemVersionPlatform.plist"];
+                             @"/System/Library/CoreServices/SystemVersion.plist"];
             if (version != NULL) {
-                nsVerStr = [version objectForKey : @"ProductVersion"];
+                NSString *nsBuildVerStr = [version objectForKey : @"ProductBuildVersion"];
+                if (nsBuildVerStr != NULL && nsBuildVerStr.length >= 3) {
+                    int letter = [nsBuildVerStr characterAtIndex:2];
+                    if (letter >= 'B' && letter <= 'Z') {
+                        int vers = letter - 'A' - 1;
+                        asprintf(&osVersionCStr, "11.%d", vers);
+                    }
+                }
             }
         }
     }
     // Fallback if running on pre-10.9 Mac OS
-    if (nsVerStr == NULL) {
+    if (osVersionCStr == NULL) {
         NSDictionary *version = [NSDictionary dictionaryWithContentsOfFile :
                                  @"/System/Library/CoreServices/SystemVersion.plist"];
         if (version != NULL) {
-            nsVerStr = [version objectForKey : @"ProductVersion"];
+            NSString *nsVerStr = [version objectForKey : @"ProductVersion"];
+            if (nsVerStr != NULL) {
+                osVersionCStr = strdup([nsVerStr UTF8String]);
+            }
         }
-    }
-
-    if (nsVerStr != NULL) {
-        // Copy out the char*
-        osVersionCStr = strdup([nsVerStr UTF8String]);
     }
     if (osVersionCStr == NULL) {
         osVersionCStr = strdup("Unknown");

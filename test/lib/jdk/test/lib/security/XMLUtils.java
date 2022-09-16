@@ -92,11 +92,9 @@ public class XMLUtils {
         Asserts.assertTrue(v2.validate(s3.sign(d))); // can read KeyInfo
         Asserts.assertTrue(v2.secureValidation(false).validate(s3.sign(p.toUri()))); // can read KeyInfo
         Asserts.assertTrue(v2.secureValidation(false).baseURI(b).validate(
-                s3.sign(p.toAbsolutePath().getParent().toUri(), p.getFileName().toUri()))); // can read KeyInfo
+                s3.sign(p.getParent().toUri(), p.getFileName().toUri()))); // can read KeyInfo
         Asserts.assertTrue(v1.validate(s1.sign("text"))); // plain text
         Asserts.assertTrue(v1.validate(s1.sign("binary".getBytes()))); // raw data
-        Asserts.assertTrue(v1.validate(s1.signEnveloping(d, "x", "#x")));
-        Asserts.assertTrue(v1.validate(s1.signEnveloping(d, "x", "#xpointer(id('x'))")));
     }
 
     //////////// CONVERT ////////////
@@ -349,14 +347,14 @@ public class XMLUtils {
         }
 
         // Signs a document in enveloping mode
-        public Document signEnveloping(Document document, String id, String ref) throws Exception {
+        public Document signEnveloping(Document document) throws Exception {
             Document newDocument = DocumentBuilderFactory.newInstance()
                     .newDocumentBuilder().newDocument();
             FAC.newXMLSignature(
-                    buildSignedInfo(FAC.newReference(ref, dm)),
+                    buildSignedInfo(FAC.newReference("#object", dm)),
                     buildKeyInfo(),
                     List.of(FAC.newXMLObject(List.of(new DOMStructure(document.getDocumentElement())),
-                            id, null, null)),
+                            "object", null, null)),
                     null,
                     null)
                     .sign(new DOMSignContext(privateKey, newDocument));
@@ -476,7 +474,7 @@ public class XMLUtils {
         // If key is not null, any key from the signature will be ignored
         public boolean validate(Document document, PublicKey key)
                 throws Exception {
-            NodeList nodeList = document.getElementsByTagNameNS(XMLSignature.XMLNS, "Signature");
+            NodeList nodeList = document.getElementsByTagName("Signature");
             if (nodeList.getLength() == 1) {
                 Node signatureNode = nodeList.item(0);
                 if (signatureNode != null) {

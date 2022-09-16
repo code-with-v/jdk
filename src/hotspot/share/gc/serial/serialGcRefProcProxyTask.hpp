@@ -41,8 +41,7 @@ public:
 
   void work(uint worker_id) override {
     assert(worker_id < _max_workers, "sanity");
-    BarrierEnqueueDiscoveredFieldClosure enqueue;
-    _rp_task->rp_work(worker_id, &_is_alive, &_keep_alive, &enqueue, &_complete_gc);
+    _rp_task->rp_work(worker_id, &_is_alive, &_keep_alive, &_complete_gc);
   }
 };
 

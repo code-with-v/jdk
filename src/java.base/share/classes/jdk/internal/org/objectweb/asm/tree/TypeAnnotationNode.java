@@ -56,7 +56,6 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package jdk.internal.org.objectweb.asm.tree;
 
 import jdk.internal.org.objectweb.asm.Opcodes;
@@ -91,7 +90,7 @@ public class TypeAnnotationNode extends AnnotationNode {
       * @throws IllegalStateException If a subclass calls this constructor.
       */
     public TypeAnnotationNode(final int typeRef, final TypePath typePath, final String descriptor) {
-        this(/* latest api = */ Opcodes.ASM9, typeRef, typePath, descriptor);
+        this(/* latest api = */ Opcodes.ASM8, typeRef, typePath, descriptor);
         if (getClass() != TypeAnnotationNode.class) {
             throw new IllegalStateException();
         }
@@ -100,8 +99,9 @@ public class TypeAnnotationNode extends AnnotationNode {
     /**
       * Constructs a new {@link AnnotationNode}.
       *
-      * @param api the ASM API version implemented by this visitor. Must be one of the {@code
-      *     ASM}<i>x</i> values in {@link Opcodes}.
+      * @param api the ASM API version implemented by this visitor. Must be one of {@link
+      *     Opcodes#ASM4}, {@link Opcodes#ASM5}, {@link Opcodes#ASM6}, {@link Opcodes#ASM7} or {@link
+      *     Opcodes#ASM8}.
       * @param typeRef a reference to the annotated type. See {@link jdk.internal.org.objectweb.asm.TypeReference}.
       * @param typePath the path to the annotated type argument, wildcard bound, array element type, or
       *     static inner type within 'typeRef'. May be {@literal null} if the annotation targets
@@ -115,4 +115,3 @@ public class TypeAnnotationNode extends AnnotationNode {
         this.typePath = typePath;
     }
 }
-

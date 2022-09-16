@@ -57,9 +57,7 @@ import sun.util.logging.PlatformLogger;
  *
  * @since 1.1
  */
-public abstract sealed class InputEvent extends ComponentEvent
-    permits KeyEvent,
-            MouseEvent {
+public abstract class InputEvent extends ComponentEvent {
 
     private static final PlatformLogger logger = PlatformLogger.getLogger("java.awt.event.InputEvent");
 

@@ -157,7 +157,7 @@ public class Des3DkCrypto extends DkCrypto {
             }
             ++posn;
             if (bit != 0) {
-                last |= (byte) (bit<<posn);
+                last |= (bit<<posn);
             }
         }
 

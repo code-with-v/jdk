@@ -28,8 +28,8 @@ package jdk.internal.loader;
 /**
  * NativeLibrary represents a loaded native library instance.
  */
-public abstract class NativeLibrary {
-    public abstract String name();
+public interface NativeLibrary {
+    String name();
 
     /**
      * Finds the address of the entry of the given name.  Returns 0
@@ -37,7 +37,7 @@ public abstract class NativeLibrary {
      *
      * @param name the name of the symbol to be found
      */
-    public abstract long find(String name);
+    long find(String name);
 
     /**
      * Finds the address of the entry of the given name.
@@ -45,17 +45,11 @@ public abstract class NativeLibrary {
      * @param name the name of the symbol to be found
      * @throws NoSuchMethodException if the named entry is not found.
      */
-    public final long lookup(String name) throws NoSuchMethodException {
+    default long lookup(String name) throws NoSuchMethodException {
         long addr = find(name);
         if (0 == addr) {
             throw new NoSuchMethodException("Cannot find symbol " + name + " in library " + name());
         }
         return addr;
     }
-
-    /*
-     * Returns the address of the named symbol defined in the library of
-     * the given handle.  Returns 0 if not found.
-     */
-    static native long findEntry0(long handle, String name);
 }

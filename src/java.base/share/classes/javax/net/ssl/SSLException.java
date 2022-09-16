@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,7 +36,9 @@ import java.io.IOException;
  * @since 1.4
  * @author David Brownell
  */
-public class SSLException extends IOException {
+public
+class SSLException extends IOException
+{
     @java.io.Serial
     private static final long serialVersionUID = 4511006460650708967L;
 
@@ -46,7 +48,8 @@ public class SSLException extends IOException {
      *
      * @param reason describes the problem.
      */
-    public SSLException(String reason) {
+    public SSLException(String reason)
+    {
         super(reason);
     }
 
@@ -63,7 +66,8 @@ public class SSLException extends IOException {
      * @since 1.5
      */
     public SSLException(String message, Throwable cause) {
-        super(message, cause);
+        super(message);
+        initCause(cause);
     }
 
     /**
@@ -79,6 +83,7 @@ public class SSLException extends IOException {
      * @since 1.5
      */
     public SSLException(Throwable cause) {
-        super(cause);
+        super(cause == null ? null : cause.toString());
+        initCause(cause);
     }
 }

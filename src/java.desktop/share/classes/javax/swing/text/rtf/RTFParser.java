@@ -233,52 +233,25 @@ abstract class RTFParser extends AbstractFilter
           currentCharacters.append(ch);
         } else {
           /* TODO: Test correct behavior of \bin keyword */
-
           if (pendingKeyword.equals("bin")) {  /* magic layer-breaking kwd */
-            long parameter = 0L;
-            try {
-              parameter = Long.parseLong(currentCharacters.toString());
-            } catch (NumberFormatException e) {
-              warning("Illegal number format " + currentCharacters.toString()
-                              + " in \bin tag");
-              pendingKeyword = null;
-              currentCharacters = new StringBuffer();
-              state = S_text;
-              // Delimiters here are interpreted as text too
-              if (!Character.isWhitespace(ch))
-                write(ch);
-              break;
-            }
+            long parameter = Long.parseLong(currentCharacters.toString());
             pendingKeyword = null;
             state = S_inblob;
-            int maxBytes = 4 * 1024 * 1024;
             binaryBytesLeft = parameter;
-
-            if (binaryBytesLeft > maxBytes) {
-              binaryBuf = new ByteArrayOutputStream(maxBytes);
-            } else if (binaryBytesLeft < 0) {
-              binaryBytesLeft = 0;
-              binaryBuf = new ByteArrayOutputStream((int)binaryBytesLeft);
-            } else {
-              binaryBuf = new ByteArrayOutputStream((int) binaryBytesLeft);
-            }
+            if (binaryBytesLeft > Integer.MAX_VALUE)
+                binaryBuf = new ByteArrayOutputStream(Integer.MAX_VALUE);
+            else
+                binaryBuf = new ByteArrayOutputStream((int)binaryBytesLeft);
             savedSpecials = specialsTable;
             specialsTable = allSpecialsTable;
             break;
           }
 
-          int parameter = 0;
-          try {
-            parameter = Integer.parseInt(currentCharacters.toString());
-            ok = handleKeyword(pendingKeyword, parameter);
-            if (!ok) {
-                warning("Unknown keyword: " + pendingKeyword +
-                        " (param " + currentCharacters + ")");
-            }
-          } catch (NumberFormatException e) {
-            warning("Illegal number format " + currentCharacters.toString()
-                    + " in " + pendingKeyword + " tag");
-          }
+          int parameter = Integer.parseInt(currentCharacters.toString());
+          ok = handleKeyword(pendingKeyword, parameter);
+          if (!ok)
+            warning("Unknown keyword: " + pendingKeyword +
+                    " (param " + currentCharacters + ")");
           pendingKeyword = null;
           currentCharacters = new StringBuffer();
           state = S_text;
@@ -307,16 +280,14 @@ abstract class RTFParser extends AbstractFilter
         }
         break;
       case S_inblob:
-        if (binaryBytesLeft > 0) {
-          binaryBuf.write(ch);
-          binaryBytesLeft--;
-        }
+        binaryBuf.write(ch);
+        binaryBytesLeft --;
         if (binaryBytesLeft == 0) {
-          state = S_text;
-          specialsTable = savedSpecials;
-          savedSpecials = null;
-          handleBinaryBlob(binaryBuf.toByteArray());
-          binaryBuf = null;
+            state = S_text;
+            specialsTable = savedSpecials;
+            savedSpecials = null;
+            handleBinaryBlob(binaryBuf.toByteArray());
+            binaryBuf = null;
         }
       }
   }

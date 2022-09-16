@@ -319,10 +319,10 @@ public interface IIOMetadataFormat {
      *
      * @return an {@code int}.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null} or is not a legal element name for this
      * format.
-     * @throws IllegalArgumentException if the named element does
+     * @exception IllegalArgumentException if the named element does
      * not have a child policy of {@code CHILD_POLICY_REPEAT}.
      */
     int getElementMinChildren(String elementName);
@@ -339,10 +339,10 @@ public interface IIOMetadataFormat {
      *
      * @return an {@code int}.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null} or is not a legal element name for this
      * format.
-     * @throws IllegalArgumentException if the named element does
+     * @exception IllegalArgumentException if the named element does
      * not have a child policy of {@code CHILD_POLICY_REPEAT}.
      */
     int getElementMaxChildren(String elementName);
@@ -362,7 +362,7 @@ public interface IIOMetadataFormat {
      *
      * @return the element description.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null}, or is not a legal element name for this format.
      */
     String getElementDescription(String elementName, Locale locale);
@@ -378,7 +378,7 @@ public interface IIOMetadataFormat {
      *
      * @return one of the {@code CHILD_POLICY_*} constants.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null} or is not a legal element name for this
      * format.
      */
@@ -394,7 +394,7 @@ public interface IIOMetadataFormat {
      *
      * @return an array of {@code String}s, or null.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null} or is not a legal element name for this
      * format.
      */
@@ -410,7 +410,7 @@ public interface IIOMetadataFormat {
      *
      * @return an array of {@code String}s.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null} or is not a legal element name for this
      * format.
      */
@@ -428,10 +428,10 @@ public interface IIOMetadataFormat {
      *
      * @return one of the {@code VALUE_*} constants.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null} or is not a legal element name for this
      * format.
-     * @throws IllegalArgumentException if {@code attrName} is
+     * @exception IllegalArgumentException if {@code attrName} is
      * {@code null} or is not a legal attribute name for this
      * element.
      */
@@ -450,10 +450,10 @@ public interface IIOMetadataFormat {
      *
      * @return one of the {@code DATATYPE_*} constants.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null} or is not a legal element name for this
      * format.
-     * @throws IllegalArgumentException if {@code attrName} is
+     * @exception IllegalArgumentException if {@code attrName} is
      * {@code null} or is not a legal attribute name for this
      * element.
      */
@@ -468,10 +468,10 @@ public interface IIOMetadataFormat {
      *
      * @return {@code true} if the attribute must be present.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null} or is not a legal element name for this
      * format.
-     * @throws IllegalArgumentException if {@code attrName} is
+     * @exception IllegalArgumentException if {@code attrName} is
      * {@code null} or is not a legal attribute name for this
      * element.
      */
@@ -489,10 +489,10 @@ public interface IIOMetadataFormat {
      * @return a {@code String} containing the default value, or
      * {@code null}.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null} or is not a legal element name for this
      * format.
-     * @throws IllegalArgumentException if {@code attrName} is
+     * @exception IllegalArgumentException if {@code attrName} is
      * {@code null} or is not a legal attribute name for this
      * element.
      */
@@ -510,13 +510,13 @@ public interface IIOMetadataFormat {
      *
      * @return an array of {@code String}s.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null} or is not a legal element name for this
      * format.
-     * @throws IllegalArgumentException if {@code attrName} is
+     * @exception IllegalArgumentException if {@code attrName} is
      * {@code null} or is not a legal attribute name for this
      * element.
-     * @throws IllegalArgumentException if the given attribute is
+     * @exception IllegalArgumentException if the given attribute is
      * not defined as an enumeration.
      */
     String[] getAttributeEnumerations(String elementName, String attrName);
@@ -537,13 +537,13 @@ public interface IIOMetadataFormat {
      * @return a {@code String} containing the smallest legal
      * value for the attribute.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null} or is not a legal element name for this
      * format.
-     * @throws IllegalArgumentException if {@code attrName} is
+     * @exception IllegalArgumentException if {@code attrName} is
      * {@code null} or is not a legal attribute name for this
      * element.
-     * @throws IllegalArgumentException if the given attribute is
+     * @exception IllegalArgumentException if the given attribute is
      * not defined as a range.
      */
     String getAttributeMinValue(String elementName, String attrName);
@@ -565,13 +565,13 @@ public interface IIOMetadataFormat {
      * @return a {@code String} containing the largest legal
      * value for the attribute.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null} or is not a legal element name for this
      * format.
-     * @throws IllegalArgumentException if {@code attrName} is
+     * @exception IllegalArgumentException if {@code attrName} is
      * {@code null} or is not a legal attribute name for this
      * element.
-     * @throws IllegalArgumentException if the given attribute is
+     * @exception IllegalArgumentException if the given attribute is
      * not defined as a range.
      */
     String getAttributeMaxValue(String elementName, String attrName);
@@ -590,13 +590,13 @@ public interface IIOMetadataFormat {
      * @return the smallest legal number of list items for the
      * attribute.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null} or is not a legal element name for this
      * format.
-     * @throws IllegalArgumentException if {@code attrName} is
+     * @exception IllegalArgumentException if {@code attrName} is
      * {@code null} or is not a legal attribute name for this
      * element.
-     * @throws IllegalArgumentException if the given attribute is
+     * @exception IllegalArgumentException if the given attribute is
      * not defined as a list.
      */
     int getAttributeListMinLength(String elementName, String attrName);
@@ -617,13 +617,13 @@ public interface IIOMetadataFormat {
      * @return the largest legal number of list items for the
      * attribute.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null} or is not a legal element name for this
      * format.
-     * @throws IllegalArgumentException if {@code attrName} is
+     * @exception IllegalArgumentException if {@code attrName} is
      * {@code null} or is not a legal attribute name for this
      * element.
-     * @throws IllegalArgumentException if the given attribute is
+     * @exception IllegalArgumentException if the given attribute is
      * not defined as a list.
      */
     int getAttributeListMaxLength(String elementName, String attrName);
@@ -644,9 +644,9 @@ public interface IIOMetadataFormat {
      *
      * @return the attribute description.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null}, or is not a legal element name for this format.
-     * @throws IllegalArgumentException if {@code attrName} is
+     * @exception IllegalArgumentException if {@code attrName} is
      * {@code null} or is not a legal attribute name for this
      * element.
      */
@@ -671,7 +671,7 @@ public interface IIOMetadataFormat {
      *
      * @return one of the {@code VALUE_*} constants.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null} or is not a legal element name for this
      * format.
      *
@@ -696,10 +696,10 @@ public interface IIOMetadataFormat {
      *
      * @return a {@code Class} object.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null} or is not a legal element name for this
      * format.
-     * @throws IllegalArgumentException if the named element cannot
+     * @exception IllegalArgumentException if the named element cannot
      * contain an object value (<i>i.e.</i>, if
      * {@code getObjectValueType(elementName) == VALUE_NONE}).
      */
@@ -714,10 +714,10 @@ public interface IIOMetadataFormat {
      *
      * @return an {@code Object}.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null} or is not a legal element name for this
      * format.
-     * @throws IllegalArgumentException if the named element cannot
+     * @exception IllegalArgumentException if the named element cannot
      * contain an object value (<i>i.e.</i>, if
      * {@code getObjectValueType(elementName) == VALUE_NONE}).
      */
@@ -739,13 +739,13 @@ public interface IIOMetadataFormat {
      *
      * @return an array of {@code Object}s.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null} or is not a legal element name for this
      * format.
-     * @throws IllegalArgumentException if the named element cannot
+     * @exception IllegalArgumentException if the named element cannot
      * contain an object value (<i>i.e.</i>, if
      * {@code getObjectValueType(elementName) == VALUE_NONE}).
-     * @throws IllegalArgumentException if the {@code Object}
+     * @exception IllegalArgumentException if the {@code Object}
      * is not defined as an enumeration.
      */
     Object[] getObjectEnumerations(String elementName);
@@ -762,13 +762,13 @@ public interface IIOMetadataFormat {
      *
      * @return the smallest legal value for the attribute.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null} or is not a legal element name for this
      * format.
-     * @throws IllegalArgumentException if the named element cannot
+     * @exception IllegalArgumentException if the named element cannot
      * contain an object value (<i>i.e.</i>, if
      * {@code getObjectValueType(elementName) == VALUE_NONE}).
-     * @throws IllegalArgumentException if the {@code Object}
+     * @exception IllegalArgumentException if the {@code Object}
      * is not defined as a range.
      */
     Comparable<?> getObjectMinValue(String elementName);
@@ -785,13 +785,13 @@ public interface IIOMetadataFormat {
      *
      * @param elementName the name of the element being queried.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null} or is not a legal element name for this
      * format.
-     * @throws IllegalArgumentException if the named element cannot
+     * @exception IllegalArgumentException if the named element cannot
      * contain an object value (<i>i.e.</i>, if
      * {@code getObjectValueType(elementName) == VALUE_NONE}).
-     * @throws IllegalArgumentException if the {@code Object}
+     * @exception IllegalArgumentException if the {@code Object}
      * is not defined as a range.
      */
     Comparable<?> getObjectMaxValue(String elementName);
@@ -808,13 +808,13 @@ public interface IIOMetadataFormat {
      * @return the smallest valid array length for the
      * {@code Object} reference.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null} or is not a legal element name for this
      * format.
-     * @throws IllegalArgumentException if the named element cannot
+     * @exception IllegalArgumentException if the named element cannot
      * contain an object value (<i>i.e.</i>, if
      * {@code getObjectValueType(elementName) == VALUE_NONE}).
-     * @throws IllegalArgumentException if the {@code Object} is not
+     * @exception IllegalArgumentException if the {@code Object} is not
      * an array.
      */
     int getObjectArrayMinLength(String elementName);
@@ -832,13 +832,13 @@ public interface IIOMetadataFormat {
      * @return the largest valid array length for the
      * {@code Object} reference.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null} or is not a legal element name for this
      * format.
-     * @throws IllegalArgumentException if the named element cannot
+     * @exception IllegalArgumentException if the named element cannot
      * contain an object value (<i>i.e.</i>, if
      * {@code getObjectValueType(elementName) == VALUE_NONE}).
-     * @throws IllegalArgumentException if the {@code Object} is not
+     * @exception IllegalArgumentException if the {@code Object} is not
      * an array.
      */
     int getObjectArrayMaxLength(String elementName);

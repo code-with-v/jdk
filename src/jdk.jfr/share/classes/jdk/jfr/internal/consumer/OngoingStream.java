@@ -214,7 +214,6 @@ public final class OngoingStream extends EventByteStream {
                 return false;
             }
             input = new RecordingInput(path.toFile(), SecuritySupport.PRIVILEGED);
-            input.setStreamed();
             header = new ChunkHeader(input);
         }
         return true;

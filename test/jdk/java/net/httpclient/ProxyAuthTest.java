@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,7 +24,8 @@
 /*
  * @test
  * @bug 8163561
- * @library /test/lib
+ * @modules java.base/sun.net.www
+ *          java.net.http
  * @summary Verify that Proxy-Authenticate header is correctly handled
  * @run main/othervm ProxyAuthTest
  */
@@ -51,8 +52,7 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Base64;
 import java.util.List;
-
-import jdk.test.lib.net.HttpHeaderParser;
+import sun.net.www.MessageHeader;
 
 public class ProxyAuthTest {
     private static final String AUTH_USER = "user";
@@ -156,11 +156,10 @@ public class ProxyAuthTest {
                      BufferedWriter writer = new BufferedWriter(
                              new OutputStreamWriter(os));
                      PrintWriter out = new PrintWriter(writer);) {
-                    HttpHeaderParser headers = new HttpHeaderParser(in);
+                    MessageHeader headers = new MessageHeader(in);
                     System.out.println("Proxy: received " + headers);
 
-                    String authInfo = headers.getHeaderValue("Proxy-Authorization") != null ?
-                            headers.getHeaderValue("Proxy-Authorization").get(0) : null;
+                    String authInfo = headers.findValue("Proxy-Authorization");
                     if (authInfo != null) {
                         authenticate(authInfo);
                         out.print("HTTP/1.1 404 Not found\r\n");

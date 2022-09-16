@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,14 +24,12 @@
 package com.sun.hotspot.igv.graph;
 
 import com.sun.hotspot.igv.data.InputBlock;
-import com.sun.hotspot.igv.data.InputBlockEdge;
 import com.sun.hotspot.igv.data.InputEdge;
 import com.sun.hotspot.igv.data.InputGraph;
 import com.sun.hotspot.igv.data.InputNode;
 import com.sun.hotspot.igv.data.Properties;
 import com.sun.hotspot.igv.data.Properties.StringPropertyMatcher;
 import java.awt.Font;
-import java.awt.Color;
 import java.util.*;
 
 /**
@@ -46,14 +44,9 @@ public class Diagram {
     private int curId;
     private String nodeText;
     private String shortNodeText;
-    private String tinyNodeText;
     private final Font font;
     private final Font slotFont;
     private final Font boldFont;
-    // Whether widgets derived from this diagram should be adapted for the
-    // control-flow graph view.
-    private boolean cfg;
-    private final Set<BlockConnection> blockConnections;
 
     public Font getFont() {
         return font;
@@ -67,16 +60,7 @@ public class Diagram {
         return boldFont;
     }
 
-    public boolean isCFG() {
-        return cfg;
-    }
-
-    public void setCFG(boolean cfg) {
-        this.cfg = cfg;
-    }
-
-    private Diagram(InputGraph graph, String nodeText, String shortNodeText,
-                    String tinyNodeText) {
+    private Diagram() {
         figures = new ArrayList<>();
         blocks = new LinkedHashMap<>(8);
         this.nodeText = "";
@@ -84,21 +68,11 @@ public class Diagram {
         this.font = new Font("Arial", Font.PLAIN, 12);
         this.slotFont = new Font("Arial", Font.PLAIN, 10);
         this.boldFont = this.font.deriveFont(Font.BOLD);
-        this.cfg = false;
-        this.blockConnections = new HashSet<>();
-        this.graph = graph;
-        this.nodeText = nodeText;
-        this.shortNodeText = shortNodeText;
-        this.tinyNodeText = tinyNodeText;
     }
 
     public Block getBlock(InputBlock b) {
         assert blocks.containsKey(b);
         return blocks.get(b);
-    }
-
-    public boolean hasBlock(InputBlock b) {
-        return blocks.containsKey(b);
     }
 
     public String getNodeText() {
@@ -109,10 +83,6 @@ public class Diagram {
         return shortNodeText;
     }
 
-    public String getTinyNodeText() {
-        return tinyNodeText;
-    }
-
     public void updateBlocks() {
         blocks.clear();
         for (InputBlock b : graph.getBlocks()) {
@@ -121,8 +91,16 @@ public class Diagram {
         }
     }
 
+    public Diagram getNext() {
+        return Diagram.createDiagram(graph.getNext(), nodeText, shortNodeText);
+    }
+
     public Collection<Block> getBlocks() {
         return Collections.unmodifiableCollection(blocks.values());
+    }
+
+    public Diagram getPrev() {
+        return Diagram.createDiagram(graph.getPrev(), nodeText, shortNodeText);
     }
 
     public List<Figure> getFigures() {
@@ -136,10 +114,10 @@ public class Diagram {
         return f;
     }
 
-    public FigureConnection createConnection(InputSlot inputSlot, OutputSlot outputSlot, String label) {
+    public Connection createConnection(InputSlot inputSlot, OutputSlot outputSlot, String label, String type) {
         assert inputSlot.getFigure().getDiagram() == this;
         assert outputSlot.getFigure().getDiagram() == this;
-        return new FigureConnection(inputSlot, outputSlot, label);
+        return new Connection(inputSlot, outputSlot, label, type);
     }
 
     public Map<InputNode, Set<Figure>> calcSourceToFigureRelation() {
@@ -159,13 +137,16 @@ public class Diagram {
     }
 
     public static Diagram createDiagram(InputGraph graph, String nodeText,
-                                        String shortNodeText,
-                                        String tinyNodeText) {
+                                        String shortNodeText) {
         if (graph == null) {
             return null;
         }
 
-        Diagram d = new Diagram(graph, nodeText, shortNodeText, tinyNodeText);
+        Diagram d = new Diagram();
+        d.graph = graph;
+        d.nodeText = nodeText;
+        d.shortNodeText = shortNodeText;
+
         d.updateBlocks();
 
         Collection<InputNode> nodes = graph.getNodes();
@@ -175,7 +156,6 @@ public class Diagram {
             f.getSource().addSourceNode(n);
             f.getProperties().add(n.getProperties());
             f.setSubgraphs(n.getSubgraphs());
-            f.setBlock(graph.getBlock(n));
             figureHash.put(n.getId(), f);
         }
 
@@ -201,7 +181,7 @@ public class Diagram {
             }
             InputSlot inputSlot = toFigure.getInputSlots().get(toIndex);
 
-            FigureConnection c = d.createConnection(inputSlot, outputSlot, e.getLabel());
+            Connection c = d.createConnection(inputSlot, outputSlot, e.getLabel(), e.getType());
 
             if (e.getState() == InputEdge.State.NEW) {
                 c.setStyle(Connection.ConnectionStyle.BOLD);
@@ -210,28 +190,8 @@ public class Diagram {
             }
         }
 
-        for (InputBlockEdge e : graph.getBlockEdges()) {
-            Block p = d.getBlock(e.getFrom());
-            Block s = d.getBlock(e.getTo());
-            d.blockConnections.add(new BlockConnection(p, s, e.getLabel()));
-        }
 
         return d;
-    }
-
-    public void removeAllBlocks(Set<Block> blocksToRemove) {
-        Set<Figure> figuresToRemove = new HashSet<>();
-        for (Block b : blocksToRemove) {
-            for (Figure f : getFigures()) {
-                if (f.getBlock() == b.getInputBlock()) {
-                    figuresToRemove.add(f);
-                }
-            }
-        }
-        removeAllFigures(figuresToRemove);
-        for (Block b : blocksToRemove) {
-            blocks.remove(b.getInputBlock());
-        }
     }
 
     public void removeAllFigures(Set<Figure> figuresToRemove) {
@@ -268,6 +228,7 @@ public class Diagram {
     }
 
     public void removeFigure(Figure succ) {
+
         assert this.figures.contains(succ);
         freeFigure(succ);
         this.figures.remove(succ);
@@ -281,24 +242,16 @@ public class Diagram {
         return graph;
     }
 
-    public Set<FigureConnection> getConnections() {
-        Set<FigureConnection> connections = new HashSet<>();
+    public Set<Connection> getConnections() {
+
+        Set<Connection> connections = new HashSet<>();
         for (Figure f : figures) {
+
             for (InputSlot s : f.getInputSlots()) {
                 connections.addAll(s.getConnections());
             }
         }
-        return connections;
-    }
 
-    public Set<BlockConnection> getBlockConnections() {
-        Set<BlockConnection> connections = new HashSet<>();
-        for (BlockConnection bc : blockConnections) {
-            if (blocks.containsKey(bc.getFromCluster().getInputBlock()) &&
-                blocks.containsKey(bc.getToCluster().getInputBlock())) {
-                connections.add(bc);
-            }
-        }
         return connections;
     }
 
@@ -325,13 +278,13 @@ public class Diagram {
         System.out.println("Diagram statistics");
 
         List<Figure> tmpFigures = getFigures();
-        Set<FigureConnection> connections = getConnections();
+        Set<Connection> connections = getConnections();
 
         System.out.println("Number of figures: " + tmpFigures.size());
         System.out.println("Number of connections: " + connections.size());
 
         List<Figure> figuresSorted = new ArrayList<>(tmpFigures);
-        figuresSorted.sort(new Comparator<Figure>() {
+        Collections.sort(figuresSorted, new Comparator<Figure>() {
 
             @Override
             public int compare(Figure a, Figure b) {

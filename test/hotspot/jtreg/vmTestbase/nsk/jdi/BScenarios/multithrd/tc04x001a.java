@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,7 @@
 package nsk.jdi.BScenarios.multithrd;
 
 import nsk.share.*;
+import nsk.share.jpda.*;
 import nsk.share.jdi.*;
 
 //    THIS TEST IS LINE NUMBER SENSITIVE
@@ -36,8 +37,8 @@ public class tc04x001a {
     public final static int threadCount = 3;
     static Log log;
 
-    public final static int checkMethodBrkpLine = 73;
-    Thread[] thrds = new Thread[threadCount];
+    public final static int checkMethodBrkpLine = 74;
+    Thready [] thrds = new Thready [threadCount];
 
     public static void main (String argv[]) {
         ArgumentHandler argHandler = new ArgumentHandler(argv);
@@ -64,7 +65,7 @@ public class tc04x001a {
 
     tc04x001a() {
         for (int i = 0; i < thrds.length; i++ ) {
-            thrds[i] = JDIThreadFactory.newThread(new Thready("Thread-" + (i+1)));
+            thrds[i] = new Thready("Thread-" + (i+1));
             thrds[i].start();
         }
     }
@@ -77,7 +78,7 @@ public class tc04x001a {
         log.display(caller + "::bar is called");
     }
 
-    static class Thready extends NamedTask {
+    static class Thready extends Thread {
         Thready(String name) {
             super(name);
         }

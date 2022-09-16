@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,9 +36,13 @@ class LinuxNativeDispatcher extends UnixNativeDispatcher {
     * FILE *setmntent(const char *filename, const char *type);
     */
     static long setmntent(byte[] filename, byte[] type) throws UnixException {
-        try (NativeBuffer pathBuffer = NativeBuffers.asNativeBuffer(filename);
-             NativeBuffer typeBuffer = NativeBuffers.asNativeBuffer(type)) {
+        NativeBuffer pathBuffer = NativeBuffers.asNativeBuffer(filename);
+        NativeBuffer typeBuffer = NativeBuffers.asNativeBuffer(type);
+        try {
             return setmntent0(pathBuffer.address(), typeBuffer.address());
+        } finally {
+            typeBuffer.release();
+            pathBuffer.release();
         }
     }
     private static native long setmntent0(long pathAddress, long typeAddress)
@@ -49,8 +53,11 @@ class LinuxNativeDispatcher extends UnixNativeDispatcher {
      */
 
     static int getmntent(long fp, UnixMountEntry entry, int buflen) throws UnixException {
-        try (NativeBuffer buffer = NativeBuffers.getNativeBuffer(buflen)) {
+        NativeBuffer buffer = NativeBuffers.getNativeBuffer(buflen);
+        try {
             return getmntent0(fp, entry, buffer.address(), buflen);
+        } finally {
+            buffer.release();
         }
     }
 
@@ -61,12 +68,6 @@ class LinuxNativeDispatcher extends UnixNativeDispatcher {
      * int endmntent(FILE* filep);
      */
     static native void endmntent(long stream) throws UnixException;
-
-    /**
-     * int posix_fadvise(int fd, off_t offset, off_t len, int advice);
-     */
-    static native int posix_fadvise(int fd, long offset, long len, int advice)
-        throws UnixException;
 
     // initialize
     private static native void init();

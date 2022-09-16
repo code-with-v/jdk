@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -240,12 +240,15 @@ class SynthParser extends DefaultHandler {
                 SAXParser saxParser = SAXParserFactory.newInstance().
                                                    newSAXParser();
                 saxParser.parse(new BufferedInputStream(inputStream), this);
-            } catch (ParserConfigurationException | IOException e) {
+            } catch (ParserConfigurationException e) {
                 throw new ParseException("Error parsing: " + e, 0);
             }
             catch (SAXException se) {
                 throw new ParseException("Error parsing: " + se + " " +
                                          se.getException(), 0);
+            }
+            catch (IOException ioe) {
+                throw new ParseException("Error parsing: " + ioe, 0);
             }
         } finally {
             reset();
@@ -625,7 +628,9 @@ class SynthParser extends DefaultHandler {
                     try {
                         color = new ColorUIResource((Color)Color.class.
                               getField(value.toUpperCase()).get(Color.class));
-                    } catch (NoSuchFieldException | IllegalAccessException e) {
+                    } catch (NoSuchFieldException nsfe) {
+                        throw new SAXException("Invalid color name: " + value);
+                    } catch (IllegalAccessException iae) {
                         throw new SAXException("Invalid color name: " + value);
                     }
                 }
@@ -656,7 +661,10 @@ class SynthParser extends DefaultHandler {
                         _colorTypes.add((ColorType)checkCast(typeClass.
                               getField(typeName.substring(classIndex)).
                               get(typeClass), ColorType.class));
-                    } catch (NoSuchFieldException | IllegalAccessException e) {
+                    } catch (NoSuchFieldException nsfe) {
+                        throw new SAXException("Unable to find color type: " +
+                                               typeName);
+                    } catch (IllegalAccessException iae) {
                         throw new SAXException("Unable to find color type: " +
                                                typeName);
                     }
@@ -1016,7 +1024,10 @@ class SynthParser extends DefaultHandler {
                                                        painter,
                                                        direction);
 
-        for (ParsedSynthStyle.PainterInfo info: painters) {
+        for (Object infoObject: painters) {
+            ParsedSynthStyle.PainterInfo info;
+            info = (ParsedSynthStyle.PainterInfo) infoObject;
+
             if (painterInfo.equalsPainter(info)) {
                 info.addPainter(painter);
                 return;

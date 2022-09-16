@@ -109,12 +109,22 @@ public class HotSpotCodeCacheProvider implements CodeCacheProvider {
         HotSpotCompiledCode hsCompiledCode = (HotSpotCompiledCode) compiledCode;
         String name = hsCompiledCode.getName();
         HotSpotCompiledNmethod hsCompiledNmethod = null;
+        if (method == null) {
+            // Must be a stub
+            resultInstalledCode = new HotSpotRuntimeStub(name);
+        } else {
+            hsCompiledNmethod = (HotSpotCompiledNmethod) hsCompiledCode;
+            HotSpotResolvedJavaMethodImpl hsMethod = (HotSpotResolvedJavaMethodImpl) method;
+            resultInstalledCode = new HotSpotNmethod(hsMethod, name, isDefault, hsCompiledNmethod.id);
+        }
+
         HotSpotSpeculationLog speculationLog = null;
         if (log != null) {
             if (log.hasSpeculations()) {
                 speculationLog = (HotSpotSpeculationLog) log;
             }
         }
+
         byte[] speculations;
         long failedSpeculationsAddress;
         if (speculationLog != null) {
@@ -124,19 +134,7 @@ public class HotSpotCodeCacheProvider implements CodeCacheProvider {
             speculations = new byte[0];
             failedSpeculationsAddress = 0L;
         }
-
-        if (method == null) {
-            // Must be a stub
-            resultInstalledCode = new HotSpotRuntimeStub(name);
-        } else {
-            hsCompiledNmethod = (HotSpotCompiledNmethod) hsCompiledCode;
-            HotSpotResolvedJavaMethodImpl hsMethod = (HotSpotResolvedJavaMethodImpl) method;
-            HotSpotNmethod nmethod = new HotSpotNmethod(hsMethod, name, isDefault, hsCompiledNmethod.id);
-            nmethod.setSpeculationLog(speculationLog);
-            resultInstalledCode = nmethod;
-        }
-
-        int result = runtime.getCompilerToVM().installCode(hsCompiledCode, resultInstalledCode, failedSpeculationsAddress, speculations);
+        int result = runtime.getCompilerToVM().installCode(target, (HotSpotCompiledCode) compiledCode, resultInstalledCode, failedSpeculationsAddress, speculations);
         if (result != config.codeInstallResultOk) {
             String resultDesc = config.getCodeInstallResultDescription(result);
             if (hsCompiledNmethod != null) {
@@ -157,8 +155,7 @@ public class HotSpotCodeCacheProvider implements CodeCacheProvider {
     @Override
     public void invalidateInstalledCode(InstalledCode installedCode) {
         if (installedCode instanceof HotSpotNmethod) {
-            HotSpotNmethod nmethod = (HotSpotNmethod) installedCode;
-            nmethod.invalidate(true);
+            runtime.getCompilerToVM().invalidateHotSpotNmethod((HotSpotNmethod) installedCode);
         } else {
             throw new IllegalArgumentException("Cannot invalidate a " + Objects.requireNonNull(installedCode).getClass().getName());
         }

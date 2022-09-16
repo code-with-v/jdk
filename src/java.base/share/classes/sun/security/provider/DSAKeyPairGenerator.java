@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,10 +26,12 @@
 package sun.security.provider;
 
 import java.math.BigInteger;
-import java.security.SecureRandom;
+
 import java.security.*;
+import java.security.SecureRandom;
 import java.security.interfaces.DSAParams;
 import java.security.spec.AlgorithmParameterSpec;
+import java.security.spec.InvalidParameterSpecException;
 import java.security.spec.DSAParameterSpec;
 
 import sun.security.jca.JCAUtil;
@@ -167,7 +169,8 @@ class DSAKeyPairGenerator extends KeyPairGenerator {
             pub = new DSAPublicKeyImpl(y, p, q, g);
             DSAPrivateKey priv = new DSAPrivateKey(x, p, q, g);
 
-            return new KeyPair(pub, priv);
+            KeyPair pair = new KeyPair(pub, priv);
+            return pair;
         } catch (InvalidKeyException e) {
             throw new ProviderException(e);
         }
@@ -180,7 +183,7 @@ class DSAKeyPairGenerator extends KeyPairGenerator {
      * generateX method.
      */
     private BigInteger generateX(SecureRandom random, BigInteger q) {
-        BigInteger x;
+        BigInteger x = null;
         byte[] temp = new byte[qlen];
         while (true) {
             random.nextBytes(temp);
@@ -199,7 +202,8 @@ class DSAKeyPairGenerator extends KeyPairGenerator {
      * @param p the base parameter.
      */
     BigInteger generateY(BigInteger x, BigInteger p, BigInteger g) {
-        return g.modPow(x, p);
+        BigInteger y = g.modPow(x, p);
+        return y;
     }
 
     public static final class Current extends DSAKeyPairGenerator {

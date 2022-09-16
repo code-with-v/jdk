@@ -245,4 +245,7 @@ public class HierarchicalClusterLayoutManager implements LayoutManager {
             }
         }
     }
+
+    public void doRouting(LayoutGraph graph) {
+    }
 }

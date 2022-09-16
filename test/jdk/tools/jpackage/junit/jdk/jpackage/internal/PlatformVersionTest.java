@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -37,12 +37,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
-/*
- * @test
- * @modules jdk.jpackage
- * @compile --patch-module jdk.jpackage=${test.src} --add-reads jdk.jpackage=ALL-UNNAMED --add-exports jdk.jpackage/jdk.jpackage.internal=ALL-UNNAMED PlatformVersionTest.java
- * @run junit/othervm --patch-module jdk.jpackage=${test.classes} --add-reads jdk.jpackage=ALL-UNNAMED --add-exports jdk.jpackage/jdk.jpackage.internal=ALL-UNNAMED jdk.jpackage.internal.PlatformVersionTest
- */
 @RunWith(Parameterized.class)
 public class PlatformVersionTest {
 
@@ -57,20 +51,20 @@ public class PlatformVersionTest {
     public static List<Object[]> data() {
         List<Object[]> data = new ArrayList<>();
         addTo(data, WIN_MSI_PRODUCT_VERSION_PARSER, true,
-            "0.0",
+            "255",
+            "0",
             "255.255",
-            "0.0.0",
             "255.255.65535",
-            "0.0.0.0",
-            "255.255.65535.999999"
+            "1.0",
+            "1",
+            "01.02.6"
         );
 
         addTo(data, WIN_MSI_PRODUCT_VERSION_PARSER, false,
-            "0",
-            "256.01",
+            "256",
             "255.256",
             "255.255.65536",
-            "1.2.3.4.5"
+            "1.2.3.4"
         );
 
         addTo(data, MAC_CFBUNDLE_VERSION_PARSER, true,

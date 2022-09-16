@@ -285,9 +285,9 @@ public class Cursor implements java.io.Serializable {
      *
      * @param name a string describing the desired system-specific custom cursor
      * @return the system specific custom cursor named
-     * @throws HeadlessException if
+     * @exception HeadlessException if
      * {@code GraphicsEnvironment.isHeadless} returns true
-     * @throws AWTException in case of erroneous retrieving of the cursor
+     * @exception AWTException in case of erroneous retrieving of the cursor
      */
     public static Cursor getSystemCustomCursor(final String name)
         throws AWTException, HeadlessException {
@@ -295,7 +295,10 @@ public class Cursor implements java.io.Serializable {
         Cursor cursor = systemCustomCursors.get(name);
 
         if (cursor == null) {
-            loadSystemCustomCursorProperties();
+            synchronized(systemCustomCursors) {
+                if (systemCustomCursorProperties == null)
+                    loadSystemCustomCursorProperties();
+            }
 
             String prefix = CURSOR_DOT_PREFIX + name;
             String key    = prefix + DOT_FILE_SUFFIX;
@@ -430,10 +433,7 @@ public class Cursor implements java.io.Serializable {
      */
     @SuppressWarnings("removal")
     private static void loadSystemCustomCursorProperties() throws AWTException {
-        synchronized (systemCustomCursors) {
-            if (systemCustomCursorProperties != null) {
-                return;
-            }
+        synchronized(systemCustomCursors) {
             systemCustomCursorProperties = new Properties();
 
             try {

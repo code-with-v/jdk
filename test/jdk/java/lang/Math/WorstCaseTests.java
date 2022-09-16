@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,6 +29,7 @@
  * @build WorstCaseTests
  * @run main WorstCaseTests
  * @run main/othervm -Xcomp WorstCaseTests
+ * @author Joseph D. Darcy
  */
 
 /**
@@ -125,8 +126,8 @@ public class WorstCaseTests {
     private static int testExpCase(double input, double expected) {
         int failures = 0;
         double out = Tests.nextOut(expected);
-        failures += Tests.testBounds("Math.exp",       input, Math::exp,       expected, out);
-        failures += Tests.testBounds("StrictMath.exp", input, StrictMath::exp, expected, out);
+        failures += Tests.testBounds("Math.exp",       input, Math.exp(input),       expected, out);
+        failures += Tests.testBounds("StrictMath.exp", input, StrictMath.exp(input), expected, out);
         return failures;
     }
 
@@ -157,8 +158,8 @@ public class WorstCaseTests {
     private static int testLogCase(double input, double expected) {
         int failures = 0;
         double out = Tests.nextOut(expected);
-        failures += Tests.testBounds("Math.log",       input, Math::log,       expected, out);
-        failures += Tests.testBounds("StrictMath.log", input, StrictMath::log, expected, out);
+        failures += Tests.testBounds("Math.log",       input, Math.log(input),       expected, out);
+        failures += Tests.testBounds("StrictMath.log", input, StrictMath.log(input), expected, out);
         return failures;
     }
 
@@ -190,8 +191,8 @@ public class WorstCaseTests {
     private static int testSinCase(double input, double expected) {
         int failures = 0;
         double out = Tests.nextOut(expected);
-        failures += Tests.testBounds("Math.sin",       input, Math::sin,       expected, out);
-        failures += Tests.testBounds("StrictMath.sin", input, StrictMath::sin, expected, out);
+        failures += Tests.testBounds("Math.sin",       input, Math.sin(input),       expected, out);
+        failures += Tests.testBounds("StrictMath.sin", input, StrictMath.sin(input), expected, out);
         return failures;
     }
 
@@ -222,8 +223,8 @@ public class WorstCaseTests {
     private static int testAsinCase(double input, double expected) {
         int failures = 0;
         double out = Tests.nextOut(expected);
-        failures += Tests.testBounds("Math.asin",       input, Math::asin,       expected, out);
-        failures += Tests.testBounds("StrictMath.asin", input, StrictMath::asin, expected, out);
+        failures += Tests.testBounds("Math.asin",       input, Math.asin(input),       expected, out);
+        failures += Tests.testBounds("StrictMath.asin", input, StrictMath.asin(input), expected, out);
         return failures;
     }
 
@@ -255,8 +256,8 @@ public class WorstCaseTests {
     private static int testCosCase(double input, double expected) {
         int failures = 0;
         double out = Tests.nextOut(expected);
-        failures += Tests.testBounds("Math.cos",       input, Math::cos,       expected, out);
-        failures += Tests.testBounds("StrictMath.cos", input, StrictMath::cos, expected, out);
+        failures += Tests.testBounds("Math.cos",       input, Math.cos(input),       expected, out);
+        failures += Tests.testBounds("StrictMath.cos", input, StrictMath.cos(input), expected, out);
         return failures;
     }
 
@@ -279,8 +280,8 @@ public class WorstCaseTests {
     private static int testAcosCase(double input, double expected) {
         int failures = 0;
         double out = Tests.nextOut(expected);
-        failures += Tests.testBounds("Math.acos",       input, Math::acos,       expected, out);
-        failures += Tests.testBounds("StrictMath.acos", input, StrictMath::acos, expected, out);
+        failures += Tests.testBounds("Math.acos",       input, Math.acos(input),       expected, out);
+        failures += Tests.testBounds("StrictMath.acos", input, StrictMath.acos(input), expected, out);
         return failures;
     }
 
@@ -308,8 +309,8 @@ public class WorstCaseTests {
     private static int testTanCase(double input, double expected) {
         int failures = 0;
         double out = Tests.nextOut(expected);
-        failures += Tests.testBounds("Math.tan",       input, Math::tan,       expected, out);
-        failures += Tests.testBounds("StrictMath.tan", input, StrictMath::tan, expected, out);
+        failures += Tests.testBounds("Math.tan",       input, Math.tan(input),       expected, out);
+        failures += Tests.testBounds("StrictMath.tan", input, StrictMath.tan(input), expected, out);
         return failures;
     }
 
@@ -340,8 +341,8 @@ public class WorstCaseTests {
     private static int testAtanCase(double input, double expected) {
         int failures = 0;
         double out = Tests.nextOut(expected);
-        failures += Tests.testBounds("Math.atan",       input, Math::atan,       expected, out);
-        failures += Tests.testBounds("StrictMath.atan", input, StrictMath::atan, expected, out);
+        failures += Tests.testBounds("Math.atan",       input, Math.atan(input),       expected, out);
+        failures += Tests.testBounds("StrictMath.atan", input, StrictMath.atan(input), expected, out);
         return failures;
     }
 
@@ -366,8 +367,8 @@ public class WorstCaseTests {
     private static int testPow2Case(double input, double expected) {
         int failures = 0;
         double out = Tests.nextOut(expected);
-        failures += Tests.testBounds("Math.pow2",       input, d -> Math.pow(2, d),       expected, out);
-        failures += Tests.testBounds("StrictMath.pow2", input, d -> StrictMath.pow(2, d), expected, out);
+        failures += Tests.testBounds("Math.pow2",       input, Math.pow(2, input),       expected, out);
+        failures += Tests.testBounds("StrictMath.pow2", input, StrictMath.pow(2, input), expected, out);
         return failures;
     }
 
@@ -399,8 +400,8 @@ public class WorstCaseTests {
     private static int testSinhCase(double input, double expected) {
         int failures = 0;
         double out = Tests.nextOut(expected);
-        failures += Tests.testBounds("Math.sinh",       input, Math::sinh,       expected, out);
-        failures += Tests.testBounds("StrictMath.sinh", input, StrictMath::sinh, expected, out);
+        failures += Tests.testBounds("Math.sinh",       input, Math.sinh(input),       expected, out);
+        failures += Tests.testBounds("StrictMath.sinh", input, StrictMath.sinh(input), expected, out);
         return failures;
     }
 
@@ -427,8 +428,8 @@ public class WorstCaseTests {
     private static int testCoshCase(double input, double expected) {
         int failures = 0;
         double out = Tests.nextOut(expected);
-        failures += Tests.testBounds("Math.cosh",       input, Math::cosh,       expected, out);
-        failures += Tests.testBounds("StrictMath.cosh", input, StrictMath::cosh, expected, out);
+        failures += Tests.testBounds("Math.cosh",       input, Math.cosh(input),       expected, out);
+        failures += Tests.testBounds("StrictMath.cosh", input, StrictMath.cosh(input), expected, out);
         return failures;
     }
 }

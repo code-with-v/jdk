@@ -29,7 +29,8 @@
 #include "code/location.hpp"
 #include "code/nmethod.hpp"
 #include "code/oopRecorder.hpp"
-#include "runtime/javaThread.hpp"
+#include "runtime/stackValue.hpp"
+#include "runtime/thread.hpp"
 #include "utilities/growableArray.hpp"
 
 // Classes used for serializing debugging information.
@@ -41,7 +42,6 @@
 // - ConstantValue   describes a constant
 
 class ConstantOopReadValue;
-class ConstantOopWriteValue;
 class LocationValue;
 class ObjectValue;
 
@@ -61,11 +61,6 @@ class ScopeValue: public ResourceObj {
   ConstantOopReadValue* as_ConstantOopReadValue() {
     assert(is_constant_oop(), "must be");
     return (ConstantOopReadValue*) this;
-  }
-
-  ConstantOopWriteValue* as_ConstantOopWriteValue() {
-    assert(is_constant_oop(), "must be");
-    return (ConstantOopWriteValue*) this;
   }
 
   ObjectValue* as_ObjectValue() {

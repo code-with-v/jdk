@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,7 +29,6 @@ import com.sun.hotspot.igv.data.services.GraphViewer;
 import com.sun.hotspot.igv.graph.Figure;
 import com.sun.hotspot.igv.util.DoubleClickAction;
 import com.sun.hotspot.igv.util.DoubleClickHandler;
-import com.sun.hotspot.igv.util.PropertiesConverter;
 import com.sun.hotspot.igv.util.PropertiesSheet;
 import com.sun.hotspot.igv.view.DiagramScene;
 import java.awt.*;
@@ -47,16 +46,13 @@ import javax.swing.event.MenuListener;
 import org.netbeans.api.visual.action.PopupMenuProvider;
 import org.netbeans.api.visual.action.WidgetAction;
 import org.netbeans.api.visual.layout.LayoutFactory;
-import org.netbeans.api.visual.layout.LayoutFactory.SerialAlignment;
 import org.netbeans.api.visual.model.ObjectState;
-import org.netbeans.api.visual.widget.ImageWidget;
 import org.netbeans.api.visual.widget.LabelWidget;
 import org.netbeans.api.visual.widget.Widget;
 import org.openide.nodes.AbstractNode;
 import org.openide.nodes.Children;
 import org.openide.nodes.Node;
 import org.openide.nodes.Sheet;
-import org.openide.util.ImageUtilities;
 import org.openide.util.Lookup;
 
 /**
@@ -76,7 +72,6 @@ public class FigureWidget extends Widget implements Properties.Provider, PopupMe
     private boolean boundary;
     private final Node node;
     private Widget dummyTop;
-    private static final Image warningSign = ImageUtilities.loadImage("com/sun/hotspot/igv/view/images/warning.png");
 
     public void setBoundary(boolean b) {
         boundary = b;
@@ -111,30 +106,15 @@ public class FigureWidget extends Widget implements Properties.Provider, PopupMe
         outer.setLayout(LayoutFactory.createOverlayLayout());
 
         middleWidget = new Widget(scene);
-        SerialAlignment textAlign = scene.getModel().getShowCFG() ?
-            LayoutFactory.SerialAlignment.LEFT_TOP :
-            LayoutFactory.SerialAlignment.CENTER;
-        middleWidget.setLayout(LayoutFactory.createVerticalFlowLayout(textAlign, 0));
+        middleWidget.setLayout(LayoutFactory.createVerticalFlowLayout(LayoutFactory.SerialAlignment.CENTER, 0));
         middleWidget.setBackground(f.getColor());
         middleWidget.setOpaque(true);
         middleWidget.getActions().addAction(new DoubleClickAction(this));
         middleWidget.setCheckClipping(true);
 
         dummyTop = new Widget(scene);
-        int extraTopHeight =
-            getFigure().getDiagram().isCFG() && getFigure().hasNamedInputSlot() ?
-            Figure.TOP_CFG_HEIGHT : 0;
-        dummyTop.setMinimumSize(new Dimension(Figure.INSET / 2, 1 + extraTopHeight));
+        dummyTop.setMinimumSize(new Dimension(Figure.INSET / 2, 1));
         middleWidget.addChild(dummyTop);
-
-        // This widget includes the node text and possibly a warning sign to the right.
-        Widget nodeInfoWidget = new Widget(scene);
-        nodeInfoWidget.setLayout(LayoutFactory.createAbsoluteLayout());
-        middleWidget.addChild(nodeInfoWidget);
-
-        Widget textWidget = new Widget(scene);
-        textWidget.setLayout(LayoutFactory.createVerticalFlowLayout(textAlign, 0));
-        nodeInfoWidget.addChild(textWidget);
 
         String[] strings = figure.getLines();
         labelWidgets = new ArrayList<>(strings.length);
@@ -142,7 +122,7 @@ public class FigureWidget extends Widget implements Properties.Provider, PopupMe
         for (String displayString : strings) {
             LabelWidget lw = new LabelWidget(scene);
             labelWidgets.add(lw);
-            textWidget.addChild(lw);
+            middleWidget.addChild(lw);
             lw.setLabel(displayString);
             lw.setFont(figure.getDiagram().getFont());
             lw.setForeground(getTextColor());
@@ -151,22 +131,11 @@ public class FigureWidget extends Widget implements Properties.Provider, PopupMe
             lw.setBorder(BorderFactory.createEmptyBorder());
         }
 
-        if (getFigure().getWarning() != null) {
-            ImageWidget warningWidget = new ImageWidget(scene, warningSign);
-            Point warningLocation = new Point(getFigure().getWidth() - Figure.WARNING_WIDTH - Figure.INSET / 2, 0);
-            warningWidget.setPreferredLocation(warningLocation);
-            warningWidget.setToolTipText(getFigure().getWarning());
-            nodeInfoWidget.addChild(warningWidget);
-        }
-
         Widget dummyBottom = new Widget(scene);
-        int extraBottomHeight =
-            getFigure().getDiagram().isCFG() && getFigure().hasNamedOutputSlot() ?
-            Figure.BOTTOM_CFG_HEIGHT : 0;
-        dummyBottom.setMinimumSize(new Dimension(Figure.INSET / 2, 1  + extraBottomHeight));
+        dummyBottom.setMinimumSize(new Dimension(Figure.INSET / 2, 1));
         middleWidget.addChild(dummyBottom);
 
-        middleWidget.setPreferredBounds(new Rectangle(0, Figure.getVerticalOffset(), f.getWidth(), f.getHeight()));
+        middleWidget.setPreferredBounds(new Rectangle(0, Figure.SLOT_WIDTH - Figure.OVERLAPPING, f.getWidth(), f.getHeight()));
         this.addChild(middleWidget);
 
         // Initialize node for property sheet
@@ -180,8 +149,6 @@ public class FigureWidget extends Widget implements Properties.Provider, PopupMe
             }
         };
         node.setDisplayName(getName());
-
-        this.setToolTipText(PropertiesConverter.convertToHTML(f.getProperties()));
     }
 
     public Widget getLeftWidget() {

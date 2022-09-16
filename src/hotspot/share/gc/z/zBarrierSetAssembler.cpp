@@ -24,7 +24,7 @@
 #include "precompiled.hpp"
 #include "gc/z/zBarrierSetAssembler.hpp"
 #include "gc/z/zThreadLocalData.hpp"
-#include "runtime/javaThread.hpp"
+#include "runtime/thread.hpp"
 
 Address ZBarrierSetAssemblerBase::address_bad_mask_from_thread(Register thread) {
   return Address(thread, ZThreadLocalData::address_bad_mask_offset());

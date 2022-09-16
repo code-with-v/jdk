@@ -7,12 +7,6 @@
 
 /** <html> */
 public class MultipleDocLintOptionsTest {
-    /**
-     * .
-     * @return
-     */
+    /** @return */
     int emptyReturn() { return -1; }
-
-    /** . */
-    MultipleDocLintOptionsTest() { }
 }

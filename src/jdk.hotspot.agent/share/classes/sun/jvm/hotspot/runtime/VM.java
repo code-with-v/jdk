@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -98,7 +98,6 @@ public class VM {
   private boolean      isLP64;
   private int          bytesPerLong;
   private int          bytesPerWord;
-  private int          logBytesPerWord;
   private int          objectAlignmentInBytes;
   private int          minObjAlignmentInBytes;
   private int          logMinObjAlignmentInBytes;
@@ -359,26 +358,26 @@ public class VM {
      if (System.getProperty("sun.jvm.hotspot.runtime.VM.disableVersionCheck") == null) {
         // read sa build version.
         String versionProp = "sun.jvm.hotspot.runtime.VM.saBuildVersion";
-        String versionPropVal = saProps.getProperty(versionProp);
-        if (versionPropVal == null) {
+        String saVersion = saProps.getProperty(versionProp);
+        if (saVersion == null)
            throw new RuntimeException("Missing property " + versionProp);
-        }
 
-        var saVersion = Runtime.Version.parse(versionPropVal);
-        var vmVersion = Runtime.Version.parse(vmRelease);
+        // Strip nonproduct VM version substring (note: saVersion doesn't have it).
+        String vmVersion = vmRelease.replaceAll("(-fastdebug)|(-debug)|(-jvmg)|(-optimized)|(-profiled)","");
 
         if (saVersion.equals(vmVersion)) {
            // Exact match
            return;
         }
-        if (!saVersion.equalsIgnoreOptional(vmVersion)) {
+        if (saVersion.indexOf('-') == saVersion.lastIndexOf('-') &&
+            vmVersion.indexOf('-') == vmVersion.lastIndexOf('-')) {
            // Throw exception if different release versions:
-           // <version>+<build>
-           throw new VMVersionMismatchException(saVersion, vmVersion);
+           // <major>.<minor>-b<n>
+           throw new VMVersionMismatchException(saVersion, vmRelease);
         } else {
            // Otherwise print warning to allow mismatch not release versions
            // during development.
-           System.err.println("WARNING: Hotspot VM version " + vmVersion +
+           System.err.println("WARNING: Hotspot VM version " + vmRelease +
                               " does not match with SA version " + saVersion +
                               "." + " You may see unexpected results. ");
         }
@@ -478,7 +477,6 @@ public class VM {
     }
     bytesPerLong = db.lookupIntConstant("BytesPerLong").intValue();
     bytesPerWord = db.lookupIntConstant("BytesPerWord").intValue();
-    logBytesPerWord = db.lookupIntConstant("LogBytesPerWord").intValue();
     heapWordSize = db.lookupIntConstant("HeapWordSize").intValue();
     Flags_DEFAULT = db.lookupIntConstant("JVMFlagOrigin::DEFAULT").intValue();
     Flags_COMMAND_LINE = db.lookupIntConstant("JVMFlagOrigin::COMMAND_LINE").intValue();
@@ -652,7 +650,7 @@ public class VM {
   }
 
   // Convenience function for conversions
-  public static long getAddressValue(Address addr) {
+  static public long getAddressValue(Address addr) {
     return VM.getVM().getDebugger().getAddressValue(addr);
   }
 
@@ -688,10 +686,6 @@ public class VM {
 
   public int getBytesPerWord() {
     return bytesPerWord;
-  }
-
-  public int getLogBytesPerWord() {
-    return logBytesPerWord;
   }
 
   /** Get minimum object alignment in bytes. */
@@ -943,13 +937,9 @@ public class VM {
 
   public boolean isSharingEnabled() {
     if (sharingEnabled == null) {
-        Address address = VM.getVM().getDebugger().lookup(null, "UseSharedSpaces");
-        if (address == null && getOS().equals("win32")) {
-            // On Win32 symbols are prefixed with the dll name. So look for
-            // UseSharedSpaces as a symbol in jvm.dll.
-            address = VM.getVM().getDebugger().lookup(null, "jvm!UseSharedSpaces");
-        }
-        sharingEnabled = address.getJBooleanAt(0);
+      Flag flag = getCommandLineFlag("UseSharedSpaces");
+      sharingEnabled = (flag == null)? Boolean.FALSE :
+          (flag.getBool()? Boolean.TRUE: Boolean.FALSE);
     }
     return sharingEnabled.booleanValue();
   }
@@ -975,7 +965,7 @@ public class VM {
   public int getObjectAlignmentInBytes() {
     if (objectAlignmentInBytes == 0) {
         Flag flag = getCommandLineFlag("ObjectAlignmentInBytes");
-        objectAlignmentInBytes = (flag == null) ? 8 : (int)flag.getInt();
+        objectAlignmentInBytes = (flag == null) ? 8 : (int)flag.getIntx();
     }
     return objectAlignmentInBytes;
   }

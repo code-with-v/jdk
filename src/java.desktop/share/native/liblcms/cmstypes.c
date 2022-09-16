@@ -3451,7 +3451,6 @@ void *Type_ProfileSequenceId_Read(struct _cms_typehandler_struct* self, cmsIOHAN
 
     // Get table count
     if (!_cmsReadUInt32Number(io, &Count)) return NULL;
-    SizeOfTag -= sizeof(cmsUInt32Number);
 
     // Allocate an empty structure
     OutSeq = cmsAllocProfileSequenceDescription(self ->ContextID, Count);
@@ -3468,7 +3467,7 @@ void *Type_ProfileSequenceId_Read(struct _cms_typehandler_struct* self, cmsIOHAN
     // Success
     *nItems = 1;
     return OutSeq;
-
+    cmsUNUSED_PARAMETER(SizeOfTag);
 }
 
 
@@ -5151,11 +5150,9 @@ void *Type_Dictionary_Read(struct _cms_typehandler_struct* self, cmsIOHANDLER* i
 
     // Get name-value record count
     if (!_cmsReadUInt32Number(io, &Count)) return NULL;
-    SizeOfTag -= sizeof(cmsUInt32Number);
 
     // Get rec length
     if (!_cmsReadUInt32Number(io, &Length)) return NULL;
-    SizeOfTag -= sizeof(cmsUInt32Number);
 
     // Check for valid lengths
     if (Length != 16 && Length != 24 && Length != 32) {
@@ -5213,6 +5210,8 @@ Error:
    FreeArray(&a);
    cmsDictFree(hDict);
    return NULL;
+
+   cmsUNUSED_PARAMETER(SizeOfTag);
 }
 
 

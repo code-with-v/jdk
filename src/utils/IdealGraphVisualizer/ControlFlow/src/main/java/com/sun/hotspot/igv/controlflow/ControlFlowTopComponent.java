@@ -165,7 +165,7 @@ final class ControlFlowTopComponent extends TopComponent implements LookupListen
         scene.getView().requestFocus();
     }
 
-    static final class ResolvableHelper implements Serializable {
+    final static class ResolvableHelper implements Serializable {
 
         private static final long serialVersionUID = 1L;
 

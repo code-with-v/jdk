@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,6 +35,7 @@ import java.io.ObjectOutputStream;
 import java.io.ObjectStreamField;
 
 import java.security.AccessController;
+import java.security.PrivilegedAction;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -364,7 +365,7 @@ public class RelationNotification extends Notification {
     public List<ObjectName> getMBeansToUnregister() {
         List<ObjectName> result;
         if (unregisterMBeanList != null) {
-            result = new ArrayList<>(unregisterMBeanList);
+            result = new ArrayList<ObjectName>(unregisterMBeanList);
         } else {
             result = Collections.emptyList();
         }
@@ -392,7 +393,7 @@ public class RelationNotification extends Notification {
     public List<ObjectName> getOldRoleValue() {
         List<ObjectName> result;
         if (oldRoleValue != null) {
-            result = new ArrayList<>(oldRoleValue);
+            result = new ArrayList<ObjectName>(oldRoleValue);
         } else {
             result = Collections.emptyList();
         }
@@ -407,7 +408,7 @@ public class RelationNotification extends Notification {
     public List<ObjectName> getNewRoleValue() {
         List<ObjectName> result;
         if (newRoleValue != null) {
-            result = new ArrayList<>(newRoleValue);
+            result = new ArrayList<ObjectName>(newRoleValue);
         } else {
             result = Collections.emptyList();
         }
@@ -489,7 +490,7 @@ public class RelationNotification extends Notification {
                               RelationNotification.RELATION_BASIC_REMOVAL,
                               RelationNotification.RELATION_MBEAN_REMOVAL};
 
-        Set<String> ctSet = new HashSet<>(Arrays.asList(validTypes));
+        Set<String> ctSet = new HashSet<String>(Arrays.asList(validTypes));
         return ctSet.contains(notifType);
     }
 
@@ -511,7 +512,7 @@ public class RelationNotification extends Notification {
     private ArrayList<ObjectName> safeGetObjectNameList(List<ObjectName> src){
         ArrayList<ObjectName> dest = null;
         if (src != null) {
-            dest = new ArrayList<>();
+            dest = new ArrayList<ObjectName>();
             for (ObjectName item : src) {
                 // NPE thrown if we attempt to add null object
                 dest.add(ObjectName.getInstance(item));
@@ -574,7 +575,7 @@ public class RelationNotification extends Notification {
             throw new InvalidObjectException("Invalid object read");
         }
 
-        // assign deserialized values to object fields
+        // assign deserialized vaules to object fields
         relationObjName = safeGetObjectName(tmpRelationObjName);
         newRoleValue = safeGetObjectNameList(tmpNewRoleValue);
         oldRoleValue = safeGetObjectNameList(tmpOldRoleValue);

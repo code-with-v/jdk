@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,7 +31,13 @@ import java.security.AlgorithmConstraints;
 import java.security.CryptoPrimitive;
 import java.security.GeneralSecurityException;
 import java.text.MessageFormat;
-import java.util.*;
+import java.util.Arrays;
+import java.util.EnumSet;
+import java.util.HexFormat;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.net.ssl.SSLException;
@@ -209,23 +215,22 @@ final class ServerHello {
             hos.putInt8(compressionMethod);
 
             extensions.send(hos);           // In TLS 1.3, use of certain
-                                            // extensions are mandatory.
+                                            // extensions is mandatory.
         }
 
         @Override
         public String toString() {
             MessageFormat messageFormat = new MessageFormat(
-                    """
-                            "{0}": '{'
-                              "server version"      : "{1}",
-                              "random"              : "{2}",
-                              "session id"          : "{3}",
-                              "cipher suite"        : "{4}",
-                              "compression methods" : "{5}",
-                              "extensions"          : [
-                            {6}
-                              ]
-                            '}'""",
+                "\"{0}\": '{'\n" +
+                "  \"server version\"      : \"{1}\",\n" +
+                "  \"random\"              : \"{2}\",\n" +
+                "  \"session id\"          : \"{3}\",\n" +
+                "  \"cipher suite\"        : \"{4}\",\n" +
+                "  \"compression methods\" : \"{5}\",\n" +
+                "  \"extensions\"          : [\n" +
+                "{6}\n" +
+                "  ]\n" +
+                "'}'",
                 Locale.ENGLISH);
             Object[] messageFields = {
                 serverRandom.isHelloRetryRequest() ?
@@ -303,8 +308,8 @@ final class ServerHello {
                         shc.negotiatedProtocol, shc.negotiatedCipherSuite);
 
                 // Check the incoming OCSP stapling extensions and attempt
-                // to get responses.  If the resulting stapleParams is non-null,
-                // it implies that stapling is enabled on the server side.
+                // to get responses.  If the resulting stapleParams is non
+                // null, it implies that stapling is enabled on the server side.
                 shc.stapleParams = StatusResponseManager.processStapling(shc);
                 shc.staplingActive = (shc.stapleParams != null);
 
@@ -696,7 +701,7 @@ final class ServerHello {
 
         private static CipherSuite chooseCipherSuite(
                 ServerHandshakeContext shc,
-                ClientHelloMessage clientHello) {
+                ClientHelloMessage clientHello) throws IOException {
             List<CipherSuite> preferred;
             List<CipherSuite> proposed;
             if (shc.sslConfig.preferLocalCipherSuites) {
@@ -835,7 +840,7 @@ final class ServerHello {
 
             // Produce extensions for HelloRetryRequest handshake message.
             SSLExtension[] serverHelloExtensions =
-                    shc.sslConfig.getEnabledExtensions(
+                shc.sslConfig.getEnabledExtensions(
                     SSLHandshake.MESSAGE_HASH, shc.negotiatedProtocol);
             hhrm.extensions.produce(shc, serverHelloExtensions);
             if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
@@ -1083,8 +1088,10 @@ final class ServerHello {
                     //
                     // Invalidate the session for initial handshake in case
                     // of reusing next time.
-                    chc.resumingSession.invalidate();
-                    chc.resumingSession = null;
+                    if (chc.resumingSession != null) {
+                        chc.resumingSession.invalidate();
+                        chc.resumingSession = null;
+                    }
                     chc.isResumption = false;
                     if (!chc.sslConfig.enableSessionCreation) {
                         throw chc.conContext.fatal(Alert.PROTOCOL_VERSION,
@@ -1198,7 +1205,8 @@ final class ServerHello {
             hc.handshakeKeyDerivation =
                     new SSLSecretDerivation(hc, earlySecret);
         } catch  (GeneralSecurityException gse) {
-            throw new SSLHandshakeException("Could not generate secret", gse);
+            throw (SSLHandshakeException) new SSLHandshakeException(
+                "Could not generate secret").initCause(gse);
         }
     }
 

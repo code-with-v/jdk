@@ -236,7 +236,8 @@ final class RSAKeyExchange {
                     NoSuchAlgorithmException iae) {
                 // unlikely to happen, otherwise, must be a provider exception
                 if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
-                    SSLLogger.fine("RSA premaster secret generation error", iae);
+                    SSLLogger.fine("RSA premaster secret generation error:");
+                    iae.printStackTrace(System.out);
                 }
 
                 throw new GeneralSecurityException(

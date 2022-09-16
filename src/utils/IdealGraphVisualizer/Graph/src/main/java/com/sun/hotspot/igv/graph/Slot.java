@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -47,7 +47,7 @@ public abstract class Slot implements Port, Source.Provider, Properties.Provider
 
     private int wantedIndex;
     private Source source;
-    protected List<FigureConnection> connections;
+    protected List<Connection> connections;
     private InputNode associatedNode;
     private Color color;
     private String text;
@@ -67,7 +67,7 @@ public abstract class Slot implements Port, Source.Provider, Properties.Provider
     @Override
     public Properties getProperties() {
         Properties p = new Properties();
-        if (hasSourceNodes()) {
+        if (source.getSourceNodes().size() > 0) {
             for (InputNode n : source.getSourceNodes()) {
                 p.add(n.getProperties());
             }
@@ -158,10 +158,6 @@ public abstract class Slot implements Port, Source.Provider, Properties.Provider
         return getShortName() != null && getShortName().length() > 0;
     }
 
-    public boolean hasSourceNodes() {
-        return !getSource().getSourceNodes().isEmpty();
-    }
-
     public void setText(String s) {
         if (s == null) {
             s = "";
@@ -182,13 +178,13 @@ public abstract class Slot implements Port, Source.Provider, Properties.Provider
         color = c;
     }
 
-    public List<FigureConnection> getConnections() {
+    public List<Connection> getConnections() {
         return Collections.unmodifiableList(connections);
     }
 
     public void removeAllConnections() {
-        List<FigureConnection> connectionsCopy = new ArrayList<>(this.connections);
-        for (FigureConnection c : connectionsCopy) {
+        List<Connection> connectionsCopy = new ArrayList<>(this.connections);
+        for (Connection c : connectionsCopy) {
             c.remove();
         }
     }

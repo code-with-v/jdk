@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,9 +27,8 @@
  * @bug 8153629
  * @summary Need to cover JVMTI's GetOwnedMonitorStackDepthInfo function
  * @requires vm.jvmti
- * @requires vm.continuations
- * @compile --enable-preview -source ${jdk.version} GetOwnedMonitorStackDepthInfoTest.java
- * @run main/othervm/native --enable-preview -agentlib:GetOwnedMonitorStackDepthInfoTest GetOwnedMonitorStackDepthInfoTest
+ * @compile GetOwnedMonitorStackDepthInfoTest.java
+ * @run main/othervm/native -agentlib:GetOwnedMonitorStackDepthInfoTest GetOwnedMonitorStackDepthInfoTest
  */
 
 
@@ -52,14 +51,14 @@ public class GetOwnedMonitorStackDepthInfoTest {
 
 
     public static void main(String[] args) throws Exception {
-        new GetOwnedMonitorStackDepthInfoTest().runTest(true);
-        new GetOwnedMonitorStackDepthInfoTest().runTest(false);
+
+        new GetOwnedMonitorStackDepthInfoTest().runTest();
+
     }
 
-    public void runTest(boolean isVirtual) throws Exception {
-        var threadFactory = isVirtual ? Thread.ofVirtual().factory() : Thread.ofPlatform().factory();
+    public void runTest() throws Exception {
         final Object lock1 = new Lock1();
-        Thread t1 = threadFactory.newThread(() -> {
+        Thread t1 = new Thread(() -> {
             synchronized (lock1) {
                 System.out.println("Thread in sync section 1: "
                         + Thread.currentThread().getName());
@@ -98,3 +97,4 @@ public class GetOwnedMonitorStackDepthInfoTest {
 
     }
 }
+

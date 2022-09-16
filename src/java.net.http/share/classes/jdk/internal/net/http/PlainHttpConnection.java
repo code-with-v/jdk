@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -140,18 +140,15 @@ class PlainHttpConnection extends HttpConnection {
                     debug.log("ConnectEvent: connect finished: %s, cancelled: %s, Local addr: %s",
                               finished, exchange.multi.requestCancelled(), chan.getLocalAddress());
                 assert finished || exchange.multi.requestCancelled() : "Expected channel to be connected";
-                client().connectionOpened(PlainHttpConnection.this);
                 // complete async since the event runs on the SelectorManager thread
                 cf.completeAsync(() -> ConnectState.SUCCESS, client().theExecutor());
             } catch (Throwable e) {
                 if (canRetryConnect(e)) {
                     unsuccessfulAttempts++;
-                    // complete async since the event runs on the SelectorManager thread
                     cf.completeAsync(() -> ConnectState.RETRY, client().theExecutor());
                     return;
                 }
                 Throwable t = Utils.toConnectException(e);
-                // complete async since the event runs on the SelectorManager thread
                 client().theExecutor().execute( () -> cf.completeExceptionally(t));
                 close();
             }
@@ -159,7 +156,6 @@ class PlainHttpConnection extends HttpConnection {
 
         @Override
         public void abort(IOException ioe) {
-            // complete async since the event runs on the SelectorManager thread
             client().theExecutor().execute( () -> cf.completeExceptionally(ioe));
             close();
         }
@@ -183,27 +179,6 @@ class PlainHttpConnection extends HttpConnection {
                 }
             }
 
-            var localAddr = client().localAddress();
-            if (localAddr != null) {
-                if (debug.on()) {
-                    debug.log("binding to configured local address " + localAddr);
-                }
-                var sockAddr = new InetSocketAddress(localAddr, 0);
-                PrivilegedExceptionAction<SocketChannel> pa = () -> chan.bind(sockAddr);
-                try {
-                    AccessController.doPrivileged(pa);
-                    if (debug.on()) {
-                        debug.log("bind completed " + localAddr);
-                    }
-                } catch (PrivilegedActionException e) {
-                    var cause = e.getCause();
-                    if (debug.on()) {
-                        debug.log("bind to " + localAddr + " failed: " + cause.getMessage());
-                    }
-                    throw cause;
-                }
-            }
-
             PrivilegedExceptionAction<Boolean> pa =
                     () -> chan.connect(Utils.resolveAddress(address));
             try {
@@ -213,7 +188,6 @@ class PlainHttpConnection extends HttpConnection {
             }
             if (finished) {
                 if (debug.on()) debug.log("connect finished without blocking");
-                client().connectionOpened(this);
                 cf.complete(ConnectState.SUCCESS);
             } else {
                 if (debug.on()) debug.log("registering connect event");
@@ -223,9 +197,6 @@ class PlainHttpConnection extends HttpConnection {
         } catch (Throwable throwable) {
             cf.completeExceptionally(Utils.toConnectException(throwable));
             try {
-                if (Log.channel()) {
-                    Log.logChannel("Closing connection: connect failed due to: " + throwable);
-                }
                 close();
             } catch (Exception x) {
                 if (debug.on())
@@ -397,15 +368,8 @@ class PlainHttpConnection extends HttpConnection {
                 debug.log("Closing channel: " + client().debugInterestOps(chan));
             if (connectTimerEvent != null)
                 client().cancelTimer(connectTimerEvent);
-            if (Log.channel()) {
-                Log.logChannel("Closing channel: " + chan);
-            }
-            try {
-                chan.close();
-                tube.signalClosed();
-            } finally {
-                client().connectionClosed(this);
-            }
+            chan.close();
+            tube.signalClosed();
         } catch (IOException e) {
             Log.logTrace("Closing resulted in " + e);
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -90,9 +90,9 @@ public class ImageTypeSpecifier {
      * @param colorModel a {@code ColorModel}.
      * @param sampleModel a {@code SampleModel}.
      *
-     * @throws IllegalArgumentException if either parameter is
+     * @exception IllegalArgumentException if either parameter is
      * {@code null}.
-     * @throws IllegalArgumentException if {@code sampleModel}
+     * @exception IllegalArgumentException if {@code sampleModel}
      * is not compatible with {@code colorModel}.
      */
     public ImageTypeSpecifier(ColorModel colorModel, SampleModel sampleModel) {
@@ -120,7 +120,7 @@ public class ImageTypeSpecifier {
      *
      * @param image a {@code RenderedImage}.
      *
-     * @throws IllegalArgumentException if the argument is
+     * @exception IllegalArgumentException if the argument is
      * {@code null}.
      */
     public ImageTypeSpecifier(RenderedImage image) {
@@ -208,13 +208,13 @@ public class ImageTypeSpecifier {
      * @return an {@code ImageTypeSpecifier} with the desired
      * characteristics.
      *
-     * @throws IllegalArgumentException if {@code colorSpace}
+     * @exception IllegalArgumentException if {@code colorSpace}
      * is {@code null}.
-     * @throws IllegalArgumentException if {@code colorSpace}
+     * @exception IllegalArgumentException if {@code colorSpace}
      * is not of type {@code TYPE_RGB}.
-     * @throws IllegalArgumentException if no mask has at least 1
+     * @exception IllegalArgumentException if no mask has at least 1
      * bit set.
-     * @throws IllegalArgumentException if
+     * @exception IllegalArgumentException if
      * {@code transferType} if not one of
      * {@code DataBuffer.TYPE_BYTE},
      * {@code DataBuffer.TYPE_USHORT}, or
@@ -328,9 +328,13 @@ public class ImageTypeSpecifier {
         }
 
         public boolean equals(Object o) {
-            if (!(o instanceof Interleaved that)) {
+            if ((o == null) ||
+                !(o instanceof ImageTypeSpecifier.Interleaved)) {
                 return false;
             }
+
+            ImageTypeSpecifier.Interleaved that =
+                (ImageTypeSpecifier.Interleaved)o;
 
             if ((!(this.colorSpace.equals(that.colorSpace))) ||
                 (this.dataType != that.dataType) ||
@@ -375,13 +379,13 @@ public class ImageTypeSpecifier {
      * @return an {@code ImageTypeSpecifier} with the desired
      * characteristics.
      *
-     * @throws IllegalArgumentException if {@code colorSpace}
+     * @exception IllegalArgumentException if {@code colorSpace}
      * is {@code null}.
-     * @throws IllegalArgumentException if {@code bandOffsets}
+     * @exception IllegalArgumentException if {@code bandOffsets}
      * is {@code null}.
-     * @throws IllegalArgumentException if {@code dataType} is
+     * @exception IllegalArgumentException if {@code dataType} is
      * not one of the legal {@code DataBuffer.TYPE_*} constants.
-     * @throws IllegalArgumentException if
+     * @exception IllegalArgumentException if
      * {@code bandOffsets.length} does not equal the number of
      * color space components, plus 1 if {@code hasAlpha} is
      * {@code true}.
@@ -468,9 +472,13 @@ public class ImageTypeSpecifier {
         }
 
         public boolean equals(Object o) {
-            if (!(o instanceof Banded that)) {
+            if ((o == null) ||
+                !(o instanceof ImageTypeSpecifier.Banded)) {
                 return false;
             }
+
+            ImageTypeSpecifier.Banded that =
+                (ImageTypeSpecifier.Banded)o;
 
             if ((!(this.colorSpace.equals(that.colorSpace))) ||
                 (this.dataType != that.dataType) ||
@@ -525,19 +533,19 @@ public class ImageTypeSpecifier {
      * @return an {@code ImageTypeSpecifier} with the desired
      * characteristics.
      *
-     * @throws IllegalArgumentException if {@code colorSpace}
+     * @exception IllegalArgumentException if {@code colorSpace}
      * is {@code null}.
-     * @throws IllegalArgumentException if {@code bankIndices}
+     * @exception IllegalArgumentException if {@code bankIndices}
      * is {@code null}.
-     * @throws IllegalArgumentException if {@code bandOffsets}
+     * @exception IllegalArgumentException if {@code bandOffsets}
      * is {@code null}.
-     * @throws IllegalArgumentException if the lengths of
+     * @exception IllegalArgumentException if the lengths of
      * {@code bankIndices} and {@code bandOffsets} differ.
-     * @throws IllegalArgumentException if
+     * @exception IllegalArgumentException if
      * {@code bandOffsets.length} does not equal the number of
      * color space components, plus 1 if {@code hasAlpha} is
      * {@code true}.
-     * @throws IllegalArgumentException if {@code dataType} is
+     * @exception IllegalArgumentException if {@code dataType} is
      * not one of the legal {@code DataBuffer.TYPE_*} constants.
      */
     public static ImageTypeSpecifier
@@ -661,13 +669,13 @@ public class ImageTypeSpecifier {
      * @return an {@code ImageTypeSpecifier} with the desired
      * characteristics.
      *
-     * @throws IllegalArgumentException if {@code bits} is
+     * @exception IllegalArgumentException if {@code bits} is
      * not one of 1, 2, 4, 8, or 16.
-     * @throws IllegalArgumentException if {@code dataType} is
+     * @exception IllegalArgumentException if {@code dataType} is
      * not one of {@code DataBuffer.TYPE_BYTE},
      * {@code DataBuffer.TYPE_SHORT}, or
      * {@code DataBuffer.TYPE_USHORT}.
-     * @throws IllegalArgumentException if {@code bits} is
+     * @exception IllegalArgumentException if {@code bits} is
      * larger than the bit size of the given {@code dataType}.
      */
     public static ImageTypeSpecifier
@@ -697,13 +705,13 @@ public class ImageTypeSpecifier {
      * @return an {@code ImageTypeSpecifier} with the desired
      * characteristics.
      *
-     * @throws IllegalArgumentException if {@code bits} is
+     * @exception IllegalArgumentException if {@code bits} is
      * not one of 1, 2, 4, 8, or 16.
-     * @throws IllegalArgumentException if {@code dataType} is
+     * @exception IllegalArgumentException if {@code dataType} is
      * not one of {@code DataBuffer.TYPE_BYTE},
      * {@code DataBuffer.TYPE_SHORT}, or
      * {@code DataBuffer.TYPE_USHORT}.
-     * @throws IllegalArgumentException if {@code bits} is
+     * @exception IllegalArgumentException if {@code bits} is
      * larger than the bit size of the given {@code dataType}.
      */
     public static ImageTypeSpecifier
@@ -822,23 +830,23 @@ public class ImageTypeSpecifier {
      * @return an {@code ImageTypeSpecifier} with the desired
      * characteristics.
      *
-     * @throws IllegalArgumentException if {@code redLUT} is
+     * @exception IllegalArgumentException if {@code redLUT} is
      * {@code null}.
-     * @throws IllegalArgumentException if {@code greenLUT} is
+     * @exception IllegalArgumentException if {@code greenLUT} is
      * {@code null}.
-     * @throws IllegalArgumentException if {@code blueLUT} is
+     * @exception IllegalArgumentException if {@code blueLUT} is
      * {@code null}.
-     * @throws IllegalArgumentException if {@code bits} is
+     * @exception IllegalArgumentException if {@code bits} is
      * not one of 1, 2, 4, 8, or 16.
-     * @throws IllegalArgumentException if the
+     * @exception IllegalArgumentException if the
      * non-{@code null} LUT parameters do not have lengths of
      * exactly {@code 1 << bits}.
-     * @throws IllegalArgumentException if {@code dataType} is
+     * @exception IllegalArgumentException if {@code dataType} is
      * not one of {@code DataBuffer.TYPE_BYTE},
      * {@code DataBuffer.TYPE_SHORT},
      * {@code DataBuffer.TYPE_USHORT},
      * or {@code DataBuffer.TYPE_INT}.
-     * @throws IllegalArgumentException if {@code bits} is
+     * @exception IllegalArgumentException if {@code bits} is
      * larger than the bit size of the given {@code dataType}.
      */
     public static ImageTypeSpecifier
@@ -867,7 +875,7 @@ public class ImageTypeSpecifier {
      * @return an {@code ImageTypeSpecifier} with the desired
      * characteristics.
      *
-     * @throws IllegalArgumentException if
+     * @exception IllegalArgumentException if
      * {@code bufferedImageType} is not one of the standard
      * types, or is equal to {@code TYPE_CUSTOM}.
      *
@@ -908,7 +916,7 @@ public class ImageTypeSpecifier {
      * @return an {@code ImageTypeSpecifier} with the desired
      * characteristics.
      *
-     * @throws IllegalArgumentException if {@code image} is
+     * @exception IllegalArgumentException if {@code image} is
      * {@code null}.
      */
     public static
@@ -985,7 +993,7 @@ public class ImageTypeSpecifier {
      *
      * @return an int specifying a number of bits.
      *
-     * @throws IllegalArgumentException if {@code band} is
+     * @exception IllegalArgumentException if {@code band} is
      * negative or greater than the largest band index.
      */
     public int getBitsPerBand(int band) {
@@ -1017,9 +1025,9 @@ public class ImageTypeSpecifier {
      *
      * @return a {@code SampleModel} with the given dimensions.
      *
-     * @throws IllegalArgumentException if either {@code width} or
+     * @exception IllegalArgumentException if either {@code width} or
      * {@code height} are negative or zero.
-     * @throws IllegalArgumentException if the product of
+     * @exception IllegalArgumentException if the product of
      * {@code width} and {@code height} is greater than
      * {@code Integer.MAX_VALUE}
      */
@@ -1051,9 +1059,9 @@ public class ImageTypeSpecifier {
      *
      * @return a new {@code BufferedImage}
      *
-     * @throws IllegalArgumentException if either {@code width} or
+     * @exception IllegalArgumentException if either {@code width} or
      * {@code height} are negative or zero.
-     * @throws IllegalArgumentException if the product of
+     * @exception IllegalArgumentException if the product of
      * {@code width} and {@code height} is greater than
      * {@code Integer.MAX_VALUE}, or if the number of array
      * elements needed to store the image is greater than
@@ -1087,10 +1095,11 @@ public class ImageTypeSpecifier {
      * {@code ImageTypeSpecifier}.
      */
     public boolean equals(Object o) {
-        if (!(o instanceof ImageTypeSpecifier that)) {
+        if ((o == null) || !(o instanceof ImageTypeSpecifier)) {
             return false;
         }
 
+        ImageTypeSpecifier that = (ImageTypeSpecifier)o;
         return (colorModel.equals(that.colorModel)) &&
             (sampleModel.equals(that.sampleModel));
     }

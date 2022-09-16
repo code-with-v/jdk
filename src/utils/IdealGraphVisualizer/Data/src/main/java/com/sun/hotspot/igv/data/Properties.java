@@ -312,7 +312,7 @@ public class Properties implements Serializable, Iterable<Property> {
             }
         }
 
-        pairs.sort(new Comparator<String[]>() {
+        Collections.sort(pairs, new Comparator<String[]>() {
             @Override
             public int compare(String[] o1, String[] o2) {
                 assert o1.length == 2;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -665,31 +665,6 @@ forceEarlyReturn(PacketInputStream *in, PacketOutputStream *out)
     return JNI_TRUE;
 }
 
-static jboolean
-isVirtual(PacketInputStream *in, PacketOutputStream *out)
-{
-    JNIEnv *env;
-    jthread thread;
-    jboolean isVirtual;
-
-    env = getEnv();
-
-    thread = inStream_readThreadRef(env, in);
-    if (inStream_error(in)) {
-        return JNI_TRUE;
-    }
-
-    if (threadControl_isDebugThread(thread)) {
-        outStream_setError(out, JDWP_ERROR(INVALID_THREAD));
-        return JNI_TRUE;
-    }
-
-    isVirtual = JNI_FUNC_PTR(env,IsVirtualThread)(env, thread);
-    (void)outStream_writeBoolean(out, isVirtual);
-
-    return JNI_TRUE;
-}
-
 Command ThreadReference_Commands[] = {
     {name, "Name"},
     {suspend, "Suspend"},
@@ -704,8 +679,7 @@ Command ThreadReference_Commands[] = {
     {interrupt, "Interrupt"},
     {suspendCount, "SuspendCount"},
     {ownedMonitorsWithStackDepth, "OwnedMonitorsWithStackDepth"},
-    {forceEarlyReturn, "ForceEarlyReturn"},
-    {isVirtual, "IsVirtual"}
+    {forceEarlyReturn, "ForceEarlyReturn"}
 };
 
 DEBUG_DISPATCH_DEFINE_CMDSET(ThreadReference)

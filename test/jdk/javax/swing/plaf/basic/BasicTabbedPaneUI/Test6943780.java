@@ -41,7 +41,7 @@ public class Test6943780 implements Runnable, Thread.UncaughtExceptionHandler {
     @Override
     public void uncaughtException(Thread thread, Throwable throwable) {
         throwable.printStackTrace();
-        throw new RuntimeException(throwable);
+        System.exit(1);
     }
 
     @Override

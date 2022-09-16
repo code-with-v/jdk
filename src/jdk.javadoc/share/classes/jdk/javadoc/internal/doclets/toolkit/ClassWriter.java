@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,7 +31,13 @@ import jdk.javadoc.internal.doclets.toolkit.util.DocFileIOException;
 
 /**
  * The interface for writing class output.
+ *
+ *  <p><b>This is NOT part of any supported API.
+ *  If you write code that depends on this, you do so at your own risk.
+ *  This code and its internal interfaces are subject to change or
+ *  deletion without notice.</b>
  */
+
 public interface ClassWriter {
 
     /**
@@ -50,104 +56,119 @@ public interface ClassWriter {
     Content getClassContentHeader();
 
     /**
-     * Add the class inheritance tree documentation.
+     * Add the class tree documentation.
      *
-     * @param target the content to which the documentation will be added
+     * @param classContentTree class content tree to which the documentation will be added
      */
-    void addClassTree(Content target);
+    void addClassTree(Content classContentTree);
+
+    /**
+     * Get the class information tree header.
+     *
+     * @return class information tree header that needs to be added to the documentation
+     */
+    Content getClassInfoTreeHeader();
 
     /**
      * Add the type parameter and state component information.
      *
-     * @param target the content to which the documentation will be added
+     * @param classInfoTree content tree to which the documentation will be added
      */
-    void addParamInfo(Content target);
+    void addParamInfo(Content classInfoTree);
 
     /**
-     * Add all superinterfaces if this is an interface.
+     * Add all super interfaces if this is an interface.
      *
-     * @param target the content to which the documentation will be added
+     * @param classInfoTree content tree to which the documentation will be added
      */
-    void addSuperInterfacesInfo(Content target);
+    void addSuperInterfacesInfo(Content classInfoTree);
 
     /**
      * Add all implemented interfaces if this is a class.
      *
-     * @param target the content to which the documentation will be added
+     * @param classInfoTree content tree to which the documentation will be added
      */
-    void addImplementedInterfacesInfo(Content target);
+    void addImplementedInterfacesInfo(Content classInfoTree);
 
     /**
      * Add all the classes that extend this one.
      *
-     * @param target the content to which the documentation will be added
+     * @param classInfoTree content tree to which the documentation will be added
      */
-    void addSubClassInfo(Content target);
+    void addSubClassInfo(Content classInfoTree);
 
     /**
      * Add all the interfaces that extend this one.
      *
-     * @param target the content to which the documentation will be added
+     * @param classInfoTree content tree to which the documentation will be added
      */
-    void addSubInterfacesInfo(Content target);
+    void addSubInterfacesInfo(Content classInfoTree);
 
     /**
      * If this is an interface, add all classes that implement this
      * interface.
      *
-     * @param target the content to which the documentation will be added
+     * @param classInfoTree content tree to which the documentation will be added
      */
-    void addInterfaceUsageInfo(Content target);
+    void addInterfaceUsageInfo(Content classInfoTree);
 
     /**
      * If this is an functional interface, display appropriate message.
      *
-     * @param target the content to which the documentation will be added
+     * @param classInfoTree content tree to which the documentation will be added
      */
-    void addFunctionalInterfaceInfo(Content target);
+    void addFunctionalInterfaceInfo(Content classInfoTree);
 
     /**
      * If this is an inner class or interface, add the enclosing class or
      * interface.
      *
-     * @param target the content to which the documentation will be added
+     * @param classInfoTree content tree to which the documentation will be added
      */
-    void addNestedClassInfo(Content target);
+    void addNestedClassInfo(Content classInfoTree);
 
     /**
-     * {@return the class information}
+     * Get the class information.
      *
-     * @param classInfo the class information
+     * @param classInfoTree content tree containing the class information
+     * @return a content tree for the class
      */
-    Content getClassInfo(Content classInfo);
+    Content getClassInfo(Content classInfoTree);
 
     /**
      * If this class is deprecated, add the appropriate information.
      *
-     * @param classInfo the content to which the documentation will be added
+     * @param classInfoTree content tree to which the documentation will be added
      */
-    void addClassDeprecationInfo(Content classInfo);
+    void addClassDeprecationInfo(Content classInfoTree);
 
     /**
-     * Add the signature of the current class content.
+     * Add the signature of the current class content tree.
      *
-     * @param classInfo the class content to which the signature will be added
+     * @param classInfoTree the class content tree to which the signature will be added
      */
-    void addClassSignature(Content classInfo);
+    void addClassSignature(Content classInfoTree);
 
     /**
      * Build the class description.
      *
-     * @param classInfo the content to which the documentation will be added
+     * @param classInfoTree content tree to which the documentation will be added
      */
-    void addClassDescription(Content classInfo);
+    void addClassDescription(Content classInfoTree);
 
     /**
      * Add the tag information for the current class.
      *
-     * @param classInfo the content to which the tag information will be added
+     * @param classInfoTree content tree to which the tag information will be added
      */
-    void addClassTagInfo(Content classInfo);
+    void addClassTagInfo(Content classInfoTree);
+
+    /**
+     * Get the member tree header for the class.
+     *
+     * @return a content tree for the member tree header
+     */
+    Content getMemberTreeHeader();
 
     /**
      * Returns a list to be used for the list of summaries for members of a given kind.
@@ -180,11 +201,11 @@ public interface ClassWriter {
     Content getDetailsListItem(Content content);
 
     /**
-     * Add the class content.
+     * Add the class content tree.
      *
-     * @param classContent the class content which will be added to the content
+     * @param classContentTree class content tree which will be added to the content tree
      */
-    void addClassContent(Content classContent);
+    void addClassContentTree(Content classContentTree);
 
     /**
      * Add the footer of the page.
@@ -194,10 +215,10 @@ public interface ClassWriter {
     /**
      * Print the document.
      *
-     * @param content the content that will be printed as a document
+     * @param contentTree content tree that will be printed as a document
      * @throws DocFileIOException if there is a problem while writing the document
      */
-    void printDocument(Content content) throws DocFileIOException;
+    void printDocument(Content contentTree) throws DocFileIOException;
 
     /**
      * Return the TypeElement being documented.
@@ -207,16 +228,18 @@ public interface ClassWriter {
     TypeElement getTypeElement();
 
     /**
-     * {@return the member summary}
+     * Get the member summary tree.
      *
-     * @param memberContent the content used to build the summary
+     * @param memberTree the content tree used to build the summary tree
+     * @return a content tree for the member summary
      */
-    Content getMemberSummary(Content memberContent);
+    Content getMemberSummaryTree(Content memberTree);
 
     /**
-     * {@return the member details}
+     * Get the member details tree.
      *
-     * @param memberContent the content used to generate the member details
+     * @param memberTree the content tree used to build the details tree
+     * @return a content tree for the member details
      */
-    Content getMemberDetails(Content memberContent);
+    Content getMemberDetailsTree(Content memberTree);
 }

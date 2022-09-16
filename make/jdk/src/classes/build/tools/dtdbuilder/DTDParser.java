@@ -812,7 +812,7 @@ class DTDParser implements DTDConstants {
     }
 
     /**
-     * Parse a section of the input up to EOF or ']'.
+     * Parse a section of the input upto EOF or ']'.
      */
     @SuppressWarnings("fallthrough")
     void parseSection() throws IOException {

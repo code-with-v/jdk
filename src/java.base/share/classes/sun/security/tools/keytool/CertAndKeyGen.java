@@ -32,10 +32,7 @@ import java.security.cert.CertificateEncodingException;
 import java.security.*;
 import java.security.spec.ECGenParameterSpec;
 import java.security.spec.NamedParameterSpec;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.TimeZone;
 
 import sun.security.pkcs10.PKCS10;
 import sun.security.util.SignatureUtil;
@@ -230,7 +227,7 @@ public final class CertAndKeyGen {
      *
      * XXX Note: This behaviour is needed for backwards compatibility.
      * What this method really should return is the public key of the
-     * generated key pair, regardless of whether it is an instance of
+     * generated key pair, regardless of whether or not it is an instance of
      * <code>X509Key</code>. Accordingly, the return type of this method
      * should be <code>PublicKey</code>.
      */
@@ -307,12 +304,6 @@ public final class CertAndKeyGen {
         try {
             lastDate = new Date ();
             lastDate.setTime (firstDate.getTime () + validity * 1000);
-            Calendar c = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
-            c.setTime(lastDate);
-            if (c.get(Calendar.YEAR) > 9999) {
-                throw new CertificateException("Validity period ends at calendar year " +
-                        c.get(Calendar.YEAR) + " which is greater than 9999");
-            }
 
             CertificateValidity interval =
                                    new CertificateValidity(firstDate,lastDate);
@@ -362,7 +353,7 @@ public final class CertAndKeyGen {
     }
 
     private SecureRandom        prng;
-    private final String        keyType;
+    private String              keyType;
     private String              sigAlg;
     private KeyPairGenerator    keyGen;
     private PublicKey           publicKey;

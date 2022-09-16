@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,21 +30,23 @@ package sun.security.ssl;
  */
 interface DTLSRecord extends Record {
 
-    int    headerSize = 13;            // DTLS record header
+    static final int    headerSize = 13;            // DTLS record header
 
-    int    handshakeHeaderSize = 12;   // DTLS handshake header
+    static final int    handshakeHeaderSize = 12;   // DTLS handshake header
 
     /*
      * The size of the header plus the max IV length
      */
-    int    headerPlusMaxIVSize =      headerSize        // header
+    static final int    headerPlusMaxIVSize =
+                                      headerSize        // header
                                     + maxIVLength;      // iv
 
     /*
      * The maximum size that may be increased when translating plaintext to
      * ciphertext fragment.
      */
-    int    maxPlaintextPlusSize =     headerSize        // header
+    static final int    maxPlaintextPlusSize =
+                                      headerSize        // header
                                     + maxIVLength       // iv
                                     + maxMacSize        // MAC or AEAD tag
                                     + maxPadding;       // block cipher padding
@@ -52,7 +54,8 @@ interface DTLSRecord extends Record {
     /*
      * the maximum record size
      */
-    int    maxRecordSize =            headerPlusMaxIVSize   // header + iv
+    static final int    maxRecordSize =
+                                      headerPlusMaxIVSize   // header + iv
                                     + maxDataSize           // data
                                     + maxPadding            // padding
                                     + maxMacSize;           // MAC or AEAD tag
@@ -67,7 +70,8 @@ interface DTLSRecord extends Record {
      *       ASN.1Cert certificate_list<0..2^24-1>;
      *   } Certificate;
      */
-    int    minCertPlaintextSize =     headerSize            // record header
+    static final int    minCertPlaintextSize =
+                                      headerSize            // record header
                                     + handshakeHeaderSize   // handshake header
                                     + 3;                    // cert list length
 }

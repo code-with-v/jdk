@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,17 +28,19 @@ package jdk.javadoc.internal.doclets.toolkit;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
-import java.util.Collection;
-import java.util.function.Function;
 
 /**
- * A content tree for javadoc output pages.
+ * A class to create content for javadoc output pages.
+ *
+ *  <p><b>This is NOT part of any supported API.
+ *  If you write code that depends on this, you do so at your own risk.
+ *  This code and its internal interfaces are subject to change or
+ *  deletion without notice.</b>
  */
 public abstract class Content {
 
     /**
      * Returns a string representation of the content.
-     * Newlines are represented by {@code \n}.
      *
      * @return string representation of the content
      */
@@ -46,7 +48,7 @@ public abstract class Content {
     public String toString() {
         StringWriter out = new StringWriter();
         try {
-            write(out, "\n", true);
+            write(out, true);
         } catch (IOException e) {
             // cannot happen from StringWriter
             throw new AssertionError(e);
@@ -88,35 +90,14 @@ public abstract class Content {
     }
 
     /**
-     * Adds content to the existing content, generated from a collection of items
-     * This is an optional operation.
-     *
-     * @implSpec This implementation delegates to {@link #add(Content)}.
-     *
-     * @param items  the items to be added
-     * @param mapper the function to create content for each item
-     *
-     * @return this object
-     * @throws UnsupportedOperationException if this operation is not supported by
-     *                                       a particular implementation
-     * @throws IllegalArgumentException      if the content is not suitable to be added
-     */
-    public <T> Content addAll(Collection<T> items, Function<T, Content> mapper) {
-        items.forEach(item -> add(mapper.apply(item)));
-        return this;
-    }
-
-    /**
-     * Writes content to a writer, using a given newline sequence, which should be
-     * either {@code \n} or the platform line separator.
+     * Writes content to a writer.
      *
      * @param writer the writer
-     * @param newline the newline sequence to use
      * @param atNewline whether the writer has just written a newline
-     * @return whether the writer has just written a newline
+     * @return  whether the writer has just written a newline
      * @throws IOException if an error occurs while writing the output
      */
-    public abstract boolean write(Writer writer, String newline, boolean atNewline) throws IOException;
+    public abstract boolean write(Writer writer, boolean atNewline) throws IOException ;
 
     /**
      * Returns true if the content is empty.
@@ -126,17 +107,19 @@ public abstract class Content {
     public abstract boolean isEmpty();
 
     /**
-     * Returns true if this content does not affect the output and can be discarded.
-     * The default implementation considers empty content as discardable.
+     * Returns true if the content is valid. This allows filtering during
+     * {@link #add(Content) addition}.
      *
-     * @return true if this content can be discarded without affecting the output
+     * @return true if the content is valid else return false
      */
-    public boolean isDiscardable() {
-        return isEmpty();
+    public boolean isValid() {
+        return !isEmpty();
     }
 
     /**
-     * {@return the number of characters of plain text content in this object}
+     * Return the number of characters of plain text content in this object
+     * (optional operation.)
+     * @return the number of characters of plain text content in this
      */
     public int charCount() {
         return 0;

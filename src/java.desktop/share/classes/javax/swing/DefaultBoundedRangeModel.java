@@ -417,7 +417,7 @@ public class DefaultBoundedRangeModel implements BoundedRangeModel, Serializable
      *          on this model,
      *          or an empty array if no such
      *          listeners have been added
-     * @throws ClassCastException if <code>listenerType</code> doesn't
+     * @exception ClassCastException if <code>listenerType</code> doesn't
      *          specify a class or interface that implements
      *          <code>java.util.EventListener</code>
      *

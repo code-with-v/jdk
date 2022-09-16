@@ -29,8 +29,8 @@
  *          after the module read edge is added.
  * @compile ModuleLibrary.java
  *          p2/c2.java
- *          p5/c5.jasm
- *          p7/c7.jasm
+ *          p5/c5.java
+ *          p7/c7.java
  * @run main/othervm MethodAccessReadTwice
  */
 

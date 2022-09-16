@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -85,8 +85,8 @@ class AnnotationInvocationHandler implements InvocationHandler, Serializable {
         if (result == null)
             throw new IncompleteAnnotationException(type, member);
 
-        if (result instanceof ExceptionProxy exceptProxy)
-            throw exceptProxy.generateException();
+        if (result instanceof ExceptionProxy)
+            throw ((ExceptionProxy) result).generateException();
 
         if (result.getClass().isArray() && Array.getLength(result) != 0)
             result = cloneArray(result);
@@ -145,9 +145,7 @@ class AnnotationInvocationHandler implements InvocationHandler, Serializable {
     private String toStringImpl() {
         StringBuilder result = new StringBuilder(128);
         result.append('@');
-        // Guard against null canonical name; shouldn't happen
-        result.append(Objects.toString(type.getCanonicalName(),
-                                       "<no canonical name>"));
+        result.append(type.getName());
         result.append('(');
         boolean firstMember = true;
         Set<Map.Entry<String, Object>> entries = memberValues.entrySet();
@@ -191,10 +189,6 @@ class AnnotationInvocationHandler implements InvocationHandler, Serializable {
                 return  toSourceString((long) value);
             else if (type == Byte.class)
                 return  toSourceString((byte) value);
-            else if (value instanceof Enum<?> v)
-                // Predicate above covers enum constants, including
-                // those with specialized class bodies.
-                return toSourceString(v);
             else
                 return value.toString();
         } else {
@@ -225,10 +219,6 @@ class AnnotationInvocationHandler implements InvocationHandler, Serializable {
                 stringStream =
                     Arrays.stream((String[])value).
                     map(AnnotationInvocationHandler::toSourceString);
-            else if (type.getComponentType().isEnum())
-                stringStream =
-                    Arrays.stream((Enum<?>[])value).
-                    map(AnnotationInvocationHandler::toSourceString);
             else
                 stringStream = Arrays.stream((Object[])value).map(Objects::toString);
 
@@ -241,9 +231,15 @@ class AnnotationInvocationHandler implements InvocationHandler, Serializable {
      * string representation of an annotation.
      */
     private static String toSourceString(Class<?> clazz) {
-        // Guard against null canonical name; shouldn't happen
-        return Objects.toString(clazz.getCanonicalName(),
-                                "<no canonical name>") + ".class";
+        Class<?> finalComponent = clazz;
+        StringBuilder arrayBrackets = new StringBuilder();
+
+        while(finalComponent.isArray()) {
+            finalComponent = finalComponent.getComponentType();
+            arrayBrackets.append("[]");
+        }
+
+        return finalComponent.getName() + arrayBrackets.toString() + ".class";
     }
 
     private static String toSourceString(float f) {
@@ -309,10 +305,6 @@ class AnnotationInvocationHandler implements InvocationHandler, Serializable {
 
     private static String toSourceString(long ell) {
         return String.valueOf(ell) + "L";
-    }
-
-    private static String toSourceString(Enum<?> enumConstant) {
-        return enumConstant.name();
     }
 
     /**
@@ -410,8 +402,8 @@ class AnnotationInvocationHandler implements InvocationHandler, Serializable {
     private AnnotationInvocationHandler asOneOfUs(Object o) {
         if (Proxy.isProxyClass(o.getClass())) {
             InvocationHandler handler = Proxy.getInvocationHandler(o);
-            if (handler instanceof AnnotationInvocationHandler annotationHandler)
-                return annotationHandler;
+            if (handler instanceof AnnotationInvocationHandler)
+                return (AnnotationInvocationHandler) handler;
         }
         return null;
     }
@@ -569,7 +561,7 @@ class AnnotationInvocationHandler implements InvocationHandler, Serializable {
              * java.lang.annotation.Annotation."
              *
              * The methods in Object or Annotation meeting the other
-             * criteria (no arguments, constrained return type, etc.)
+             * criteria (no arguments, contrained return type, etc.)
              * above are:
              *
              * String toString()
@@ -666,8 +658,8 @@ class AnnotationInvocationHandler implements InvocationHandler, Serializable {
                 if (!(memberType.isInstance(value) ||
                       value instanceof ExceptionProxy)) {
                     value = new AnnotationTypeMismatchExceptionProxy(
-                                Objects.toIdentityString(value))
-                        .setMember(annotationType.members().get(name));
+                            value.getClass() + "[" + value + "]").setMember(
+                                annotationType.members().get(name));
                 }
             }
             mv.put(name, value);

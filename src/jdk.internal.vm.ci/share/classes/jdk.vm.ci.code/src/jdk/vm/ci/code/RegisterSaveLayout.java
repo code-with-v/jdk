@@ -60,13 +60,6 @@ public final class RegisterSaveLayout {
     }
 
     /**
-     * Gets the number of entries in this map.
-     */
-    public int size() {
-        return registers.length;
-    }
-
-    /**
      * Gets the frame slot index for a given register.
      *
      * @param register register to get the frame slot index for

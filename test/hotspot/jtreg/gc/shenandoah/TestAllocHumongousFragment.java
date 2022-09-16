@@ -23,7 +23,7 @@
  */
 
 /*
- * @test id=passive
+ * @test TestAllocHumongousFragment
  * @summary Make sure Shenandoah can recover from humongous allocation fragmentation
  * @key randomness
  * @requires vm.gc.Shenandoah
@@ -51,7 +51,7 @@
  */
 
 /*
- * @test id=aggressive
+ * @test TestAllocHumongousFragment
  * @summary Make sure Shenandoah can recover from humongous allocation fragmentation
  * @key randomness
  * @requires vm.gc.Shenandoah
@@ -79,7 +79,7 @@
  */
 
 /*
- * @test id=adaptive
+ * @test TestAllocHumongousFragment
  * @summary Make sure Shenandoah can recover from humongous allocation fragmentation
  * @key randomness
  * @requires vm.gc.Shenandoah
@@ -96,7 +96,7 @@
  */
 
 /*
- * @test id=static
+ * @test TestAllocHumongousFragment
  * @summary Make sure Shenandoah can recover from humongous allocation fragmentation
  * @key randomness
  * @requires vm.gc.Shenandoah
@@ -108,7 +108,7 @@
  */
 
 /*
- * @test id=compact
+ * @test TestAllocHumongousFragment
  * @summary Make sure Shenandoah can recover from humongous allocation fragmentation
  * @key randomness
  * @requires vm.gc.Shenandoah
@@ -120,7 +120,7 @@
  */
 
 /*
- * @test id=iu-aggressive
+ * @test TestAllocHumongousFragment
  * @summary Make sure Shenandoah can recover from humongous allocation fragmentation
  * @key randomness
  * @requires vm.gc.Shenandoah
@@ -148,7 +148,7 @@
  */
 
 /*
- * @test id=iu
+ * @test TestAllocHumongousFragment
  * @summary Make sure Shenandoah can recover from humongous allocation fragmentation
  * @key randomness
  * @requires vm.gc.Shenandoah

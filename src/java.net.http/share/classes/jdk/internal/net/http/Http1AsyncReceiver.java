@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -116,7 +116,7 @@ class Http1AsyncReceiver {
         public AbstractSubscription subscription();
 
         /**
-         * Called to make sure resources are released
+         * Called to make sure resources are released when the
          * when the Http1AsyncReceiver is stopped.
          * @param error The Http1AsyncReceiver pending error ref,
          *              if any.
@@ -478,7 +478,7 @@ class Http1AsyncReceiver {
                 // the pool.
                 if (retry && (ex instanceof IOException)) {
                     // could be either EOFException, or
-                    // IOException("connection reset by peer"), or
+                    // IOException("connection reset by peer), or
                     // SSLHandshakeException resulting from the server having
                     // closed the SSL session.
                     if (received.get() == 0) {
@@ -497,8 +497,7 @@ class Http1AsyncReceiver {
         final Throwable t = (recorded == null ? ex : recorded);
         if (debug.on())
             debug.log("recorded " + t + "\n\t delegate: " + delegate
-                      + "\n\t queue.isEmpty: " + queue.isEmpty()
-                      + "\n\tstopRequested: " + stopRequested, ex);
+                      + "\t\t queue.isEmpty: " + queue.isEmpty(), ex);
         if (Log.errors()) {
             Log.logError("HTTP/1 read subscriber recorded error: {0} - {1}", describe(), t);
         }
@@ -710,7 +709,7 @@ class Http1AsyncReceiver {
         for (ByteBuffer b : lbb) {
             if (!sbb.remove(b)) {
                 msg.append(sep)
-                   .append(b)
+                   .append(String.valueOf(b))
                    .append("[remaining=")
                    .append(b.remaining())
                    .append(", position=")
@@ -728,12 +727,14 @@ class Http1AsyncReceiver {
     String dbgString() {
         String tag = dbgTag;
         if (tag == null) {
+            String flowTag = null;
             Http1Exchange<?> exchg = owner;
             Object flow = (exchg != null)
                     ? exchg.connection().getConnectionFlow()
                     : null;
-            if (flow != null) {
-                dbgTag = tag = "Http1AsyncReceiver(" + flow + ")";
+            flowTag = tag = flow == null ? null: (String.valueOf(flow));
+            if (flowTag != null) {
+                dbgTag = tag = "Http1AsyncReceiver("+ flowTag + ")";
             } else {
                 tag = "Http1AsyncReceiver(?)";
             }

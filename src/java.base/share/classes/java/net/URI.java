@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -43,6 +43,9 @@ import java.text.Normalizer;
 import jdk.internal.access.JavaNetUriAccess;
 import jdk.internal.access.SharedSecrets;
 import sun.nio.cs.UTF_8;
+
+import java.lang.Character;             // for javadoc
+import java.lang.NullPointerException;  // for javadoc
 
 /**
  * Represents a Uniform Resource Identifier (URI) reference.
@@ -864,7 +867,7 @@ public final class URI
 
     private static boolean validSchemeAndPath(String scheme, String path) {
         try {
-            URI u = new URI(scheme + ':' + path);
+            URI u = new URI(scheme + ":" + path);
             return scheme.equals(u.scheme) && path.equals(u.path);
         } catch (URISyntaxException e) {
             return false;
@@ -1928,7 +1931,7 @@ public final class URI
                 if ((sn != tn) && testForEquality)
                     return sn - tn;
                 int val = 0;
-                int n = Math.min(sn, tn);
+                int n = sn < tn ? sn : tn;
                 for (int i = 0; i < n; ) {
                     char c = s.charAt(i);
                     char d = t.charAt(i);
@@ -2023,12 +2026,18 @@ public final class URI
             if (authority.startsWith("[")) {
                 // authority should (but may not) contain an embedded IPv6 address
                 int end = authority.indexOf(']');
-                String doquote = authority;
+                String doquote = authority, dontquote = "";
                 if (end != -1 && authority.indexOf(':') != -1) {
                     // the authority contains an IPv6 address
-                    sb.append(authority, 0, end + 1);
-                    doquote = authority.substring(end + 1);
+                    if (end == authority.length()) {
+                        dontquote = authority;
+                        doquote = "";
+                    } else {
+                        dontquote = authority.substring(0 , end + 1);
+                        doquote = authority.substring(end + 1);
+                    }
                 }
+                sb.append(dontquote);
                 sb.append(quote(doquote,
                             L_REG_NAME | L_SERVER,
                             H_REG_NAME | H_SERVER));
@@ -2056,8 +2065,15 @@ public final class URI
             if (opaquePart.startsWith("//[")) {
                 int end =  opaquePart.indexOf(']');
                 if (end != -1 && opaquePart.indexOf(':')!=-1) {
-                    String doquote = opaquePart.substring(end + 1);
-                    sb.append(opaquePart, 0, end + 1);
+                    String doquote, dontquote;
+                    if (end == opaquePart.length()) {
+                        dontquote = opaquePart;
+                        doquote = "";
+                    } else {
+                        dontquote = opaquePart.substring(0,end+1);
+                        doquote = opaquePart.substring(end+1);
+                    }
+                    sb.append (dontquote);
                     sb.append(quote(doquote, L_URIC, H_URIC));
                 }
             } else {
@@ -2106,7 +2122,8 @@ public final class URI
     // -- Normalization, resolution, and relativization --
 
     // RFC2396 5.2 (6)
-    private static String resolvePath(String base, String child, boolean absolute)
+    private static String resolvePath(String base, String child,
+                                      boolean absolute)
     {
         int i = base.lastIndexOf('/');
         int cn = child.length();
@@ -2117,13 +2134,13 @@ public final class URI
             if (i >= 0)
                 path = base.substring(0, i + 1);
         } else {
-            // 5.2 (6a-b)
-            if (i >= 0 || !absolute) {
-                path = base.substring(0, i + 1).concat(child);
-            } else {
-                path = "/".concat(child);
-            }
-
+            StringBuilder sb = new StringBuilder(base.length() + cn);
+            // 5.2 (6a)
+            if (i >= 0)
+                sb.append(base, 0, i + 1);
+            // 5.2 (6b)
+            sb.append(child);
+            path = sb.toString();
         }
 
         // 5.2 (6c-f)
@@ -2178,7 +2195,7 @@ public final class URI
             ru.userInfo = base.userInfo;
             ru.port = base.port;
 
-            String cp = child.path;
+            String cp = (child.path == null) ? "" : child.path;
             if (!cp.isEmpty() && cp.charAt(0) == '/') {
                 // 5.2 (5): Child path is absolute
                 ru.path = child.path;
@@ -2190,6 +2207,7 @@ public final class URI
             ru.authority = child.authority;
             ru.host = child.host;
             ru.userInfo = child.userInfo;
+            ru.host = child.host;
             ru.port = child.port;
             ru.path = child.path;
         }
@@ -2754,7 +2772,7 @@ public final class URI
     private static void appendEncoded(CharsetEncoder encoder, StringBuilder sb, char c) {
         ByteBuffer bb = null;
         try {
-            bb = encoder.encode(CharBuffer.wrap(new char[]{c}));
+            bb = encoder.encode(CharBuffer.wrap("" + c));
         } catch (CharacterCodingException x) {
             assert false;
         }
@@ -2906,6 +2924,7 @@ public final class URI
                 continue;
             }
             bb.clear();
+            int ui = i;
             for (;;) {
                 assert (n - i >= 2);
                 bb.put(decode(s.charAt(++i), s.charAt(++i)));
@@ -3433,7 +3452,9 @@ public final class URI
 
             try {
                 p = scanIPv4Address(start, n, false);
-            } catch (URISyntaxException | NumberFormatException x) {
+            } catch (URISyntaxException x) {
+                return -1;
+            } catch (NumberFormatException nfe) {
                 return -1;
             }
 
@@ -3469,12 +3490,14 @@ public final class URI
                 if (q <= p)
                     break;
                 l = p;
-                p = q;
-                q = scan(p, n, L_ALPHANUM | L_DASH, H_ALPHANUM | H_DASH);
                 if (q > p) {
-                    if (input.charAt(q - 1) == '-')
-                        fail("Illegal character in hostname", q - 1);
                     p = q;
+                    q = scan(p, n, L_ALPHANUM | L_DASH, H_ALPHANUM | H_DASH);
+                    if (q > p) {
+                        if (input.charAt(q - 1) == '-')
+                            fail("Illegal character in hostname", q - 1);
+                        p = q;
+                    }
                 }
                 q = scan(p, n, '.');
                 if (q <= p)

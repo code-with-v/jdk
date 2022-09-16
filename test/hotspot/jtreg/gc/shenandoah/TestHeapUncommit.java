@@ -23,7 +23,7 @@
  */
 
 /*
- * @test id=passive
+ * @test TestHeapUncommit
  * @summary Acceptance tests: collector can withstand allocation
  * @key randomness
  * @requires vm.gc.Shenandoah
@@ -51,7 +51,7 @@
  */
 
 /*
- * @test id=adaptive
+ * @test TestHeapUncommit
  * @summary Acceptance tests: collector can withstand allocation
  * @key randomness
  * @requires vm.gc.Shenandoah
@@ -85,7 +85,7 @@
  */
 
 /*
- * @test id=iu
+ * @test TestHeapUncommit
  * @summary Acceptance tests: collector can withstand allocation
  * @key randomness
  * @requires vm.gc.Shenandoah
@@ -106,7 +106,7 @@
  */
 
 /*
- * @test id=default-lp
+ * @test TestHeapUncommit
  * @key randomness
  * @requires vm.gc.Shenandoah
  * @requires vm.bits == "64"

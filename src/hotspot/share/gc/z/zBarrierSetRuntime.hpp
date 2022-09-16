@@ -24,7 +24,7 @@
 #ifndef SHARE_GC_Z_ZBARRIERSETRUNTIME_HPP
 #define SHARE_GC_Z_ZBARRIERSETRUNTIME_HPP
 
-#include "memory/allStatic.hpp"
+#include "memory/allocation.hpp"
 #include "oops/accessDecorators.hpp"
 #include "utilities/globalDefinitions.hpp"
 

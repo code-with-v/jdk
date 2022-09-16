@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2004, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -36,8 +36,8 @@ import sun.jvm.hotspot.utilities.CStringUtilities;
 /** Encapsulates an arbitrary type value in a tree handled by SimpleTreeModel */
 
 public class CTypeTreeNodeAdapter extends FieldTreeNodeAdapter {
-  private final Address addr;
-  private final Type type;
+  final private Address addr;
+  final private Type type;
   private CTypeFieldIdentifier[] fields = null;
 
   private void collectFields(Type type, ArrayList<CTypeFieldIdentifier> list, boolean statics, boolean recurse) {
@@ -65,8 +65,8 @@ public class CTypeTreeNodeAdapter extends FieldTreeNodeAdapter {
   }
 
   static class CTypeFieldIdentifier extends FieldIdentifier {
-    private final Field field;
-    private final Type holder;
+    final private Field field;
+    final private Type holder;
 
     CTypeFieldIdentifier(Type t, Field f) {
       holder = t;
@@ -132,7 +132,11 @@ public class CTypeTreeNodeAdapter extends FieldTreeNodeAdapter {
         try {
           Oop oop = VM.getVM().getObjectHeap().newOop(handle);
           return new OopTreeNodeAdapter(oop, cf, getTreeTableMode());
-        } catch (AddressException | UnknownOopException e) {
+        } catch (AddressException e) {
+          return new BadAddressTreeNodeAdapter(handle,
+                                           new CTypeFieldIdentifier(type, f),
+                                           getTreeTableMode());
+        } catch (UnknownOopException e) {
           return new BadAddressTreeNodeAdapter(handle,
                                            new CTypeFieldIdentifier(type, f),
                                            getTreeTableMode());

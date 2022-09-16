@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -42,6 +42,11 @@ import jdk.javadoc.internal.doclets.toolkit.util.Utils;
 
 /**
  * A factory that constructs links from given link information.
+ *
+ *  <p><b>This is NOT part of any supported API.
+ *  If you write code that depends on this, you do so at your own risk.
+ *  This code and its internal interfaces are subject to change or
+ *  deletion without notice.</b>
  */
 public abstract class LinkFactory {
     protected final Utils utils;
@@ -51,7 +56,9 @@ public abstract class LinkFactory {
     }
 
     /**
-     * {@return a new instance of a content object}
+     * Returns an empty instance of a content object.
+     *
+     * @return an empty instance of a content object.
      */
     protected abstract Content newContent();
 
@@ -59,7 +66,7 @@ public abstract class LinkFactory {
      * Constructs a link from the given link information.
      *
      * @param linkInfo the information about the link.
-     * @return the link.
+     * @return the output of the link.
      */
     public Content getLink(LinkInfo linkInfo) {
         if (linkInfo.type != null) {
@@ -144,7 +151,7 @@ public abstract class LinkFactory {
                             // we get everything as extends java.lang.Object we suppress
                             // all of them except those that have multiple extends
                             if (bounds.size() == 1 &&
-                                    utils.typeUtils.isSameType(bound, utils.getObjectType()) &&
+                                    bound.equals(utils.getObjectType()) &&
                                     !utils.isAnnotated(bound)) {
                                 continue;
                             }

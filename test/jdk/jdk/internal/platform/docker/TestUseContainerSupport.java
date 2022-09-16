@@ -44,7 +44,7 @@ public class TestUseContainerSupport {
             return;
         }
 
-        DockerTestUtils.buildJdkContainerImage(imageName);
+        DockerTestUtils.buildJdkDockerImage(imageName, "Dockerfile-BasicTest", "jdk-docker");
 
         try {
             testUseContainerSupport(true);

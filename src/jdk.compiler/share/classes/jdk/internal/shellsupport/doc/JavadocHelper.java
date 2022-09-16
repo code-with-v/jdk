@@ -86,7 +86,6 @@ import com.sun.source.util.TreePath;
 import com.sun.source.util.TreePathScanner;
 import com.sun.source.util.Trees;
 import com.sun.tools.javac.api.JavacTaskImpl;
-import com.sun.tools.javac.util.Assert;
 import com.sun.tools.javac.util.DefinedBy;
 import com.sun.tools.javac.util.DefinedBy.Api;
 import com.sun.tools.javac.util.Pair;
@@ -496,7 +495,7 @@ public abstract class JavadocHelper implements AutoCloseable {
                             //if there is a newline immediately behind this tree, insert behind
                             //the newline:
                             long endPos = sp.getEndPosition(null, dcTree, tree);
-                            if (endPos >= offset) {
+                            if (endPos >= 0) {
                                 if (endPos - offset + 1 < docComment.length() &&
                                     docComment.charAt((int) (endPos - offset + 1)) == '\n') {
                                     endPos++;
@@ -673,7 +672,7 @@ public abstract class JavadocHelper implements AutoCloseable {
         //where:
             private String elementSignature(Element el) {
                 switch (el.getKind()) {
-                    case ANNOTATION_TYPE: case CLASS: case ENUM: case INTERFACE: case RECORD:
+                    case ANNOTATION_TYPE: case CLASS: case ENUM: case INTERFACE:
                         return ((TypeElement) el).getQualifiedName().toString();
                     case FIELD:
                         return elementSignature(el.getEnclosingElement()) + "." + el.getSimpleName() + ":" + el.asType();
@@ -699,11 +698,8 @@ public abstract class JavadocHelper implements AutoCloseable {
                         }
                         header.append(")");
                         return header.toString();
-                    case PACKAGE, STATIC_INIT, INSTANCE_INIT, TYPE_PARAMETER,
-                         OTHER, MODULE, RECORD_COMPONENT, BINDING_VARIABLE:
+                   default:
                         return el.toString();
-                    default:
-                        throw Assert.error(el.getKind().name());
                 }
             }
 

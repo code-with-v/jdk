@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,15 +23,16 @@
 
 
 /*
- * To use ClassUnloadCommon from a sub-process, see test/hotspot/jtreg/runtime/logging/ClassLoadUnloadTest.java
+ * To use ClassUnloadCommon from a sub-process, see hotspot/test/runtime/logging/ClassLoadUnloadTest.java
  * for an example.
  */
 
 
 package jdk.test.lib.classloader;
-import jdk.test.whitebox.WhiteBox;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -63,8 +64,8 @@ public class ClassUnloadCommon {
     }
 
     public static void triggerUnloading() {
-        WhiteBox wb = WhiteBox.getWhiteBox();
-        wb.fullGC();  // will do class unloading
+        allocateMemory(16 * 1024); // force young collection
+        System.gc();
     }
 
     /**

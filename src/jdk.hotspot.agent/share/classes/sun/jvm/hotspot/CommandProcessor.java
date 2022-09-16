@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -33,14 +33,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Objects;
+import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -52,6 +51,7 @@ import sun.jvm.hotspot.debugger.Address;
 import sun.jvm.hotspot.debugger.OopHandle;
 import sun.jvm.hotspot.classfile.ClassLoaderDataGraph;
 import sun.jvm.hotspot.memory.FileMapInfo;
+import sun.jvm.hotspot.memory.SystemDictionary;
 import sun.jvm.hotspot.memory.Universe;
 import sun.jvm.hotspot.gc.shared.CollectedHeap;
 import sun.jvm.hotspot.gc.g1.G1CollectedHeap;
@@ -93,9 +93,11 @@ import sun.jvm.hotspot.ui.tree.OopTreeNodeAdapter;
 import sun.jvm.hotspot.ui.tree.SimpleTreeNode;
 import sun.jvm.hotspot.utilities.AddressOps;
 import sun.jvm.hotspot.utilities.Assert;
+import sun.jvm.hotspot.utilities.CompactHashTable;
 import sun.jvm.hotspot.utilities.HeapProgressThunk;
 import sun.jvm.hotspot.utilities.LivenessPathElement;
 import sun.jvm.hotspot.utilities.MethodArray;
+import sun.jvm.hotspot.utilities.ObjectReader;
 import sun.jvm.hotspot.utilities.PointerFinder;
 import sun.jvm.hotspot.utilities.PointerLocation;
 import sun.jvm.hotspot.utilities.ReversePtrs;
@@ -129,7 +131,7 @@ public class CommandProcessor {
             if (kls.getClassLoader() == null) return false;
             if (emitted.get(kls.getName()) != null) {
                 // Since multiple class loaders are being shoved
-                // together duplicate classes are a possibility.  For
+                // together duplicate classes are a possibilty.  For
                 // now just ignore them.
                 return false;
             }
@@ -234,7 +236,9 @@ public class CommandProcessor {
         }
 
         String at(int i) {
-            Objects.checkIndex(i, length);
+            if (i < 0 || i >= length) {
+                throw new IndexOutOfBoundsException(String.valueOf(i));
+            }
             return tokens[i];
         }
     }
@@ -279,7 +283,7 @@ public class CommandProcessor {
     }
 
     void quote(String s) {
-        if (!s.contains(" ")) {
+        if (s.indexOf(" ") == -1) {
             out.print(s);
         } else {
             out.print("\"");
@@ -342,7 +346,7 @@ public class CommandProcessor {
 
 
     Address lookup(String symbol) {
-        if (symbol.contains("::")) {
+        if (symbol.indexOf("::") != -1) {
             String[] parts = symbol.split("::");
             StringBuilder mangled = new StringBuilder("__1c");
             for (int i = 0; i < parts.length; i++) {
@@ -362,54 +366,6 @@ public class CommandProcessor {
 
     Address parseAddress(String addr) {
         return VM.getVM().getDebugger().parseAddress(addr);
-    }
-
-    String fillHexString(Address a, int width) {
-        String s = "0x0";
-        if (a != null) {
-            s = a.toString();
-        }
-        if (s.length() != width) {
-            return s.substring(0, 2) + "000000000000000000000".substring(0, width - s.length()) + s.substring(2);
-        }
-        return s;
-    }
-
-    class AddressRange {
-        private Address start;
-        private Address end;
-        AddressRange(Address start, Address end) {
-            this.start = start;
-            this.end = end;
-        }
-        Address getStart() {return start;}
-        Address getEnd() {return end;}
-    }
-
-    // Parses either address[/count] or address,address into address start/end values
-    AddressRange parseAddressRange(String arg, int formatSize) {
-        Pattern args1 = Pattern.compile("^(0x[0-9a-f]+)(/([0-9]*))?$");
-        Pattern args2 = Pattern.compile("^(0x[0-9a-f]+),(0x[0-9a-f]+)$");
-        Matcher m1 = args1.matcher(arg);
-        Matcher m2 = args2.matcher(arg);
-        Address start = null;
-        Address end   = null;
-
-        if (m1.matches()) {
-            start = VM.getVM().getDebugger().parseAddress(m1.group(1));
-            int count = 1;
-            if (m1.group(2) != null) {
-                count = Integer.parseInt(m1.group(3));
-            }
-            end = start.addOffsetTo(count * formatSize);
-            return new AddressRange(start, end);
-        } else if (m2.matches()) {
-            start = VM.getVM().getDebugger().parseAddress(m2.group(1));
-            end   = VM.getVM().getDebugger().parseAddress(m2.group(2));
-            return new AddressRange(start, end);
-        } else {
-            return null;
-        }
     }
 
     private final Command[] commandList = {
@@ -457,32 +413,58 @@ public class CommandProcessor {
                 }
             }
         },
-        new Command("examine", "examine { address[/count] | address,address }", false) {
+        new Command("examine", "examine [ address/count ] | [ address,address]", false) {
+            Pattern args1 = Pattern.compile("^(0x[0-9a-f]+)(/([0-9]*)([a-z]*))?$");
+            Pattern args2 = Pattern.compile("^(0x[0-9a-f]+),(0x[0-9a-f]+)(/[a-z]*)?$");
+
+            String fill(Address a, int width) {
+                String s = "0x0";
+                if (a != null) {
+                    s = a.toString();
+                }
+                if (s.length() != width) {
+                    return s.substring(0, 2) + "000000000000000000000".substring(0, width - s.length()) + s.substring(2);
+                }
+                return s;
+            }
+
             public void doit(Tokens t) {
                 if (t.countTokens() != 1) {
                     usage();
                 } else {
                     String arg = t.nextToken();
+                    Matcher m1 = args1.matcher(arg);
+                    Matcher m2 = args2.matcher(arg);
+                    Address start = null;
+                    Address end   = null;
+                    String format = "";
                     int formatSize = (int)VM.getVM().getAddressSize();
-                    AddressRange addressRange = parseAddressRange(arg, formatSize);
-                    if (addressRange == null) {
+
+                    if (m1.matches()) {
+                        start = VM.getVM().getDebugger().parseAddress(m1.group(1));
+                        int count = 1;
+                        if (m1.group(2) != null) {
+                            count = Integer.parseInt(m1.group(3));
+                        }
+                        end = start.addOffsetTo(count * formatSize);
+                    } else if (m2.matches()) {
+                        start = VM.getVM().getDebugger().parseAddress(m2.group(1));
+                        end   = VM.getVM().getDebugger().parseAddress(m2.group(2));
+                    } else {
                         usage();
                         return;
                     }
-                    Address start = addressRange.getStart();
-                    Address end = addressRange.getEnd();
-
                     int line = 80;
                     int formatWidth = formatSize * 8 / 4 + 2;
 
-                    out.print(fillHexString(start, formatWidth));
+                    out.print(fill(start, formatWidth));
                     out.print(": ");
                     int width = line - formatWidth - 2;
 
                     boolean needsPrintln = true;
                     while (start != null && start.lessThan(end)) {
                         Address val = start.getAddressAt(0);
-                        out.print(fillHexString(val, formatWidth));
+                        out.print(fill(val, formatWidth));
                         needsPrintln = true;
                         width -= formatWidth;
                         start = start.addOffsetTo(formatSize);
@@ -490,7 +472,7 @@ public class CommandProcessor {
                             out.println();
                             needsPrintln = false;
                             if (start.lessThan(end)) {
-                                out.print(fillHexString(start, formatWidth));
+                                out.print(fill(start, formatWidth));
                                 out.print(": ");
                                 width = line - formatWidth - 2;
                             }
@@ -502,63 +484,6 @@ public class CommandProcessor {
                     if (needsPrintln) {
                         out.println();
                     }
-                }
-            }
-        },
-        new Command("mem", "mem [-v] { address[/count] | address,address }", false) {
-            public void doit(Tokens t) {
-                int formatSize = (int)VM.getVM().getAddressSize();
-                boolean verbose = false;
-                String arg;
-
-                if (t.countTokens() == 2) {
-                    arg = t.nextToken();
-                    if (arg.equals("-v")) {
-                        verbose = true;
-                    } else {
-                        usage();
-                        return;
-                    }
-                }
-                if (t.countTokens() != 1) {
-                    usage();
-                    return;
-                }
-
-                arg = t.nextToken();
-                AddressRange addressRange = parseAddressRange(arg, formatSize);
-                if (addressRange == null) {
-                    usage();
-                    return;
-                }
-                Address start = addressRange.getStart();
-                Address end = addressRange.getEnd();
-
-                if (verbose) {
-                    // Do the equivalent of a findpc on the start address.
-                    PointerLocation loc = PointerFinder.find(start);
-                    loc.printOn(out);
-                }
-
-                int formatWidth = formatSize * 8 / 4 + 2;
-                while (start != null && start.lessThan(end)) {
-                    out.print(fillHexString(start, formatWidth));
-                    out.print(": ");
-                    Address val = start.getAddressAt(0);
-                    out.print(fillHexString(val, formatWidth));
-                    if (verbose) {
-                        // If we know what this is a pointer to, then print additional information.
-                        PointerLocation loc = PointerFinder.find(val);
-                        if (!loc.isUnknown()) {
-                            out.print(" ");
-                            loc.printOn(out, false, false);
-                        } else {
-                            out.println();
-                        }
-                    } else {
-                        out.println();
-                    }
-                    start = start.addOffsetTo(formatSize);
                 }
             }
         },
@@ -581,8 +506,8 @@ public class CommandProcessor {
                     // dump replay data
 
                     CodeBlob cb = VM.getVM().getCodeCache().findBlob(a);
-                    if (cb instanceof NMethod nMethod) {
-                        nMethod.dumpReplayData(out);
+                    if (cb != null && (cb instanceof NMethod)) {
+                        ((NMethod)cb).dumpReplayData(out);
                         return;
                     }
                     // assume it is Metadata
@@ -678,18 +603,6 @@ public class CommandProcessor {
             }
         },
         new Command("findpc", "findpc address", false) {
-            public void doit(Tokens t) {
-                if (t.countTokens() != 1) {
-                    usage();
-                } else {
-                    Address a = VM.getVM().getDebugger().parseAddress(t.nextToken());
-                    PointerLocation loc = PointerFinder.find(a);
-                    loc.printOn(out);
-                }
-            }
-        },
-        // "whatis" is just an alias for "findpc". It's kept around for compatibility reasons.
-        new Command("whatis", "whatis address", false) {
             public void doit(Tokens t) {
                 if (t.countTokens() != 1) {
                     usage();
@@ -1073,7 +986,7 @@ public class CommandProcessor {
                 Iterator i = agent.getTypeDataBase().getTypes();
                 // Make sure the types are emitted in an order than can be read back in
                 HashSet<String> emitted = new HashSet<>();
-                ArrayDeque<Type> pending = new ArrayDeque<>();
+                Stack<Type> pending = new Stack<>();
                 while (i.hasNext()) {
                     Type n = (Type)i.next();
                     if (emitted.contains(n.getName())) {
@@ -1084,7 +997,7 @@ public class CommandProcessor {
                         pending.push(n);
                         n = n.getSuperclass();
                     }
-                    while (!pending.isEmpty()) {
+                    while (!pending.empty()) {
                         n = (Type)pending.pop();
                         dumpType(n);
                         emitted.add(n.getName());
@@ -1226,7 +1139,7 @@ public class CommandProcessor {
                 if (t.countTokens() == 0) {
                     out.println("echo is " + doEcho);
                 } else if (t.countTokens() == 1) {
-                    doEcho = Boolean.parseBoolean(t.nextToken());
+                    doEcho = Boolean.valueOf(t.nextToken()).booleanValue();
                 } else {
                     usage();
                 }
@@ -1238,7 +1151,7 @@ public class CommandProcessor {
                     out.println("versioncheck is " +
                                 (System.getProperty("sun.jvm.hotspot.runtime.VM.disableVersionCheck") == null));
                 } else if (t.countTokens() == 1) {
-                    if (Boolean.parseBoolean(t.nextToken())) {
+                    if (Boolean.valueOf(t.nextToken()).booleanValue()) {
                         System.clearProperty("sun.jvm.hotspot.runtime.VM.disableVersionCheck");
                     } else {
                         System.setProperty("sun.jvm.hotspot.runtime.VM.disableVersionCheck", "true");
@@ -1302,7 +1215,7 @@ public class CommandProcessor {
                     }
                 } else if (t.countTokens() == 2) {
                     String name = t.nextToken();
-                    int value = Integer.parseInt(t.nextToken());
+                    Integer value = Integer.valueOf(t.nextToken());
                     db.addIntConstant(name, value);
                 }
             }
@@ -1325,7 +1238,7 @@ public class CommandProcessor {
                     }
                 } else if (t.countTokens() == 2) {
                     String name = t.nextToken();
-                    long value = Long.parseLong(t.nextToken());
+                    Long value = Long.valueOf(t.nextToken());
                     db.addLongConstant(name, value);
                 }
             }
@@ -1352,7 +1265,7 @@ public class CommandProcessor {
                     // The field's Type must already be in the database -- no exceptions
                     Type fieldType = agent.getTypeDataBase().lookupType(t.nextToken());
 
-                    boolean isStatic = Boolean.parseBoolean(t.nextToken());
+                    boolean isStatic = Boolean.valueOf(t.nextToken()).booleanValue();
                     long offset = Long.parseLong(t.nextToken());
                     Address staticAddress = parseAddress(t.nextToken());
                     if (isStatic && staticAddress == null) {
@@ -1414,9 +1327,9 @@ public class CommandProcessor {
                     if (superclassName.equals("null")) {
                         superclassName = null;
                     }
-                    boolean isOop = Boolean.parseBoolean(t.nextToken());
-                    boolean isInteger = Boolean.parseBoolean(t.nextToken());
-                    boolean isUnsigned = Boolean.parseBoolean(t.nextToken());
+                    boolean isOop = Boolean.valueOf(t.nextToken()).booleanValue();
+                    boolean isInteger = Boolean.valueOf(t.nextToken()).booleanValue();
+                    boolean isUnsigned = Boolean.valueOf(t.nextToken()).booleanValue();
                     long size = Long.parseLong(t.nextToken());
 
                     BasicType type = null;
@@ -1469,7 +1382,7 @@ public class CommandProcessor {
                     Iterator i = agent.getTypeDataBase().getTypes();
                     // Make sure the types are emitted in an order than can be read back in
                     HashSet<String> emitted = new HashSet<>();
-                    ArrayDeque<Type> pending = new ArrayDeque<>();
+                    Stack<Type> pending = new Stack<>();
                     while (i.hasNext()) {
                         Type n = (Type)i.next();
                         if (emitted.contains(n.getName())) {
@@ -1480,7 +1393,7 @@ public class CommandProcessor {
                             pending.push(n);
                             n = n.getSuperclass();
                         }
-                        while (!pending.isEmpty()) {
+                        while (!pending.empty()) {
                             n = (Type)pending.pop();
                             dumpType(n);
                             emitted.add(n.getName());
@@ -1671,54 +1584,19 @@ public class CommandProcessor {
                 }
             }
         },
-        new Command("threadcontext", "threadcontext [-v] { -a | id }", false) {
-            public void doit(Tokens t) {
-                boolean verbose = false;
-                if (t.countTokens() == 2) {
-                    if (t.nextToken().equals("-v")) {
-                        verbose = true;
-                    } else {
-                        usage();
-                        return;
-                    }
-                }
-                if (t.countTokens() != 1) {
-                    usage();
-                    return;
-                }
-                String id = t.nextToken();
-                Threads threads = VM.getVM().getThreads();
-                boolean all = id.equals("-a");
-                for (int i = 0; i < threads.getNumberOfThreads(); i++) {
-                    JavaThread thread = threads.getJavaThreadAt(i);
-                    ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                    thread.printThreadIDOn(new PrintStream(bos));
-                    if (all || bos.toString().equals(id)) {
-                        out.format("Thread \"%s\" id=%s Address=%s\n",
-                                   thread.getThreadName(), bos.toString(), thread.getAddress());
-                        thread.printThreadContextOn(out, verbose);
-                        out.println(" ");
-                        if (!all) return;
-                    }
-                }
-                if (!all) {
-                    out.println("Couldn't find thread " + id);
-                }
-            }
-        },
         new Command("thread", "thread { -a | id }", false) {
             public void doit(Tokens t) {
                 if (t.countTokens() != 1) {
                     usage();
                 } else {
-                    String id = t.nextToken();
+                    String name = t.nextToken();
                     Threads threads = VM.getVM().getThreads();
-                    boolean all = id.equals("-a");
+                    boolean all = name.equals("-a");
                     for (int i = 0; i < threads.getNumberOfThreads(); i++) {
                         JavaThread thread = threads.getJavaThreadAt(i);
                         ByteArrayOutputStream bos = new ByteArrayOutputStream();
                         thread.printThreadIDOn(new PrintStream(bos));
-                        if (all || bos.toString().equals(id)) {
+                        if (all || bos.toString().equals(name)) {
                             out.println("Thread " + bos.toString() + " Address " + thread.getAddress());
                             thread.printInfoOn(out);
                             out.println(" ");
@@ -1726,7 +1604,7 @@ public class CommandProcessor {
                         }
                     }
                     if (!all) {
-                        out.println("Couldn't find thread " + id);
+                        out.println("Couldn't find thread " + name);
                     }
                 }
             }
@@ -1807,7 +1685,7 @@ public class CommandProcessor {
                 if (t.countTokens() != 1) {
                     usage();
                 } else {
-                    verboseExceptions = Boolean.parseBoolean(t.nextToken());
+                    verboseExceptions = Boolean.valueOf(t.nextToken()).booleanValue();
                 }
             }
         },
@@ -1816,7 +1694,7 @@ public class CommandProcessor {
                 if (t.countTokens() != 1) {
                     usage();
                 } else {
-                    Assert.ASSERTS_ENABLED = Boolean.parseBoolean(t.nextToken());
+                    Assert.ASSERTS_ENABLED = Boolean.valueOf(t.nextToken()).booleanValue();
                 }
             }
         },

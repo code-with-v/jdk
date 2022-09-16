@@ -27,7 +27,7 @@
 
 #include "jni.h"
 #include "jfr/utilities/jfrTypes.hpp"
-#include "memory/allStatic.hpp"
+#include "memory/allocation.hpp"
 
 class JfrTraceIdBits : AllStatic {
  public:

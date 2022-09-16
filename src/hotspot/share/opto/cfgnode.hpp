@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -143,9 +143,6 @@ class PhiNode : public TypeNode {
   bool wait_for_region_igvn(PhaseGVN* phase);
   bool is_data_loop(RegionNode* r, Node* uin, const PhaseGVN* phase);
 
-  static Node* clone_through_phi(Node* root_phi, const Type* t, uint c, PhaseIterGVN* igvn);
-  static Node* merge_through_phi(Node* root_phi, PhaseIterGVN* igvn);
-
 public:
   // Node layout (parallels RegionNode):
   enum { Region,                // Control input is the Phi's region.
@@ -224,6 +221,7 @@ public:
   virtual const RegMask &out_RegMask() const;
   virtual const RegMask &in_RegMask(uint) const;
 #ifndef PRODUCT
+  virtual void related(GrowableArray<Node*> *in_rel, GrowableArray<Node*> *out_rel, bool compact) const;
   virtual void dump_spec(outputStream *st) const;
 #endif
 #ifdef ASSERT
@@ -249,6 +247,10 @@ public:
   virtual const Type* Value(PhaseGVN* phase) const;
   virtual Node* Identity(PhaseGVN* phase);
   virtual const RegMask &out_RegMask() const;
+
+#ifndef PRODUCT
+  virtual void related(GrowableArray<Node*> *in_rel, GrowableArray<Node*> *out_rel, bool compact) const;
+#endif
 };
 
 //------------------------------CProjNode--------------------------------------
@@ -401,6 +403,7 @@ public:
 
 #ifndef PRODUCT
   virtual void dump_spec(outputStream *st) const;
+  virtual void related(GrowableArray <Node *> *in_rel, GrowableArray <Node *> *out_rel, bool compact) const;
 #endif
 };
 
@@ -426,6 +429,11 @@ public:
 protected:
   // Type of If input when this branch is always taken
   virtual bool always_taken(const TypeTuple* t) const = 0;
+
+#ifndef PRODUCT
+public:
+  virtual void related(GrowableArray<Node*> *in_rel, GrowableArray<Node*> *out_rel, bool compact) const;
+#endif
 };
 
 class IfTrueNode : public IfProjNode {
@@ -493,6 +501,9 @@ public:
   virtual int   Opcode() const;
   virtual const RegMask& out_RegMask() const;
   virtual const Node* is_block_proj() const { return this; }
+#ifndef PRODUCT
+  virtual void related(GrowableArray<Node*> *in_rel, GrowableArray<Node*> *out_rel, bool compact) const;
+#endif
 };
 
 class JumpProjNode : public JProjNode {
@@ -518,6 +529,7 @@ class JumpProjNode : public JProjNode {
 #ifndef PRODUCT
   virtual void dump_spec(outputStream *st) const;
   virtual void dump_compact_spec(outputStream *st) const;
+  virtual void related(GrowableArray<Node*> *in_rel, GrowableArray<Node*> *out_rel, bool compact) const;
 #endif
 };
 
@@ -534,7 +546,7 @@ public:
   virtual const Type* Value(PhaseGVN* phase) const;
 };
 
-// CatchProjNode controls which exception handler is targeted after a call.
+// CatchProjNode controls which exception handler is targetted after a call.
 // It is passed in the bci of the target handler, or no_handler_bci in case
 // the projection doesn't lead to an exception handler.
 class CatchProjNode : public CProjNode {

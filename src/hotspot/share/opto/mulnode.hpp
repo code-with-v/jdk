@@ -41,7 +41,7 @@ class PhaseTransform;
 class MulNode : public Node {
   virtual uint hash() const;
 public:
-  MulNode(Node *in1, Node *in2): Node(NULL,in1,in2) {
+  MulNode( Node *in1, Node *in2 ): Node(0,in1,in2) {
     init_class_id(Class_Mul);
   }
 
@@ -80,11 +80,6 @@ public:
 
   // Supplied function to return the multiplicative opcode
   virtual int min_opcode() const = 0;
-
-  static MulNode* make(Node* in1, Node* in2, BasicType bt);
-
-  static bool AndIL_shift_and_mask_is_always_zero(PhaseGVN* phase, Node* shift, Node* mask, BasicType bt, bool check_reverse);
-  Node* AndIL_add_shift_and_mask(PhaseGVN* phase, BasicType bt);
 };
 
 //------------------------------MulINode---------------------------------------
@@ -159,8 +154,6 @@ public:
 };
 
 //-------------------------------MulHiLNode------------------------------------
-const Type* MulHiValue(const Type *t1, const Type *t2, const Type *bot);
-
 // Upper 64 bits of a 64 bit by 64 bit multiply
 class MulHiLNode : public Node {
 public:
@@ -169,18 +162,6 @@ public:
   virtual const Type* Value(PhaseGVN* phase) const;
   const Type *bottom_type() const { return TypeLong::LONG; }
   virtual uint ideal_reg() const { return Op_RegL; }
-  friend const Type* MulHiValue(const Type *t1, const Type *t2, const Type *bot);
-};
-
-// Upper 64 bits of a 64 bit by 64 bit unsigned multiply
-class UMulHiLNode : public Node {
-public:
-  UMulHiLNode( Node *in1, Node *in2 ) : Node(0,in1,in2) {}
-  virtual int Opcode() const;
-  virtual const Type* Value(PhaseGVN* phase) const;
-  const Type *bottom_type() const { return TypeLong::LONG; }
-  virtual uint ideal_reg() const { return Op_RegL; }
-  friend const Type* MulHiValue(const Type *t1, const Type *t2, const Type *bot);
 };
 
 //------------------------------AndINode---------------------------------------
@@ -192,7 +173,6 @@ public:
   virtual int Opcode() const;
   virtual Node *Ideal(PhaseGVN *phase, bool can_reshape);
   virtual Node* Identity(PhaseGVN* phase);
-  virtual const Type* Value(PhaseGVN* phase) const;
   virtual const Type *mul_ring( const Type *, const Type * ) const;
   const Type *mul_id() const { return TypeInt::MINUS_1; }
   const Type *add_id() const { return TypeInt::ZERO; }
@@ -212,7 +192,6 @@ public:
   virtual int Opcode() const;
   virtual Node *Ideal(PhaseGVN *phase, bool can_reshape);
   virtual Node* Identity(PhaseGVN* phase);
-  virtual const Type* Value(PhaseGVN* phase) const;
   virtual const Type *mul_ring( const Type *, const Type * ) const;
   const Type *mul_id() const { return TypeLong::MINUS_1; }
   const Type *add_id() const { return TypeLong::ZERO; }
@@ -223,20 +202,11 @@ public:
   virtual uint ideal_reg() const { return Op_RegL; }
 };
 
-class LShiftNode : public Node {
-public:
-  LShiftNode(Node *in1, Node *in2) : Node(NULL,in1,in2) {
-    init_class_id(Class_LShift);
-  }
-
-  static LShiftNode* make(Node* in1, Node* in2, BasicType bt);
-};
-
 //------------------------------LShiftINode------------------------------------
 // Logical shift left
-class LShiftINode : public LShiftNode {
+class LShiftINode : public Node {
 public:
-  LShiftINode(Node *in1, Node *in2) : LShiftNode(in1,in2) {}
+  LShiftINode( Node *in1, Node *in2 ) : Node(0,in1,in2) {}
   virtual int Opcode() const;
   virtual Node* Identity(PhaseGVN* phase);
   virtual Node *Ideal(PhaseGVN *phase, bool can_reshape);
@@ -247,9 +217,9 @@ public:
 
 //------------------------------LShiftLNode------------------------------------
 // Logical shift left
-class LShiftLNode : public LShiftNode {
+class LShiftLNode : public Node {
 public:
-  LShiftLNode(Node *in1, Node *in2) : LShiftNode(in1,in2) {}
+  LShiftLNode( Node *in1, Node *in2 ) : Node(0,in1,in2) {}
   virtual int Opcode() const;
   virtual Node* Identity(PhaseGVN* phase);
   virtual Node *Ideal(PhaseGVN *phase, bool can_reshape);

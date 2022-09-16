@@ -42,6 +42,7 @@
  */
 #define SHARED_GC_CONSTRAINTS(f)                               \
  f(uint,   ParallelGCThreadsConstraintFunc)                    \
+ f(uint,   ConcGCThreadsConstraintFunc)                        \
  f(size_t, YoungPLABSizeConstraintFunc)                        \
  f(size_t, OldPLABSizeConstraintFunc)                          \
  f(uintx,  MinHeapFreeRatioConstraintFunc)                     \
@@ -66,8 +67,7 @@
  f(uintx,  TLABWasteIncrementConstraintFunc)                   \
  f(uintx,  SurvivorRatioConstraintFunc)                        \
  f(size_t, MetaspaceSizeConstraintFunc)                        \
- f(size_t, MaxMetaspaceSizeConstraintFunc)                     \
- f(uint, GCCardSizeInBytesConstraintFunc)
+ f(size_t, MaxMetaspaceSizeConstraintFunc)
 
 SHARED_GC_CONSTRAINTS(DECLARE_CONSTRAINT)
 

@@ -217,7 +217,7 @@ public class DragSource implements Serializable {
      * the underlying platform.
      *
      * @return the platform DragSource
-     * @throws HeadlessException if GraphicsEnvironment.isHeadless()
+     * @exception HeadlessException if GraphicsEnvironment.isHeadless()
      *            returns true
      * @see java.awt.GraphicsEnvironment#isHeadless
      */
@@ -255,7 +255,7 @@ public class DragSource implements Serializable {
     /**
      * Creates a new {@code DragSource}.
      *
-     * @throws HeadlessException if GraphicsEnvironment.isHeadless()
+     * @exception HeadlessException if GraphicsEnvironment.isHeadless()
      *            returns true
      * @see java.awt.GraphicsEnvironment#isHeadless
      */
@@ -682,7 +682,7 @@ public class DragSource implements Serializable {
      *          <code><em>Foo</em>Listener</code>s on this
      *          {@code DragSource}, or an empty array if no such listeners
      *          have been added
-     * @throws ClassCastException if {@code listenerType}
+     * @exception ClassCastException if {@code listenerType}
      *          doesn't specify a class or interface that implements
      *          {@code java.util.EventListener}
      *

@@ -25,18 +25,15 @@
 
 package sun.java2d.xr;
 
-import java.awt.AlphaComposite;
-import java.awt.Composite;
-import java.awt.Paint;
-import java.awt.geom.AffineTransform;
-import java.awt.geom.NoninvertibleTransformException;
+import java.awt.*;
+import java.awt.geom.*;
+
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 
-import sun.awt.image.PixelConverter;
-import sun.font.XRTextRenderer;
-import sun.java2d.SunGraphics2D;
-import sun.java2d.loops.XORComposite;
+import sun.font.*;
+import sun.java2d.*;
+import sun.java2d.loops.*;
 
 /**
  * Manages per-application resources, e.g. the 1x1 pixmap used for solid color
@@ -71,7 +68,6 @@ public class XRCompositeManager {
     int gradCachePicture;
 
     boolean xorEnabled = false;
-    int eargb;
     int validatedPixel = 0;
     Composite validatedComp;
     Paint validatedPaint;
@@ -174,10 +170,8 @@ public class XRCompositeManager {
             validatedComp = comp;
         }
 
-        if (sg2d != null && (eargb != sg2d.eargb || updatePaint)) {
-            eargb = sg2d.eargb;
-            validatedPixel = PixelConverter.ArgbPre.instance
-                                           .rgbToPixel(eargb, null);
+        if (sg2d != null && (validatedPixel != sg2d.pixel  || updatePaint)) {
+            validatedPixel = sg2d.pixel;
             setForeground(validatedPixel);
         }
 

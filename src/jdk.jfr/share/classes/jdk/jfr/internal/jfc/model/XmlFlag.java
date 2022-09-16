@@ -29,7 +29,7 @@ final class XmlFlag extends XmlInput {
 
     @Override
     public String getOptionSyntax() {
-        return getName() + "=<true|false>" + "  (" + getContent() + ")";
+        return getName() + "=<true|false>";
     }
 
     @Override

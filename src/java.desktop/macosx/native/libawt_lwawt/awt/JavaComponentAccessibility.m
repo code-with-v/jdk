@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,6 +29,7 @@
 // <https://www.ibm.com/able/guidelines/java/snsjavagjfc.html>
 
 #import "JavaComponentAccessibility.h"
+#import "a11y/CommonComponentAccessibility.h"
 #import "sun_lwawt_macosx_CAccessibility.h"
 
 #import <AppKit/AppKit.h>
@@ -43,12 +44,6 @@
 #import "ThreadUtilities.h"
 #import "JNIUtilities.h"
 #import "AWTView.h"
-
-// these constants are duplicated in CAccessibility.java
-#define JAVA_AX_ALL_CHILDREN (-1)
-#define JAVA_AX_SELECTED_CHILDREN (-2)
-#define JAVA_AX_VISIBLE_CHILDREN (-3)
-// If the value is >=0, it's an index
 
 // GET* macros defined in JavaAccessibilityUtilities.h, so they can be shared.
 static jclass sjc_CAccessibility = NULL;
@@ -87,7 +82,7 @@ static jclass sjc_CAccessible = NULL;
 static NSMutableDictionary *sAttributeNamesForRoleCache = nil;
 static NSObject *sAttributeNamesLOCK = nil;
 
-@interface TabGroupLegacyAccessibility : JavaComponentAccessibility {
+@interface TabGroupAccessibility : JavaComponentAccessibility {
     NSInteger _numTabs;
 }
 
@@ -117,7 +112,7 @@ static NSObject *sAttributeNamesLOCK = nil;
 - (id)accessibilityValueAttribute;
 @end
 
-@interface TableLegacyAccessibility : JavaComponentAccessibility {
+@interface TableAccessibility : JavaComponentAccessibility {
 
 }
 - (NSArray *)initializeAttributeNamesWithEnv:(JNIEnv *)env;
@@ -367,18 +362,21 @@ static NSObject *sAttributeNamesLOCK = nil;
 
     // otherwise, create a new instance
     JavaComponentAccessibility *newChild = nil;
-    if ([javaRole isEqualToString:@"pagetablist"]) {
-        newChild = [TabGroupLegacyAccessibility alloc];
-    } else if ([javaRole isEqualToString:@"table"]) {
-        newChild = [TableLegacyAccessibility alloc];
-    } else {
-        NSString *nsRole = [sRoles objectForKey:javaRole];
-        if ([nsRole isEqualToString:NSAccessibilityStaticTextRole] ||
-            [nsRole isEqualToString:NSAccessibilityTextAreaRole] ||
-            [nsRole isEqualToString:NSAccessibilityTextFieldRole]) {
-            newChild = [JavaTextAccessibility alloc];
+    newChild = [CommonComponentAccessibility getComponentAccessibility:javaRole];
+    if (newChild == nil) {
+        if ([javaRole isEqualToString:@"pagetablist"]) {
+            newChild = [TabGroupAccessibility alloc];
+        } else if ([javaRole isEqualToString:@"table"]) {
+            newChild = [TableAccessibility alloc];
         } else {
-            newChild = [JavaComponentAccessibility alloc];
+            NSString *nsRole = [sRoles objectForKey:javaRole];
+            if ([nsRole isEqualToString:NSAccessibilityStaticTextRole] ||
+                [nsRole isEqualToString:NSAccessibilityTextAreaRole] ||
+                [nsRole isEqualToString:NSAccessibilityTextFieldRole]) {
+                newChild = [JavaTextAccessibility alloc];
+            } else {
+                newChild = [JavaComponentAccessibility alloc];
+            }
         }
     }
 
@@ -389,7 +387,7 @@ static NSObject *sAttributeNamesLOCK = nil;
     // This is the only way to know if the menu is opening; visible state change
     // can't be caught because the listeners are not set up in time.
     if ( [javaRole isEqualToString:@"popupmenu"] &&
-        ![[parent javaRole] isEqualToString:@"combobox"] ) {
+         ![[parent javaRole] isEqualToString:@"combobox"] ) {
         [newChild postMenuOpened];
     }
 
@@ -906,6 +904,32 @@ static NSObject *sAttributeNamesLOCK = nil;
     return index;
 }
 
+/*
+ * The java/lang/Number concrete class could be for any of the Java primitive
+ * numerical types or some other subclass.
+ * All existing A11Y code uses Integer so that is what we look for first
+ * But all must be able to return a double and NSNumber accepts a double,
+ * so that's the fall back.
+ */
+static NSNumber* JavaNumberToNSNumber(JNIEnv *env, jobject jnumber) {
+    if (jnumber == NULL) {
+        return nil;
+    }
+    DECLARE_CLASS_RETURN(jnumber_Class, "java/lang/Number", nil);
+    DECLARE_CLASS_RETURN(jinteger_Class, "java/lang/Integer", nil);
+    DECLARE_METHOD_RETURN(jm_intValue, jnumber_Class, "intValue", "()I", nil);
+    DECLARE_METHOD_RETURN(jm_doubleValue, jnumber_Class, "doubleValue", "()D", nil);
+    if ((*env)->IsInstanceOf(env, jnumber, jinteger_Class)) {
+        jint i = (*env)->CallIntMethod(env, jnumber, jm_intValue);
+        CHECK_EXCEPTION();
+        return [NSNumber numberWithInteger:i];
+    } else {
+        jdouble d = (*env)->CallDoubleMethod(env, jnumber, jm_doubleValue);
+        CHECK_EXCEPTION();
+        return [NSNumber numberWithDouble:d];
+    }
+}
+
 // Element's maximum value (id)
 - (id)accessibilityMaxValueAttribute
 {
@@ -1140,7 +1164,7 @@ static NSObject *sAttributeNamesLOCK = nil;
 
 - (BOOL)accessibilityIsSizeAttributeSettable
 {
-    // SIZE is settable in windows if [self styleMask] & NSWindowStyleMaskResizable - but windows are heavyweight so we're ok here
+    // SIZE is settable in windows if [self styleMask] & NSResizableWindowMask - but windows are heavyweight so we're ok here
     // SIZE is settable in columns if [[self tableValue] allowsColumnResizing - haven't dealt with columns yet
     return NO;
 }
@@ -1380,7 +1404,6 @@ static NSObject *sAttributeNamesLOCK = nil;
 
 - (id)accessibilityHitTest:(NSPoint)point withEnv:(JNIEnv *)env
 {
-    GET_CACCESSIBILITY_CLASS_RETURN(nil);
     DECLARE_CLASS_RETURN(jc_Container, "java/awt/Container", nil);
     DECLARE_STATIC_METHOD_RETURN(jm_accessibilityHitTest, sjc_CAccessibility, "accessibilityHitTest",
                                  "(Ljava/awt/Container;FF)Ljavax/accessibility/Accessible;", nil);
@@ -1518,6 +1541,54 @@ JNI_COCOA_EXIT(env);
 
 /*
  * Class:     sun_lwawt_macosx_CAccessible
+ * Method:    menuOpened
+ * Signature: (I)V
+ */
+JNIEXPORT void JNICALL Java_sun_lwawt_macosx_CAccessible_menuOpened
+(JNIEnv *env, jclass jklass, jlong element)
+{
+JNI_COCOA_ENTER(env);
+    [ThreadUtilities performOnMainThread:@selector(postMenuOpened)
+                     on:(JavaComponentAccessibility *)jlong_to_ptr(element)
+                     withObject:nil
+                     waitUntilDone:NO];
+JNI_COCOA_EXIT(env);
+}
+
+/*
+ * Class:     sun_lwawt_macosx_CAccessible
+ * Method:    menuClosed
+ * Signature: (I)V
+ */
+JNIEXPORT void JNICALL Java_sun_lwawt_macosx_CAccessible_menuClosed
+(JNIEnv *env, jclass jklass, jlong element)
+{
+JNI_COCOA_ENTER(env);
+    [ThreadUtilities performOnMainThread:@selector(postMenuClosed)
+                     on:(JavaComponentAccessibility *)jlong_to_ptr(element)
+                     withObject:nil
+                     waitUntilDone:NO];
+JNI_COCOA_EXIT(env);
+}
+
+/*
+ * Class:     sun_lwawt_macosx_CAccessible
+ * Method:    menuItemSelected
+ * Signature: (I)V
+ */
+JNIEXPORT void JNICALL Java_sun_lwawt_macosx_CAccessible_menuItemSelected
+(JNIEnv *env, jclass jklass, jlong element)
+{
+JNI_COCOA_ENTER(env);
+    [ThreadUtilities performOnMainThread:@selector(postMenuItemSelected)
+                     on:(JavaComponentAccessibility *)jlong_to_ptr(element)
+                     withObject:nil
+                     waitUntilDone:NO];
+JNI_COCOA_EXIT(env);
+}
+
+/*
+ * Class:     sun_lwawt_macosx_CAccessible
  * Method:    unregisterFromCocoaAXSystem
  * Signature: (I)V
  */
@@ -1529,7 +1600,7 @@ JNI_COCOA_ENTER(env);
 JNI_COCOA_EXIT(env);
 }
 
-@implementation TabGroupLegacyAccessibility
+@implementation TabGroupAccessibility
 
 - (id)initWithParent:(NSObject *)parent withEnv:(JNIEnv *)env withAccessible:(jobject)accessible withIndex:(jint)index withView:(NSView *)view withJavaRole:(NSString *)javaRole
 {
@@ -1731,6 +1802,9 @@ JNI_COCOA_EXIT(env);
 
 @end
 
+
+static BOOL ObjectEquals(JNIEnv *env, jobject a, jobject b, jobject component);
+
 @implementation TabGroupControlAccessibility
 
 - (id)initWithParent:(NSObject *)parent withEnv:(JNIEnv *)env withAccessible:(jobject)accessible withIndex:(jint)index withTabGroup:(jobject)tabGroup withView:(NSView *)view withJavaRole:(NSString *)javaRole
@@ -1799,7 +1873,7 @@ JNI_COCOA_EXIT(env);
 #define JAVA_AX_ROWS (1)
 #define JAVA_AX_COLS (2)
 
-@implementation TableLegacyAccessibility
+@implementation TableAccessibility
 
 - (NSArray *)initializeAttributeNamesWithEnv:(JNIEnv *)env
 {
@@ -1833,3 +1907,30 @@ JNI_COCOA_EXIT(env);
     return [self getTableInfo:JAVA_AX_COLS];
 }
 @end
+
+/*
+ * Returns Object.equals for the two items
+ * This may use LWCToolkit.invokeAndWait(); don't call while holding fLock
+ * and try to pass a component so the event happens on the correct thread.
+ */
+static BOOL ObjectEquals(JNIEnv *env, jobject a, jobject b, jobject component)
+{
+    DECLARE_CLASS_RETURN(sjc_Object, "java/lang/Object", NO);
+    DECLARE_METHOD_RETURN(jm_equals, sjc_Object, "equals", "(Ljava/lang/Object;)Z", NO);
+
+    if ((a == NULL) && (b == NULL)) return YES;
+    if ((a == NULL) || (b == NULL)) return NO;
+
+    if (pthread_main_np() != 0) {
+        // If we are on the AppKit thread
+        DECLARE_CLASS_RETURN(sjc_LWCToolkit, "sun/lwawt/macosx/LWCToolkit", NO);
+        DECLARE_STATIC_METHOD_RETURN(jm_doEquals, sjc_LWCToolkit, "doEquals",
+                                     "(Ljava/lang/Object;Ljava/lang/Object;Ljava/awt/Component;)Z", NO);
+        return (*env)->CallStaticBooleanMethod(env, sjc_LWCToolkit, jm_doEquals, a, b, component);
+        CHECK_EXCEPTION();
+    }
+
+    jboolean jb = (*env)->CallBooleanMethod(env, a, jm_equals, b);
+    CHECK_EXCEPTION();
+    return jb;
+}

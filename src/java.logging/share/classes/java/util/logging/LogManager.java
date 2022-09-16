@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -159,7 +159,7 @@ public class LogManager {
     // be able to see a partially constructed 'props' object.
     // (seeing a partially constructed 'props' object can result in
     // NPE being thrown in Hashtable.get(), because it leaves the door
-    // open for props.getProperties() to be called before the constructor
+    // open for props.getProperties() to be called before the construcor
     // of Hashtable is actually completed).
     private volatile Properties props = new Properties();
     private static final Level defaultLevel = Level.INFO;
@@ -1381,7 +1381,8 @@ public class LogManager {
 
         String fname = getConfigurationFileName();
         try (final InputStream in = new FileInputStream(fname)) {
-            readConfiguration(in);
+            final BufferedInputStream bin = new BufferedInputStream(in);
+            readConfiguration(bin);
         }
     }
 
@@ -1876,7 +1877,8 @@ public class LogManager {
 
         String fname = getConfigurationFileName();
         try (final InputStream in = new FileInputStream(fname)) {
-            updateConfiguration(in, mapper);
+            final BufferedInputStream bin = new BufferedInputStream(in);
+            updateConfiguration(bin, mapper);
         }
     }
 
@@ -2556,14 +2558,13 @@ public class LogManager {
 
     /**
      * String representation of the
-     * {@link java.management/javax.management.ObjectName} for the management interface
+     * {@link javax.management.ObjectName} for the management interface
      * for the logging facility.
      *
-     * @see java.management/java.lang.management.PlatformLoggingMXBean
+     * @see java.lang.management.PlatformLoggingMXBean
      *
      * @since 1.5
      */
-    @SuppressWarnings("doclint:reference")
     public static final String LOGGING_MXBEAN_NAME
         = "java.util.logging:type=Logging";
 
@@ -2574,15 +2575,14 @@ public class LogManager {
      *
      * @deprecated {@code java.util.logging.LoggingMXBean} is deprecated and
      *      replaced with {@code java.lang.management.PlatformLoggingMXBean}. Use
-     *      {@link java.management/java.lang.management.ManagementFactory#getPlatformMXBean(Class)
+     *      {@link java.lang.management.ManagementFactory#getPlatformMXBean(Class)
      *      ManagementFactory.getPlatformMXBean}(PlatformLoggingMXBean.class)
      *      instead.
      *
-     * @see java.management/java.lang.management.PlatformLoggingMXBean
+     * @see java.lang.management.PlatformLoggingMXBean
      * @since 1.5
      */
     @Deprecated(since="9")
-    @SuppressWarnings("doclint:reference")
     public static synchronized LoggingMXBean getLoggingMXBean() {
         return Logging.getInstance();
     }

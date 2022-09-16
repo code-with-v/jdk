@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,9 +27,11 @@ package java.lang;
 
 import java.util.Arrays;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Spliterator;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import jdk.internal.util.ArraysSupport;
@@ -37,13 +39,14 @@ import jdk.internal.vm.annotation.IntrinsicCandidate;
 
 import static java.lang.String.LATIN1;
 import static java.lang.String.UTF16;
-import static java.lang.String.checkIndex;
 import static java.lang.String.checkOffset;
 
 final class StringLatin1 {
 
     public static char charAt(byte[] value, int index) {
-        checkIndex(index, value.length);
+        if (index < 0 || index >= value.length) {
+            throw new StringIndexOutOfBoundsException(index);
+        }
         return (char)(value[index] & 0xff);
     }
 
@@ -79,11 +82,11 @@ final class StringLatin1 {
         return ret;
     }
 
-    public static void getChars(byte[] value, int srcBegin, int srcEnd, char[] dst, int dstBegin) {
+    public static void getChars(byte[] value, int srcBegin, int srcEnd, char dst[], int dstBegin) {
         inflate(value, srcBegin, dst, dstBegin, srcEnd - srcBegin);
     }
 
-    public static void getBytes(byte[] value, int srcBegin, int srcEnd, byte[] dst, int dstBegin) {
+    public static void getBytes(byte[] value, int srcBegin, int srcEnd, byte dst[], int dstBegin) {
         System.arraycopy(value, srcBegin, dst, dstBegin, srcEnd - srcBegin);
     }
 
@@ -396,6 +399,9 @@ final class StringLatin1 {
             int u1 = CharacterDataLatin1.instance.toUpperCase(c1);
             int u2 = CharacterDataLatin1.instance.toUpperCase(c2);
             if (u1 == u2) {
+                continue;
+            }
+            if (Character.toLowerCase(u1) == Character.toLowerCase(u2)) {
                 continue;
             }
             return false;

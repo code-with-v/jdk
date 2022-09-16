@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,6 +23,7 @@
 
 package nsk.jdi.Locatable.location;
 
+import nsk.share.*;
 import nsk.share.jpda.*;
 import nsk.share.jdi.*;
 
@@ -93,8 +94,8 @@ public class location005a {
     //------------------------------------------------------  section tested
 
                 case 0:
-                         Thread thread2 =
-                             JDIThreadFactory.newThread(new Threadlocation005a("Thread2"));
+                         Threadlocation005a thread2 =
+                             new Threadlocation005a("Thread2");
                          log1("       thread2 is created");
 
                          label:
@@ -144,7 +145,7 @@ public class location005a {
     }
 }
 
-class Threadlocation005a extends NamedTask {
+class Threadlocation005a extends Thread {
 
     public Threadlocation005a(String threadName) {
         super(threadName);

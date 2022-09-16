@@ -675,9 +675,9 @@ public class HTMLGenerator implements /* imports */ ClassConstants {
                              buf.beginTag("tr");
                              if (hasLineNumbers) {
                                 int lineNumber = method.getLineNumberFromBCI(curBci);
-                                buf.cell(lineNumber + spaces);
+                                buf.cell(Integer.toString(lineNumber) + spaces);
                              }
-                             buf.cell(curBci + spaces);
+                             buf.cell(Integer.toString(curBci) + spaces);
 
                              buf.beginTag("td");
                              String instrStr = null;
@@ -949,7 +949,7 @@ public class HTMLGenerator implements /* imports */ ClassConstants {
       }
 
       public void endInstruction(long endPc) {
-         instrSize += (int) (endPc - pc);
+         instrSize += endPc - pc;
          if (genHTML) buf.br();
 
          if (nmethod != null) {
@@ -983,7 +983,7 @@ public class HTMLGenerator implements /* imports */ ClassConstants {
 
       public void epilogue() {
       }
-   }
+   };
 
    protected String genHTMLForRawDisassembly(sun.jvm.hotspot.debugger.Address addr,
                                              int size,
@@ -1007,7 +1007,7 @@ public class HTMLGenerator implements /* imports */ ClassConstants {
          Formatter tmpBuf = new Formatter(genHTML);
          long startPc = addressToLong(addr);
          tmpBuf.append("0x");
-         tmpBuf.append(Long.toHexString(startPc + visitor.getInstructionSize()));
+         tmpBuf.append(Long.toHexString(startPc + visitor.getInstructionSize()).toString());
          tmpBuf.append(",0x");
          tmpBuf.append(Long.toHexString(startPc));
          if (prevPCs != null) {
@@ -1180,8 +1180,7 @@ public class HTMLGenerator implements /* imports */ ClassConstants {
       Formatter buf = new Formatter(genHTML);
 
       final class OopMapValueIterator {
-         final Formatter iterate(OopMapStream oms, String type, boolean printContentReg,
-                                 OopMapValue.OopTypes filter) {
+         final Formatter iterate(OopMapStream oms, String type, boolean printContentReg) {
             Formatter tmpBuf = new Formatter(genHTML);
             boolean found = false;
             tmpBuf.beginTag("tr");
@@ -1189,7 +1188,7 @@ public class HTMLGenerator implements /* imports */ ClassConstants {
             tmpBuf.append(type);
             for (; ! oms.isDone(); oms.next()) {
                OopMapValue omv = oms.getCurrent();
-               if (omv == null || omv.getType() != filter) {
+               if (omv == null) {
                   continue;
                }
                found = true;
@@ -1225,21 +1224,17 @@ public class HTMLGenerator implements /* imports */ ClassConstants {
       buf.beginTable(0);
 
       OopMapValueIterator omvIterator = new OopMapValueIterator();
-      OopMapStream oms = new OopMapStream(map);
-      buf.append(omvIterator.iterate(oms, "Oops:", false,
-                                     OopMapValue.OopTypes.OOP_VALUE));
+      OopMapStream oms = new OopMapStream(map, OopMapValue.OopTypes.OOP_VALUE);
+      buf.append(omvIterator.iterate(oms, "Oops:", false));
 
-      oms = new OopMapStream(map);
-      buf.append(omvIterator.iterate(oms, "NarrowOops:", false,
-                                     OopMapValue.OopTypes.NARROWOOP_VALUE));
+      oms = new OopMapStream(map, OopMapValue.OopTypes.NARROWOOP_VALUE);
+      buf.append(omvIterator.iterate(oms, "NarrowOops:", false));
 
-      oms = new OopMapStream(map);
-      buf.append(omvIterator.iterate(oms, "Callee saved:", true,
-                                     OopMapValue.OopTypes.CALLEE_SAVED_VALUE));
+      oms = new OopMapStream(map, OopMapValue.OopTypes.CALLEE_SAVED_VALUE);
+      buf.append(omvIterator.iterate(oms, "Callee saved:",  true));
 
-      oms = new OopMapStream(map);
-      buf.append(omvIterator.iterate(oms, "Derived oops:", true,
-                                     OopMapValue.OopTypes.DERIVED_OOP_VALUE));
+      oms = new OopMapStream(map, OopMapValue.OopTypes.DERIVED_OOP_VALUE);
+      buf.append(omvIterator.iterate(oms, "Derived oops:", true));
 
       buf.endTag("table");
       return buf.toString();
@@ -1281,6 +1276,8 @@ public class HTMLGenerator implements /* imports */ ClassConstants {
          if (w == Location.Where.ON_STACK) {
             buf.append("stack[" + loc.getStackOffset() + "]");
          } else if (w == Location.Where.IN_REGISTER) {
+            boolean isFloat = (type == Location.Type.FLOAT_IN_DBL ||
+                               type == Location.Type.DBL);
             int regNum = loc.getRegisterNumber();
             VMReg vmReg = new VMReg(regNum);
             buf.append(VMRegImpl.getRegisterName(vmReg.getValue()));

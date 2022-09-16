@@ -240,8 +240,8 @@ class VirtualSpace {
   void check_for_contiguity() PRODUCT_RETURN;
 
   // Debugging
-  void print_on(outputStream* out) const PRODUCT_RETURN;
-  void print() const;
+  void print_on(outputStream* out) PRODUCT_RETURN;
+  void print();
 };
 
 #endif // SHARE_MEMORY_VIRTUALSPACE_HPP

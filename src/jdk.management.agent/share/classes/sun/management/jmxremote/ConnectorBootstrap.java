@@ -692,7 +692,8 @@ public final class ConnectorBootstrap {
                 // Load the SSL keystore properties from the config file
                 Properties p = new Properties();
                 try (InputStream in = new FileInputStream(sslConfigFileName)) {
-                    p.load(in);
+                    BufferedInputStream bin = new BufferedInputStream(in);
+                    p.load(bin);
                 }
                 String keyStore =
                         p.getProperty("javax.net.ssl.keyStore");

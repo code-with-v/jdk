@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,16 +25,6 @@
 
 package sun.security.ssl;
 
-import sun.security.ssl.Authenticator.MAC;
-
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
-import javax.crypto.ShortBufferException;
-import javax.crypto.spec.GCMParameterSpec;
-import javax.crypto.spec.IvParameterSpec;
 import java.nio.ByteBuffer;
 import java.security.AccessController;
 import java.security.GeneralSecurityException;
@@ -49,104 +39,119 @@ import java.security.spec.AlgorithmParameterSpec;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
-
-import static sun.security.ssl.CipherType.AEAD_CIPHER;
-import static sun.security.ssl.CipherType.BLOCK_CIPHER;
-import static sun.security.ssl.CipherType.NULL_CIPHER;
-import static sun.security.ssl.CipherType.STREAM_CIPHER;
-import static sun.security.ssl.JsseJce.CIPHER_3DES;
-import static sun.security.ssl.JsseJce.CIPHER_AES;
-import static sun.security.ssl.JsseJce.CIPHER_AES_GCM;
-import static sun.security.ssl.JsseJce.CIPHER_CHACHA20_POLY1305;
-import static sun.security.ssl.JsseJce.CIPHER_DES;
-import static sun.security.ssl.JsseJce.CIPHER_RC4;
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.ShortBufferException;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.IvParameterSpec;
+import sun.security.ssl.Authenticator.MAC;
+import static sun.security.ssl.CipherType.*;
+import static sun.security.ssl.JsseJce.*;
 
 enum SSLCipher {
     // exportable ciphers
     @SuppressWarnings({"unchecked", "rawtypes"})
     B_NULL("NULL", NULL_CIPHER, 0, 0, 0, 0, true, true,
-        new Map.Entry[] {
+        (Map.Entry<ReadCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<ReadCipherGenerator, ProtocolVersion[]>(
                 new NullReadCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_OF_NONE
             ),
             new SimpleImmutableEntry<ReadCipherGenerator, ProtocolVersion[]>(
                 new NullReadCipherGenerator(),
-                ProtocolVersion.PROTOCOLS_TO_13
-            )
-        }, new Map.Entry[] {
-            new SimpleImmutableEntry<WriteCipherGenerator, ProtocolVersion[]>(
-                new NullWriteCipherGenerator(),
-                ProtocolVersion.PROTOCOLS_OF_NONE
-            ),
-            new SimpleImmutableEntry<WriteCipherGenerator, ProtocolVersion[]>(
-                new NullWriteCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_TO_13
             )
         }),
+        (Map.Entry<WriteCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
+            new SimpleImmutableEntry<WriteCipherGenerator, ProtocolVersion[]>(
+                new NullWriteCipherGenerator(),
+                ProtocolVersion.PROTOCOLS_OF_NONE
+            ),
+            new SimpleImmutableEntry<WriteCipherGenerator, ProtocolVersion[]>(
+                new NullWriteCipherGenerator(),
+                ProtocolVersion.PROTOCOLS_TO_13
+            )
+        })),
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     B_RC4_40(CIPHER_RC4, STREAM_CIPHER, 5, 16, 0, 0, true, true,
-        new Map.Entry[] {
+        (Map.Entry<ReadCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<ReadCipherGenerator, ProtocolVersion[]>(
                 new StreamReadCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_TO_10
             )
-        }, new Map.Entry[] {
+        }),
+        (Map.Entry<WriteCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<WriteCipherGenerator, ProtocolVersion[]>(
                 new StreamWriteCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_TO_10
             )
-        }),
+        })),
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     B_RC2_40("RC2", BLOCK_CIPHER, 5, 16, 8, 0, false, true,
-        new Map.Entry[] {
+        (Map.Entry<ReadCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<ReadCipherGenerator, ProtocolVersion[]>(
                 new StreamReadCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_TO_10
             )
-        }, new Map.Entry[] {
+        }),
+        (Map.Entry<WriteCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<WriteCipherGenerator, ProtocolVersion[]>(
                 new StreamWriteCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_TO_10
             )
-        }),
+        })),
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     B_DES_40(CIPHER_DES,  BLOCK_CIPHER, 5, 8, 8, 0, true, true,
-        new Map.Entry[] {
+        (Map.Entry<ReadCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<ReadCipherGenerator, ProtocolVersion[]>(
                 new T10BlockReadCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_TO_10
             )
-        }, new Map.Entry[] {
+        }),
+        (Map.Entry<WriteCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<WriteCipherGenerator, ProtocolVersion[]>(
                 new T10BlockWriteCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_TO_10
             )
-        }),
+        })),
 
     // domestic strength ciphers
     @SuppressWarnings({"unchecked", "rawtypes"})
     B_RC4_128(CIPHER_RC4, STREAM_CIPHER, 16, 16, 0, 0, true, false,
-        new Map.Entry[] {
+        (Map.Entry<ReadCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<ReadCipherGenerator, ProtocolVersion[]>(
                 new StreamReadCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_TO_12
             )
-        }, new Map.Entry[] {
+        }),
+        (Map.Entry<WriteCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<WriteCipherGenerator, ProtocolVersion[]>(
                 new StreamWriteCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_TO_12
             )
-        }),
+        })),
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     B_DES(CIPHER_DES, BLOCK_CIPHER, 8, 8, 8, 0, true, false,
-        new Map.Entry[] {
+        (Map.Entry<ReadCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<ReadCipherGenerator, ProtocolVersion[]>(
                 new T10BlockReadCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_TO_10
@@ -155,7 +160,9 @@ enum SSLCipher {
                 new T11BlockReadCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_OF_11
             )
-        }, new Map.Entry[] {
+        }),
+        (Map.Entry<WriteCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<WriteCipherGenerator, ProtocolVersion[]>(
                 new T10BlockWriteCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_TO_10
@@ -164,11 +171,12 @@ enum SSLCipher {
                 new T11BlockWriteCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_OF_11
             )
-        }),
+        })),
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     B_3DES(CIPHER_3DES, BLOCK_CIPHER, 24, 24, 8, 0, true, false,
-        new Map.Entry[] {
+        (Map.Entry<ReadCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<ReadCipherGenerator, ProtocolVersion[]>(
                 new T10BlockReadCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_TO_10
@@ -177,7 +185,9 @@ enum SSLCipher {
                 new T11BlockReadCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_11_12
             )
-        }, new Map.Entry[] {
+        }),
+        (Map.Entry<WriteCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<WriteCipherGenerator, ProtocolVersion[]>(
                 new T10BlockWriteCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_TO_10
@@ -186,25 +196,29 @@ enum SSLCipher {
                 new T11BlockWriteCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_11_12
             )
-        }),
+        })),
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     B_IDEA("IDEA", BLOCK_CIPHER, 16, 16, 8, 0, false, false,
-        new Map.Entry[] {
+        (Map.Entry<ReadCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<ReadCipherGenerator, ProtocolVersion[]>(
                 null,
                 ProtocolVersion.PROTOCOLS_TO_12
             )
-        }, new Map.Entry[] {
+        }),
+        (Map.Entry<WriteCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<WriteCipherGenerator, ProtocolVersion[]>(
                 null,
                 ProtocolVersion.PROTOCOLS_TO_12
             )
-        }),
+        })),
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     B_AES_128(CIPHER_AES, BLOCK_CIPHER, 16, 16, 16, 0, true, false,
-        new Map.Entry[] {
+        (Map.Entry<ReadCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<ReadCipherGenerator, ProtocolVersion[]>(
                 new T10BlockReadCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_TO_10
@@ -213,7 +227,9 @@ enum SSLCipher {
                 new T11BlockReadCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_11_12
             )
-        }, new Map.Entry[] {
+        }),
+        (Map.Entry<WriteCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<WriteCipherGenerator, ProtocolVersion[]>(
                 new T10BlockWriteCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_TO_10
@@ -222,11 +238,12 @@ enum SSLCipher {
                 new T11BlockWriteCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_11_12
             )
-        }),
+        })),
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     B_AES_256(CIPHER_AES, BLOCK_CIPHER, 32, 32, 16, 0, true, false,
-        new Map.Entry[] {
+        (Map.Entry<ReadCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<ReadCipherGenerator, ProtocolVersion[]>(
                 new T10BlockReadCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_TO_10
@@ -235,7 +252,9 @@ enum SSLCipher {
                 new T11BlockReadCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_11_12
             )
-        }, new Map.Entry[] {
+        }),
+        (Map.Entry<WriteCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<WriteCipherGenerator, ProtocolVersion[]>(
                 new T10BlockWriteCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_TO_10
@@ -244,67 +263,81 @@ enum SSLCipher {
                 new T11BlockWriteCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_11_12
             )
-        }),
+        })),
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     B_AES_128_GCM(CIPHER_AES_GCM, AEAD_CIPHER, 16, 16, 12, 4, true, false,
-        new Map.Entry[] {
+        (Map.Entry<ReadCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<ReadCipherGenerator, ProtocolVersion[]>(
                 new T12GcmReadCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_OF_12
             )
-        }, new Map.Entry[] {
+        }),
+        (Map.Entry<WriteCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<WriteCipherGenerator, ProtocolVersion[]>(
                 new T12GcmWriteCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_OF_12
             )
-        }),
+        })),
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     B_AES_256_GCM(CIPHER_AES_GCM, AEAD_CIPHER, 32, 32, 12, 4, true, false,
-        new Map.Entry[] {
+        (Map.Entry<ReadCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<ReadCipherGenerator, ProtocolVersion[]>(
                 new T12GcmReadCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_OF_12
             )
-        }, new Map.Entry[] {
+        }),
+        (Map.Entry<WriteCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<WriteCipherGenerator, ProtocolVersion[]>(
                 new T12GcmWriteCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_OF_12
             )
-        }),
+        })),
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     B_AES_128_GCM_IV(CIPHER_AES_GCM, AEAD_CIPHER, 16, 16, 12, 0, true, false,
-        new Map.Entry[] {
+        (Map.Entry<ReadCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<ReadCipherGenerator, ProtocolVersion[]>(
                 new T13GcmReadCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_OF_13
             )
-        }, new Map.Entry[] {
+        }),
+        (Map.Entry<WriteCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<WriteCipherGenerator, ProtocolVersion[]>(
                 new T13GcmWriteCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_OF_13
             )
-        }),
+        })),
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     B_AES_256_GCM_IV(CIPHER_AES_GCM, AEAD_CIPHER, 32, 32, 12, 0, true, false,
-        new Map.Entry[] {
+        (Map.Entry<ReadCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<ReadCipherGenerator, ProtocolVersion[]>(
                 new T13GcmReadCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_OF_13
             )
-        }, new Map.Entry[] {
+        }),
+        (Map.Entry<WriteCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<WriteCipherGenerator, ProtocolVersion[]>(
                 new T13GcmWriteCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_OF_13
             )
-        }),
+        })),
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     B_CC20_P1305(CIPHER_CHACHA20_POLY1305, AEAD_CIPHER, 32, 32, 12,
-        12, true, false, new Map.Entry[] {
+            12, true, false,
+        (Map.Entry<ReadCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<ReadCipherGenerator, ProtocolVersion[]>(
                 new T12CC20P1305ReadCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_OF_12
@@ -313,7 +346,9 @@ enum SSLCipher {
                 new T13CC20P1305ReadCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_OF_13
             )
-        }, new Map.Entry[] {
+        }),
+        (Map.Entry<WriteCipherGenerator,
+                ProtocolVersion[]>[])(new Map.Entry[] {
             new SimpleImmutableEntry<WriteCipherGenerator, ProtocolVersion[]>(
                 new T12CC20P1305WriteCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_OF_12
@@ -322,7 +357,7 @@ enum SSLCipher {
                 new T13CC20P1305WriteCipherGenerator(),
                 ProtocolVersion.PROTOCOLS_OF_13
             )
-        });
+        }));
 
     // descriptive name including key size, e.g. AES/128
     final String description;
@@ -395,8 +430,7 @@ enum SSLCipher {
             for (String entry : propvalue) {
                 int index;
                 // If this is not a UsageLimit, goto to next entry.
-                String[] values =
-                        entry.trim().toUpperCase(Locale.ENGLISH).split(" ");
+                String[] values = entry.trim().toUpperCase().split(" ");
 
                 if (values[1].contains(tag[0])) {
                     index = 0;
@@ -437,14 +471,14 @@ enum SSLCipher {
         }
     }
 
-    SSLCipher(String transformation,
-              CipherType cipherType, int keySize,
-              int expandedKeySize, int ivSize,
-              int fixedIvSize, boolean allowed, boolean exportable,
-              Map.Entry<ReadCipherGenerator,
-                      ProtocolVersion[]>[] readCipherGenerators,
-              Map.Entry<WriteCipherGenerator,
-                      ProtocolVersion[]>[] writeCipherGenerators) {
+    private SSLCipher(String transformation,
+            CipherType cipherType, int keySize,
+            int expandedKeySize, int ivSize,
+            int fixedIvSize, boolean allowed, boolean exportable,
+            Map.Entry<ReadCipherGenerator,
+                    ProtocolVersion[]>[] readCipherGenerators,
+            Map.Entry<WriteCipherGenerator,
+                    ProtocolVersion[]>[] writeCipherGenerators) {
         this.transformation = transformation;
         String[] splits = transformation.split("/");
         this.algorithm = splits[0];
@@ -845,45 +879,39 @@ enum SSLCipher {
             public Plaintext decrypt(byte contentType, ByteBuffer bb,
                     byte[] sequence) throws GeneralSecurityException {
                 int len = bb.remaining();
-                int pos;
-                ByteBuffer pt;
-
-                // Do in-place with the bb buffer if it's not read-only
-                if (!bb.isReadOnly()) {
-                    pt = bb.duplicate();
-                    pos = bb.position();
-                } else {
-                    pt = ByteBuffer.allocate(bb.remaining());
-                    pos = 0;
-                }
-
+                int pos = bb.position();
+                ByteBuffer dup = bb.duplicate();
                 try {
-                    if (len != cipher.update(bb, pt)) {
+                    if (len != cipher.update(dup, bb)) {
                         // catch BouncyCastle buffering error
                         throw new RuntimeException(
                                 "Unexpected number of plaintext bytes");
+                    }
+                    if (bb.position() != dup.position()) {
+                        throw new RuntimeException(
+                                "Unexpected ByteBuffer position");
                     }
                 } catch (ShortBufferException sbe) {
                     // catch BouncyCastle buffering error
                     throw new RuntimeException("Cipher buffering error in " +
                         "JCE provider " + cipher.getProvider().getName(), sbe);
                 }
-                pt.position(pos);
+                bb.position(pos);
                 if (SSLLogger.isOn && SSLLogger.isOn("plaintext")) {
                     SSLLogger.fine(
-                            "Plaintext after DECRYPTION", pt.duplicate());
+                            "Plaintext after DECRYPTION", bb.duplicate());
                 }
 
                 MAC signer = (MAC)authenticator;
                 if (signer.macAlg().size != 0) {
-                    checkStreamMac(signer, pt, contentType, sequence);
+                    checkStreamMac(signer, bb, contentType, sequence);
                 } else {
                     authenticator.increaseSequenceNumber();
                 }
 
                 return new Plaintext(contentType,
                         ProtocolVersion.NONE.major, ProtocolVersion.NONE.minor,
-                        -1, -1L, pt.slice());
+                        -1, -1L, bb.slice());
             }
 
             @Override
@@ -1029,29 +1057,25 @@ enum SSLCipher {
                 int cipheredLength = bb.remaining();
                 int tagLen = signer.macAlg().size;
                 if (tagLen != 0) {
-                    if (!sanityCheck(tagLen, cipheredLength)) {
+                    if (!sanityCheck(tagLen, bb.remaining())) {
                         reservedBPE = new BadPaddingException(
                                 "ciphertext sanity check failed");
                     }
                 }
                 // decryption
-                ByteBuffer pt;
-                int pos;
-
-                // Do in-place with the bb buffer if it's not read-only
-                if (!bb.isReadOnly()) {
-                    pt = bb.duplicate();
-                    pos = bb.position();
-                } else {
-                    pt = ByteBuffer.allocate(cipheredLength);
-                    pos = 0;
-                }
-
+                int len = bb.remaining();
+                int pos = bb.position();
+                ByteBuffer dup = bb.duplicate();
                 try {
-                    if (cipheredLength != cipher.update(bb, pt)) {
+                    if (len != cipher.update(dup, bb)) {
                         // catch BouncyCastle buffering error
                         throw new RuntimeException(
                                 "Unexpected number of plaintext bytes");
+                    }
+
+                    if (bb.position() != dup.position()) {
+                        throw new RuntimeException(
+                                "Unexpected ByteBuffer position");
                     }
                 } catch (ShortBufferException sbe) {
                     // catch BouncyCastle buffering error
@@ -1062,14 +1086,14 @@ enum SSLCipher {
                 if (SSLLogger.isOn && SSLLogger.isOn("plaintext")) {
                     SSLLogger.fine(
                             "Padded plaintext after DECRYPTION",
-                            pt.duplicate().position(pos));
+                            bb.duplicate().position(pos));
                 }
 
                 // remove the block padding
-                pt.position(pos);
+                int blockSize = cipher.getBlockSize();
+                bb.position(pos);
                 try {
-                    removePadding(pt, tagLen, cipher.getBlockSize(),
-                        protocolVersion);
+                    removePadding(bb, tagLen, blockSize, protocolVersion);
                 } catch (BadPaddingException bpe) {
                     if (reservedBPE == null) {
                         reservedBPE = bpe;
@@ -1080,7 +1104,7 @@ enum SSLCipher {
                 // block cipher suites.
                 try {
                     if (tagLen != 0) {
-                        checkCBCMac(signer, pt,
+                        checkCBCMac(signer, bb,
                                 contentType, cipheredLength, sequence);
                     } else {
                         authenticator.increaseSequenceNumber();
@@ -1098,7 +1122,7 @@ enum SSLCipher {
 
                 return new Plaintext(contentType,
                         ProtocolVersion.NONE.major, ProtocolVersion.NONE.minor,
-                        -1, -1L, pt.slice());
+                        -1, -1L, bb.slice());
             }
 
             @Override
@@ -1141,7 +1165,7 @@ enum SSLCipher {
                 int blockSize = cipher.getBlockSize();
                 if ((fragmentLen % blockSize) == 0) {
                     int minimal = tagLen + 1;
-                    minimal = Math.max(minimal, blockSize);
+                    minimal = (minimal >= blockSize) ? minimal : blockSize;
 
                     return (fragmentLen >= minimal);
                 }
@@ -1304,30 +1328,26 @@ enum SSLCipher {
                 int cipheredLength = bb.remaining();
                 int tagLen = signer.macAlg().size;
                 if (tagLen != 0) {
-                    if (!sanityCheck(tagLen, cipheredLength)) {
+                    if (!sanityCheck(tagLen, bb.remaining())) {
                         reservedBPE = new BadPaddingException(
                                 "ciphertext sanity check failed");
                     }
                 }
 
                 // decryption
-                ByteBuffer pt;
-                int pos;
-
-                // Do in-place with the bb buffer if it's not read-only
-                if (!bb.isReadOnly()) {
-                    pt = bb.duplicate();
-                    pos = bb.position();
-                } else {
-                    pt = ByteBuffer.allocate(cipheredLength);
-                    pos = 0;
-                }
-
+                int len = bb.remaining();
+                int pos = bb.position();
+                ByteBuffer dup = bb.duplicate();
                 try {
-                    if (cipheredLength != cipher.update(bb, pt)) {
+                    if (len != cipher.update(dup, bb)) {
                         // catch BouncyCastle buffering error
                         throw new RuntimeException(
                                 "Unexpected number of plaintext bytes");
+                    }
+
+                    if (bb.position() != dup.position()) {
+                        throw new RuntimeException(
+                                "Unexpected ByteBuffer position");
                     }
                 } catch (ShortBufferException sbe) {
                     // catch BouncyCastle buffering error
@@ -1336,18 +1356,20 @@ enum SSLCipher {
                 }
 
                 if (SSLLogger.isOn && SSLLogger.isOn("plaintext")) {
-                    SSLLogger.fine("Padded plaintext after DECRYPTION",
-                        pt.duplicate().position(pos));
+                    SSLLogger.fine(
+                            "Padded plaintext after DECRYPTION",
+                            bb.duplicate().position(pos));
                 }
 
                 // Ignore the explicit nonce.
-                int blockSize = cipher.getBlockSize();
-                pos += blockSize;
-                pt.position(pos);
+                bb.position(pos + cipher.getBlockSize());
+                pos = bb.position();
 
                 // remove the block padding
+                int blockSize = cipher.getBlockSize();
+                bb.position(pos);
                 try {
-                    removePadding(pt, tagLen, blockSize, protocolVersion);
+                    removePadding(bb, tagLen, blockSize, protocolVersion);
                 } catch (BadPaddingException bpe) {
                     if (reservedBPE == null) {
                         reservedBPE = bpe;
@@ -1358,7 +1380,7 @@ enum SSLCipher {
                 // block cipher suites.
                 try {
                     if (tagLen != 0) {
-                        checkCBCMac(signer, pt,
+                        checkCBCMac(signer, bb,
                                 contentType, cipheredLength, sequence);
                     } else {
                         authenticator.increaseSequenceNumber();
@@ -1376,7 +1398,7 @@ enum SSLCipher {
 
                 return new Plaintext(contentType,
                         ProtocolVersion.NONE.major, ProtocolVersion.NONE.minor,
-                        -1, -1L, pt.slice());
+                        -1, -1L, bb.slice());
             }
 
             @Override
@@ -1420,7 +1442,7 @@ enum SSLCipher {
                 int blockSize = cipher.getBlockSize();
                 if ((fragmentLen % blockSize) == 0) {
                     int minimal = tagLen + 1;
-                    minimal = Math.max(minimal, blockSize);
+                    minimal = (minimal >= blockSize) ? minimal : blockSize;
                     minimal += blockSize;
 
                     return (fragmentLen >= minimal);
@@ -1631,20 +1653,10 @@ enum SSLCipher {
 
                 // DON'T decrypt the nonce_explicit for AEAD mode. The buffer
                 // position has moved out of the nonce_explicit range.
-                ByteBuffer pt;
-                int len, pos;
-
-                // Do in-place with the bb buffer if it's not read-only
-                if (!bb.isReadOnly()) {
-                    pt = bb.duplicate();
-                    pos = bb.position();
-                } else {
-                    pt = ByteBuffer.allocate(bb.remaining());
-                    pos = 0;
-                }
-
+                int len, pos = bb.position();
+                ByteBuffer dup = bb.duplicate();
                 try {
-                    len = cipher.doFinal(bb, pt);
+                    len = cipher.doFinal(dup, bb);
                 } catch (IllegalBlockSizeException ibse) {
                     // unlikely to happen
                     throw new RuntimeException(
@@ -1656,17 +1668,17 @@ enum SSLCipher {
                         "JCE provider " + cipher.getProvider().getName(), sbe);
                 }
                 // reset the limit to the end of the decrypted data
-                pt.position(pos);
-                pt.limit(pos + len);
+                bb.position(pos);
+                bb.limit(pos + len);
 
                 if (SSLLogger.isOn && SSLLogger.isOn("plaintext")) {
                     SSLLogger.fine(
-                            "Plaintext after DECRYPTION", pt.duplicate());
+                            "Plaintext after DECRYPTION", bb.duplicate());
                 }
 
                 return new Plaintext(contentType,
                         ProtocolVersion.NONE.major, ProtocolVersion.NONE.minor,
-                        -1, -1L, pt.slice());
+                        -1, -1L, bb.slice());
             }
 
             @Override
@@ -1853,10 +1865,10 @@ enum SSLCipher {
                 this.random = random;
 
                 keyLimitCountdown = cipherLimits.getOrDefault(
-                    algorithm.toUpperCase(Locale.ENGLISH) + ":" + tag[0], 0L);
+                        algorithm.toUpperCase() + ":" + tag[0], 0L);
                 if (SSLLogger.isOn && SSLLogger.isOn("ssl")) {
                     SSLLogger.fine("KeyLimit read side: algorithm = " +
-                            algorithm + ":" + tag[0] +
+                            algorithm.toUpperCase() + ":" + tag[0] +
                             "\ncountdown value = " + keyLimitCountdown);
                 }
                 if (keyLimitCountdown > 0) {
@@ -1908,26 +1920,17 @@ enum SSLCipher {
                     throw new RuntimeException(
                                 "invalid key or spec in GCM mode", ikae);
                 }
+
                 // Update the additional authentication data, using the
                 // implicit sequence number of the authenticator.
                 byte[] aad = authenticator.acquireAuthenticationBytes(
                                         contentType, bb.remaining(), sn);
                 cipher.updateAAD(aad);
 
-                ByteBuffer pt;
-                int len, pos;
-
-                // Do in-place with the bb buffer if it's not read-only
-                if (!bb.isReadOnly()) {
-                    pt = bb.duplicate();
-                    pos = bb.position();
-                } else {
-                    pt = ByteBuffer.allocate(bb.remaining());
-                    pos = 0;
-                }
-
+                int len, pos = bb.position();
+                ByteBuffer dup = bb.duplicate();
                 try {
-                    len = cipher.doFinal(bb, pt);
+                    len = cipher.doFinal(dup, bb);
                 } catch (IllegalBlockSizeException ibse) {
                     // unlikely to happen
                     throw new RuntimeException(
@@ -1939,23 +1942,24 @@ enum SSLCipher {
                         "JCE provider " + cipher.getProvider().getName(), sbe);
                 }
                 // reset the limit to the end of the decrypted data
-                pt.position(pos);
-                pt.limit(pos + len);
+                bb.position(pos);
+                bb.limit(pos + len);
 
                 // remove inner plaintext padding
-                int i = pt.limit() - 1;
-                for (; i > 0 && pt.get(i) == 0; i--);
-
+                int i = bb.limit() - 1;
+                for (; i > 0 && bb.get(i) == 0; i--) {
+                    // blank
+                }
                 if (i < (pos + 1)) {
                     throw new BadPaddingException(
                             "Incorrect inner plaintext: no content type");
                 }
-                contentType = pt.get(i);
-                pt.limit(i);
+                contentType = bb.get(i);
+                bb.limit(i);
 
                 if (SSLLogger.isOn && SSLLogger.isOn("plaintext")) {
                     SSLLogger.fine(
-                            "Plaintext after DECRYPTION", pt.duplicate());
+                            "Plaintext after DECRYPTION", bb.duplicate());
                 }
                 if (keyLimitEnabled) {
                     keyLimitCountdown -= len;
@@ -1963,7 +1967,7 @@ enum SSLCipher {
 
                 return new Plaintext(contentType,
                         ProtocolVersion.NONE.major, ProtocolVersion.NONE.minor,
-                        -1, -1L, pt.slice());
+                        -1, -1L, bb.slice());
             }
 
             @Override
@@ -2015,10 +2019,10 @@ enum SSLCipher {
                 this.random = random;
 
                 keyLimitCountdown = cipherLimits.getOrDefault(
-                    algorithm.toUpperCase(Locale.ENGLISH) + ":" + tag[0], 0L);
+                        algorithm.toUpperCase() + ":" + tag[0], 0L);
                 if (SSLLogger.isOn && SSLLogger.isOn("ssl")) {
                     SSLLogger.fine("KeyLimit write side: algorithm = "
-                            + algorithm + ":" + tag[0] +
+                            + algorithm.toUpperCase() + ":" + tag[0] +
                             "\ncountdown value = " + keyLimitCountdown);
                 }
                 if (keyLimitCountdown > 0) {
@@ -2197,20 +2201,11 @@ enum SSLCipher {
 
                 // DON'T decrypt the nonce_explicit for AEAD mode. The buffer
                 // position has moved out of the nonce_explicit range.
-                ByteBuffer pt;
-                int len, pos;
-
-                // Do in-place with the bb buffer if it's not read-only
-                if (!bb.isReadOnly()) {
-                    pt = bb.duplicate();
-                    pos = bb.position();
-                } else {
-                    pt = ByteBuffer.allocate(bb.remaining());
-                    pos = 0;
-                }
-
+                int len;
+                int pos = bb.position();
+                ByteBuffer dup = bb.duplicate();
                 try {
-                    len = cipher.doFinal(bb, pt);
+                    len = cipher.doFinal(dup, bb);
                 } catch (IllegalBlockSizeException ibse) {
                     // unlikely to happen
                     throw new RuntimeException(
@@ -2222,17 +2217,17 @@ enum SSLCipher {
                         "JCE provider " + cipher.getProvider().getName(), sbe);
                 }
                 // reset the limit to the end of the decrypted data
-                pt.position(pos);
-                pt.limit(pos + len);
+                bb.position(pos);
+                bb.limit(pos + len);
 
                 if (SSLLogger.isOn && SSLLogger.isOn("plaintext")) {
                     SSLLogger.fine(
-                            "Plaintext after DECRYPTION", pt.duplicate());
+                            "Plaintext after DECRYPTION", bb.duplicate());
                 }
 
                 return new Plaintext(contentType,
                         ProtocolVersion.NONE.major, ProtocolVersion.NONE.minor,
-                        -1, -1L, pt.slice());
+                        -1, -1L, bb.slice());
             }
 
             @Override
@@ -2284,9 +2279,9 @@ enum SSLCipher {
                 this.random = random;
 
                 keyLimitCountdown = cipherLimits.getOrDefault(
-                    algorithm.toUpperCase(Locale.ENGLISH) + ":" + tag[0], 0L);
+                        algorithm.toUpperCase() + ":" + tag[0], 0L);
                 if (SSLLogger.isOn && SSLLogger.isOn("ssl")) {
-                    SSLLogger.fine("algorithm = " + algorithm +
+                    SSLLogger.fine("algorithm = " + algorithm.toUpperCase() +
                             ":" + tag[0] + "\ncountdown value = " +
                             keyLimitCountdown);
                 }
@@ -2476,20 +2471,11 @@ enum SSLCipher {
                                         contentType, bb.remaining(), sn);
                 cipher.updateAAD(aad);
 
-                ByteBuffer pt;
-                int len, pos;
-
-                // Do in-place with the bb buffer if it's not read-only
-                if (!bb.isReadOnly()) {
-                    pt = bb.duplicate();
-                    pos = bb.position();
-                } else {
-                    pt = ByteBuffer.allocate(bb.remaining());
-                    pos = 0;
-                }
-
+                int len;
+                int pos = bb.position();
+                ByteBuffer dup = bb.duplicate();
                 try {
-                    len = cipher.doFinal(bb, pt);
+                    len = cipher.doFinal(dup, bb);
                 } catch (IllegalBlockSizeException ibse) {
                     // unlikely to happen
                     throw new RuntimeException(
@@ -2501,29 +2487,29 @@ enum SSLCipher {
                         "JCE provider " + cipher.getProvider().getName(), sbe);
                 }
                 // reset the limit to the end of the decrypted data
-                pt.position(pos);
-                pt.limit(pos + len);
+                bb.position(pos);
+                bb.limit(pos + len);
 
                 // remove inner plaintext padding
-                int i = pt.limit() - 1;
-                for (; i > 0 && pt.get(i) == 0; i--) {
+                int i = bb.limit() - 1;
+                for (; i > 0 && bb.get(i) == 0; i--) {
                     // blank
                 }
                 if (i < (pos + 1)) {
                     throw new BadPaddingException(
                             "Incorrect inner plaintext: no content type");
                 }
-                contentType = pt.get(i);
-                pt.limit(i);
+                contentType = bb.get(i);
+                bb.limit(i);
 
                 if (SSLLogger.isOn && SSLLogger.isOn("plaintext")) {
                     SSLLogger.fine(
-                            "Plaintext after DECRYPTION", pt.duplicate());
+                            "Plaintext after DECRYPTION", bb.duplicate());
                 }
 
                 return new Plaintext(contentType,
                         ProtocolVersion.NONE.major, ProtocolVersion.NONE.minor,
-                        -1, -1L, pt.slice());
+                        -1, -1L, bb.slice());
             }
 
             @Override
@@ -2575,9 +2561,9 @@ enum SSLCipher {
                 this.random = random;
 
                 keyLimitCountdown = cipherLimits.getOrDefault(
-                    algorithm.toUpperCase(Locale.ENGLISH) + ":" + tag[0], 0L);
+                        algorithm.toUpperCase() + ":" + tag[0], 0L);
                 if (SSLLogger.isOn && SSLLogger.isOn("ssl")) {
-                    SSLLogger.fine("algorithm = " + algorithm +
+                    SSLLogger.fine("algorithm = " + algorithm.toUpperCase() +
                             ":" + tag[0] + "\ncountdown value = " +
                             keyLimitCountdown);
                 }

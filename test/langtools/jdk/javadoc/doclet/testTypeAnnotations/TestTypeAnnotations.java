@@ -44,7 +44,6 @@ public class TestTypeAnnotations extends JavadocTester {
     @Test
     public void test() {
         javadoc("-d", "out",
-                "-Xdoclint:none",
                 "--no-platform-links",
                 "-sourcepath", testSrc,
                 "-private",

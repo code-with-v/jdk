@@ -56,7 +56,6 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package jdk.internal.org.objectweb.asm.util;
 
 import java.io.FileInputStream;
@@ -323,8 +322,8 @@ public abstract class Printer {
     private static final String UNSUPPORTED_OPERATION = "Must be overridden";
 
     /**
-      * The ASM API version implemented by this class. The value of this field must be one of the
-      * {@code ASM}<i>x</i> values in {@link Opcodes}.
+      * The ASM API version implemented by this class. The value of this field must be one of {@link
+      * Opcodes#ASM4}, {@link Opcodes#ASM5}, {@link Opcodes#ASM6} or {@link Opcodes#ASM7}.
       */
     protected final int api;
 
@@ -350,8 +349,8 @@ public abstract class Printer {
     /**
       * Constructs a new {@link Printer}.
       *
-      * @param api the ASM API version implemented by this printer. Must be one of the {@code
-      *     ASM}<i>x</i> values in {@link Opcodes}.
+      * @param api the ASM API version implemented by this printer. Must be one of {@link
+      *     Opcodes#ASM4}, {@link Opcodes#ASM5}, {@link Opcodes#ASM6} or {@link Opcodes#ASM7}.
       */
     protected Printer(final int api) {
         this.api = api;
@@ -486,12 +485,18 @@ public abstract class Printer {
     }
 
     /**
-      * Visits a permitted subclasses. A permitted subclass is one of the allowed subclasses of the
-      * current class. See {@link jdk.internal.org.objectweb.asm.ClassVisitor#visitPermittedSubclass(String)}.
+      * <b>Experimental, use at your own risk. This method will be renamed when it becomes stable, this
+      * will break existing code using it</b>.
+      *
+      * <p>Visits a permitted subclass. A permitted subtclass is one of the allowed subclasses of the
+      * current class. See {@link
+      * jdk.internal.org.objectweb.asm.ClassVisitor#visitPermittedSubclassExperimental(String)}.
       *
       * @param permittedSubclass the internal name of a permitted subclass.
+      * @deprecated this API is experimental.
       */
-    public void visitPermittedSubclass(final String permittedSubclass) {
+    @Deprecated
+    public void visitPermittedSubclassExperimental(final String permittedSubclass) {
         throw new UnsupportedOperationException(UNSUPPORTED_OPERATION);
     }
 
@@ -949,10 +954,10 @@ public abstract class Printer {
       *
       * @param opcode the opcode of the local variable instruction to be visited. This opcode is either
       *     ILOAD, LLOAD, FLOAD, DLOAD, ALOAD, ISTORE, LSTORE, FSTORE, DSTORE, ASTORE or RET.
-      * @param varIndex the operand of the instruction to be visited. This operand is the index of a
-      *     local variable.
+      * @param var the operand of the instruction to be visited. This operand is the index of a local
+      *     variable.
       */
-    public abstract void visitVarInsn(int opcode, int varIndex);
+    public abstract void visitVarInsn(int opcode, int var);
 
     /**
       * Method instruction. See {@link jdk.internal.org.objectweb.asm.MethodVisitor#visitTypeInsn}.
@@ -1066,10 +1071,10 @@ public abstract class Printer {
     /**
       * Method instruction. See {@link jdk.internal.org.objectweb.asm.MethodVisitor#visitIincInsn}.
       *
-      * @param varIndex index of the local variable to be incremented.
+      * @param var index of the local variable to be incremented.
       * @param increment amount to increment the local variable by.
       */
-    public abstract void visitIincInsn(int varIndex, int increment);
+    public abstract void visitIincInsn(int var, int increment);
 
     /**
       * Method instruction. See {@link jdk.internal.org.objectweb.asm.MethodVisitor#visitTableSwitchInsn}.
@@ -1298,9 +1303,9 @@ public abstract class Printer {
     }
 
     /**
-      * Prints the given class to the given output.
+      * Prints a the given class to the given output.
       *
-      * <p>Command line arguments: [-nodebug] &lt;binary class name or class file name &gt;
+      * <p>Command line arguments: [-debug] &lt;binary class name or class file name &gt;
       *
       * @param args the command line arguments.
       * @param usage the help message to show when command line arguments are incorrect.
@@ -1316,9 +1321,7 @@ public abstract class Printer {
             final PrintWriter output,
             final PrintWriter logger)
             throws IOException {
-        if (args.length < 1
-                || args.length > 2
-                || ((args[0].equals("-debug") || args[0].equals("-nodebug")) && args.length != 2)) {
+        if (args.length < 1 || args.length > 2 || (args[0].equals("-debug") && args.length != 2)) {
             logger.println(usage);
             return;
         }
@@ -1327,7 +1330,7 @@ public abstract class Printer {
 
         String className;
         int parsingOptions;
-        if (args[0].equals("-nodebug")) {
+        if (args[0].equals("-debug")) {
             className = args[1];
             parsingOptions = ClassReader.SKIP_DEBUG;
         } else {
@@ -1338,13 +1341,11 @@ public abstract class Printer {
         if (className.endsWith(".class")
                 || className.indexOf('\\') != -1
                 || className.indexOf('/') != -1) {
-            // Can't fix PMD warning for 1.5 compatibility.
-            try (InputStream inputStream = new FileInputStream(className)) { // NOPMD(AvoidFileStream)
-                new ClassReader(inputStream).accept(traceClassVisitor, parsingOptions);
-            }
+            InputStream inputStream =
+                    new FileInputStream(className); // NOPMD(AvoidFileStream): can't fix for 1.5 compatibility
+            new ClassReader(inputStream).accept(traceClassVisitor, parsingOptions);
         } else {
             new ClassReader(className).accept(traceClassVisitor, parsingOptions);
         }
     }
 }
-

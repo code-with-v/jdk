@@ -56,7 +56,6 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package jdk.internal.org.objectweb.asm.tree;
 
 import java.util.Map;
@@ -126,4 +125,3 @@ public class FieldInsnNode extends AbstractInsnNode {
         return new FieldInsnNode(opcode, owner, name, desc).cloneAnnotations(this);
     }
 }
-

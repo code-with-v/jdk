@@ -304,17 +304,13 @@ public class      BeanContextSupport extends BeanContextChildSupport
      * when the BeanContextSupport is serialized.
      */
 
-    /**
-     * A protected nested class containing per-child information
-     * in the {@code children} hashtable.
-     */
     protected class BCSChild implements Serializable {
 
-        /**
-         * Use serialVersionUID from JDK 1.7 for interoperability.
-         */
-        @Serial
-        private static final long serialVersionUID = -5815286101609939109L;
+    /**
+     * Use serialVersionUID from JDK 1.7 for interoperability.
+     */
+    @Serial
+    private static final long serialVersionUID = -5815286101609939109L;
 
         BCSChild(Object bcc, Object peer) {
             super();
@@ -775,15 +771,17 @@ public class      BeanContextSupport extends BeanContextChildSupport
         }
 
         synchronized(children) {
-            for (Object c : children.keySet()) {
-                try {
-                    return ((Visibility)c).needsGui();
-                } catch (ClassCastException cce) {
-                    // do nothing ...
-                }
+            for (Iterator<Object> i = children.keySet().iterator(); i.hasNext();) {
+                Object c = i.next();
 
-                if (c instanceof Container || c instanceof Component)
-                    return true;
+                try {
+                        return ((Visibility)c).needsGui();
+                    } catch (ClassCastException cce) {
+                        // do nothing ...
+                    }
+
+                    if (c instanceof Container || c instanceof Component)
+                        return true;
             }
         }
 
@@ -800,11 +798,11 @@ public class      BeanContextSupport extends BeanContextChildSupport
 
             // lets also tell the Children that can that they may not use their GUI's
             synchronized(children) {
-                for (Object c : children.keySet()) {
-                    Visibility v = getChildVisibility(c);
+                for (Iterator<Object> i = children.keySet().iterator(); i.hasNext();) {
+                    Visibility v = getChildVisibility(i.next());
 
                     if (v != null) v.dontUseGui();
-                }
+               }
             }
         }
     }
@@ -819,8 +817,8 @@ public class      BeanContextSupport extends BeanContextChildSupport
 
             // lets also tell the Children that can that they may use their GUI's
             synchronized(children) {
-                for (Object c : children.keySet()) {
-                    Visibility v = getChildVisibility(c);
+                for (Iterator<Object> i = children.keySet().iterator(); i.hasNext();) {
+                    Visibility v = getChildVisibility(i.next());
 
                     if (v != null) v.okToUseGui();
                 }

@@ -33,7 +33,7 @@
  *    . 'list' lists the token aliases
  *    . 'basic' does not run with activcard,
  * @library /test/lib ..
- * @run testng/othervm -Djava.security.manager=allow Basic
+ * @run testng/othervm Basic
  */
 
 import java.io.*;

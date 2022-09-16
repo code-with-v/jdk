@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,7 +30,6 @@ import java.security.spec.AlgorithmParameterSpec;
 
 import javax.crypto.*;
 
-import sun.security.util.SecurityProviderConstants;
 import static sun.security.pkcs11.TemplateManager.*;
 import sun.security.pkcs11.wrapper.*;
 import static sun.security.pkcs11.wrapper.PKCS11Constants.*;
@@ -226,8 +225,7 @@ final class P11KeyGenerator extends KeyGeneratorSpi {
             significantKeySize = 168;
             break;
         case (int)CKM_AES_KEY_GEN:
-            keySize = adjustKeySize
-                    (SecurityProviderConstants.getDefAESKeySize(), range);
+            keySize = adjustKeySize(128, range);
             keyType = CKK_AES;
             break;
         case (int)CKM_RC4_KEY_GEN:

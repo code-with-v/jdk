@@ -35,7 +35,7 @@ import jdk.test.lib.dcmd.PidJcmdExecutor;
 import jdk.test.lib.process.OutputAnalyzer;
 
 /*
- * @test id=Serial
+ * @test
  * @requires vm.gc.Serial
  * @summary Test of diagnostic command GC.heap_dump with gzipped output (Serial GC)
  * @library /test/lib
@@ -47,7 +47,7 @@ import jdk.test.lib.process.OutputAnalyzer;
  */
 
 /*
- * @test id=Parallel
+ * @test
  * @requires vm.gc.Parallel
  * @summary Test of diagnostic command GC.heap_dump with gzipped output (Parallel GC)
  * @library /test/lib
@@ -59,7 +59,7 @@ import jdk.test.lib.process.OutputAnalyzer;
  */
 
 /*
- * @test id=G1
+ * @test
  * @requires vm.gc.G1
  * @summary Test of diagnostic command GC.heap_dump with gzipped output (G1 GC)
  * @library /test/lib
@@ -71,7 +71,7 @@ import jdk.test.lib.process.OutputAnalyzer;
  */
 
 /*
- * @test id=Z
+ * @test
  * @requires vm.gc.Z
  * @summary Test of diagnostic command GC.heap_dump with gzipped output (Z GC)
  * @library /test/lib
@@ -83,7 +83,7 @@ import jdk.test.lib.process.OutputAnalyzer;
  */
 
 /*
- * @test id=Shenandoah
+ * @test
  * @requires vm.gc.Shenandoah
  * @summary Test of diagnostic command GC.heap_dump with gzipped output (Shenandoah GC)
  * @library /test/lib
@@ -95,7 +95,7 @@ import jdk.test.lib.process.OutputAnalyzer;
  */
 
 /*
- * @test id=Epsilon
+ * @test
  * @requires vm.gc.Epsilon
  * @summary Test of diagnostic command GC.heap_dump with gzipped output (Epsilon GC)
  * @library /test/lib
@@ -159,3 +159,4 @@ public class HeapDumpCompressedTest {
         }
     }
 }
+

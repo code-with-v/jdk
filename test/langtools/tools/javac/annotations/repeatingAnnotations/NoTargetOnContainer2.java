@@ -25,7 +25,7 @@ import java.lang.annotation.*;
 
 /**
  * @test
- * @bug 8006547 8261088
+ * @bug 8006547
  * @compile NoTargetOnContainer2.java
  */
 
@@ -44,8 +44,7 @@ import java.lang.annotation.*;
     ElementType.FIELD,
     ElementType.TYPE_USE,
     ElementType.TYPE_PARAMETER,
-    ElementType.RECORD_COMPONENT,
-    ElementType.MODULE,
+    ElementType.RECORD_COMPONENT
 })
 @Repeatable(FooContainer.class)
 @interface Foo {}

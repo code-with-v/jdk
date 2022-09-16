@@ -22,15 +22,15 @@
  */
 
 // key: compiler.note.preview.filename.additional
-// key: compiler.warn.preview.feature.use.plural
-// key: compiler.misc.feature.var.syntax.in.implicit.lambda
+// key: compiler.warn.preview.feature.use
+// key: compiler.misc.feature.diamond
 // options: -Xlint:preview -Xmaxwarns 1 -XDforcePreview  -source ${jdk.version} --enable-preview
 
-import java.util.function.Function;
+import java.util.ArrayList;
 
 class PreviewFilenameAdditional {
     void test() {
-        Function<String, String> f = (var s) -> s;
-        Function<String, String> j = (var s) -> s;
+        new ArrayList<>();
+        new ArrayList<>();
     }
 }

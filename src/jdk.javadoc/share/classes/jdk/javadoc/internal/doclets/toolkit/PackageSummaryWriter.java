@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,93 +35,101 @@ import jdk.javadoc.internal.doclets.toolkit.util.DocFileIOException;
 
 /**
  * The interface for writing package summary output.
+ *
+ *  <p><b>This is NOT part of any supported API.
+ *  If you write code that depends on this, you do so at your own risk.
+ *  This code and its internal interfaces are subject to change or
+ *  deletion without notice.</b>
  */
+
 public interface PackageSummaryWriter {
 
     /**
      * Get the header for the summary.
      *
-     * @return the header to be added to the content
+     * @return the header to be added to the content tree
      */
     Content getPackageHeader();
 
     /**
      * Get the header for the package content.
      *
-     * @return the package content header
+     * @return a content tree for the package content header
      */
     Content getContentHeader();
 
     /**
      * Get the header for the package summary.
      *
-     * @return the package summary header
+     * @return a content tree with the package summary header
      */
     Content getSummariesList();
 
     /**
-     * Adds the table of related packages to the documentation.
+     * Adds the table of related packages to the documentation tree.
      *
-     * @param summaryContent the content to which the summaries will be added
+     * @param summaryContentTree the content tree to which the summaries will be added
      */
-    void addRelatedPackagesSummary(Content summaryContent);
+    void addRelatedPackagesSummary(Content summaryContentTree);
 
     /**
-     * Adds the table of all classes and interfaces to the documentation.
+     * Adds the table of all classes and interfaces to the documentation tree.
      *
-     * @param summaryContent the content to which the summaries will be added
+     * @param summaryContentTree the content tree to which the summaries will be added
      */
-    void addAllClassesAndInterfacesSummary(Content summaryContent);
+    void addAllClassesAndInterfacesSummary(Content summaryContentTree);
 
     /**
-     * Adds the package description from the "packages.html" file to the documentation.
+     * Adds the package description from the "packages.html" file to the documentation
+     * tree.
      *
-     * @param packageContent the content to which the package description
-     *                       will be added
+     * @param packageContentTree the content tree to which the package description
+     *                           will be added
      */
-    void addPackageDescription(Content packageContent);
+    void addPackageDescription(Content packageContentTree);
 
     /**
-     * Adds the tag information from the "packages.html" file to the documentation.
+     * Adds the tag information from the "packages.html" file to the documentation
+     * tree.
      *
-     * @param packageContent the content to which the package tags will
-     *                       be added
+     * @param packageContentTree the content tree to which the package tags will
+     *                           be added
      */
-    void addPackageTags(Content packageContent);
+    void addPackageTags(Content packageContentTree);
 
     /**
      * Adds the package signature.
      *
-     * @param packageContent the content to which the package signature
-     *                       will be added
+     * @param packageContentTree the content tree to which the package signature
+     *                           will be added
      */
-    void addPackageSignature(Content packageContent);
+    void addPackageSignature(Content packageContentTree);
 
     /**
      * Adds the tag information from the "packages.html" or "package-info.java" file to the
-     * documentation.
+     * documentation tree.
      *
-     * @param packageContent the package content to be added
+     * @param packageContentTree the package content tree to be added
      */
-    void addPackageContent(Content packageContent);
+    void addPackageContent(Content packageContentTree);
 
     /**
-     * Adds the footer to the documentation.
+     * Adds the footer to the documentation tree.
      */
     void addPackageFooter();
 
     /**
      * Print the package summary document.
      *
-     * @param content the content that will be printed
+     * @param contentTree the content tree that will be printed
      * @throws DocFileIOException if there is a problem while writing the document
      */
-    void printDocument(Content content) throws DocFileIOException;
+    void printDocument(Content contentTree) throws DocFileIOException;
 
     /**
-     * Gets the package summary.
-     * @param summaryContent the content representing the package summary
-     * @return the package summary
+     * Gets the package summary tree.
+     * @param summaryContentTree the content tree representing the package summary
+     * @return a content tree for the package summary
      */
-    Content getPackageSummary(Content summaryContent);
+    Content getPackageSummary(Content summaryContentTree);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,7 +23,7 @@
 
 /*
  * @test
- * @bug 8256266 8281238
+ * @bug 8256266
  * @summary Verify annotations work correctly on binding variables
  * @library /tools/javac/lib
  * @modules java.compiler
@@ -114,11 +114,11 @@ public class Annotations extends JavacTestingAbstractProcessor {
                         }
                         case "dta" -> {
                             expectedDeclAnnos = "@Annotations.DTA";
-                            expectedType = "java.lang.@Annotations.DTA String";
+                            expectedType = "@Annotations.DTA java.lang.String";
                         }
                         case "ta" -> {
                             expectedDeclAnnos = "";
-                            expectedType = "java.lang.@Annotations.TA String";
+                            expectedType = "@Annotations.TA java.lang.String";
                         }
                         default -> {
                             throw new AssertionError("Unexpected variable: " + var);
@@ -133,7 +133,7 @@ public class Annotations extends JavacTestingAbstractProcessor {
                     String type = varType.toString();
                     if (!expectedType.equals(type)) {
                         throw new AssertionError("Unexpected type: " + type +
-                                                  " for: " + var.getName() + " expected " + expectedType);
+                                                  " for: " + var.getName());
                     }
                     return super.visitInstanceOf(node, p);
                 }

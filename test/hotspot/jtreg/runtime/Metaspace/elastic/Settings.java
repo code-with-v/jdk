@@ -23,7 +23,7 @@
  *
  */
 
-import jdk.test.whitebox.WhiteBox;
+import sun.hotspot.WhiteBox;
 
 public final class Settings {
 

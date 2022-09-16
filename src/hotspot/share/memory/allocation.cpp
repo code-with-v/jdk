@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -49,7 +49,7 @@ char* AllocateHeap(size_t size,
 char* AllocateHeap(size_t size,
                    MEMFLAGS flags,
                    AllocFailType alloc_failmode /* = AllocFailStrategy::EXIT_OOM*/) {
-  return AllocateHeap(size, flags, CALLER_PC, alloc_failmode);
+  return AllocateHeap(size, flags, CALLER_PC);
 }
 
 char* ReallocateHeap(char *old,
@@ -101,10 +101,16 @@ bool MetaspaceObj::is_valid(const MetaspaceObj* p) {
 }
 
 void MetaspaceObj::print_address_on(outputStream* st) const {
-  st->print(" {" PTR_FORMAT "}", p2i(this));
+  st->print(" {" INTPTR_FORMAT "}", p2i(this));
 }
 
 void* ResourceObj::operator new(size_t size, Arena *arena) throw() {
+  address res = (address)arena->Amalloc(size);
+  DEBUG_ONLY(set_allocation_type(res, ARENA);)
+  return res;
+}
+
+void* ResourceObj::operator new [](size_t size, Arena *arena) throw() {
   address res = (address)arena->Amalloc(size);
   DEBUG_ONLY(set_allocation_type(res, ARENA);)
   return res;
@@ -127,6 +133,10 @@ void* ResourceObj::operator new(size_t size, allocation_type type, MEMFLAGS flag
   return res;
 }
 
+void* ResourceObj::operator new [](size_t size, allocation_type type, MEMFLAGS flags) throw() {
+  return (address) operator new(size, type, flags);
+}
+
 void* ResourceObj::operator new(size_t size, const std::nothrow_t&  nothrow_constant,
     allocation_type type, MEMFLAGS flags) throw() {
   // should only call this with std::nothrow, use other operator new() otherwise
@@ -146,21 +156,27 @@ void* ResourceObj::operator new(size_t size, const std::nothrow_t&  nothrow_cons
   return res;
 }
 
+void* ResourceObj::operator new [](size_t size, const std::nothrow_t&  nothrow_constant,
+    allocation_type type, MEMFLAGS flags) throw() {
+  return (address)operator new(size, nothrow_constant, type, flags);
+}
+
 void ResourceObj::operator delete(void* p) {
-  if (p == nullptr) {
-    return;
-  }
   assert(((ResourceObj *)p)->allocated_on_C_heap(),
          "delete only allowed for C_HEAP objects");
   DEBUG_ONLY(((ResourceObj *)p)->_allocation_t[0] = (uintptr_t)badHeapOopVal;)
   FreeHeap(p);
 }
 
+void ResourceObj::operator delete [](void* p) {
+  operator delete(p);
+}
+
 #ifdef ASSERT
 void ResourceObj::set_allocation_type(address res, allocation_type type) {
   // Set allocation type in the resource object
   uintptr_t allocation = (uintptr_t)res;
-  assert((allocation & allocation_mask) == 0, "address should be aligned to 4 bytes at least: " PTR_FORMAT, p2i(res));
+  assert((allocation & allocation_mask) == 0, "address should be aligned to 4 bytes at least: " INTPTR_FORMAT, p2i(res));
   assert(type <= allocation_mask, "incorrect allocation type");
   ResourceObj* resobj = (ResourceObj *)res;
   resobj->_allocation_t[0] = ~(allocation + type);
@@ -191,7 +207,7 @@ void ResourceObj::initialize_allocation_info() {
     // Operator new() is not called for allocations
     // on stack and for embedded objects.
     set_allocation_type((address)this, STACK_OR_EMBEDDED);
-  } else if (allocated_on_stack_or_embedded()) { // STACK_OR_EMBEDDED
+  } else if (allocated_on_stack()) { // STACK_OR_EMBEDDED
     // For some reason we got a value which resembles
     // an embedded or stack object (operator new() does not
     // set such type). Keep it since it is valid value
@@ -199,7 +215,7 @@ void ResourceObj::initialize_allocation_info() {
     // Ignore garbage in other fields.
   } else if (is_type_set()) {
     // Operator new() was called and type was set.
-    assert(!allocated_on_stack_or_embedded(),
+    assert(!allocated_on_stack(),
            "not embedded or stack, this(" PTR_FORMAT ") type %d a[0]=(" PTR_FORMAT ") a[1]=(" PTR_FORMAT ")",
            p2i(this), get_allocation_type(), _allocation_t[0], _allocation_t[1]);
   } else {
@@ -220,7 +236,7 @@ ResourceObj::ResourceObj(const ResourceObj&) {
 }
 
 ResourceObj& ResourceObj::operator=(const ResourceObj& r) {
-  assert(allocated_on_stack_or_embedded(),
+  assert(allocated_on_stack(),
          "copy only into local, this(" PTR_FORMAT ") type %d a[0]=(" PTR_FORMAT ") a[1]=(" PTR_FORMAT ")",
          p2i(this), get_allocation_type(), _allocation_t[0], _allocation_t[1]);
   // Keep current _allocation_t value;
@@ -239,10 +255,15 @@ ResourceObj::~ResourceObj() {
 // Non-product code
 
 #ifndef PRODUCT
-void ResourceObj::print() const       { print_on(tty); }
+void AllocatedObj::print() const       { print_on(tty); }
+void AllocatedObj::print_value() const { print_value_on(tty); }
 
-void ResourceObj::print_on(outputStream* st) const {
-  st->print_cr("ResourceObj(" PTR_FORMAT ")", p2i(this));
+void AllocatedObj::print_on(outputStream* st) const {
+  st->print_cr("AllocatedObj(" INTPTR_FORMAT ")", p2i(this));
+}
+
+void AllocatedObj::print_value_on(outputStream* st) const {
+  st->print("AllocatedObj(" INTPTR_FORMAT ")", p2i(this));
 }
 
 ReallocMark::ReallocMark() {

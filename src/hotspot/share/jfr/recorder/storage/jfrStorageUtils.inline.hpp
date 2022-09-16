@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,7 +28,7 @@
 #include "jfr/recorder/storage/jfrStorageUtils.hpp"
 
 #include "runtime/atomic.hpp"
-#include "runtime/javaThread.hpp"
+#include "runtime/thread.inline.hpp"
 
 template <typename T>
 inline bool UnBufferedWriteToChunk<T>::write(T* t, const u1* data, size_t size) {
@@ -91,13 +91,12 @@ inline bool MutexedWriteOp<Operation>::process(typename Operation::Type* t) {
 }
 
 template <typename Type>
-static void retired_sensitive_acquire(Type* t, Thread* thread) {
+static void retired_sensitive_acquire(Type* t) {
   assert(t != NULL, "invariant");
-  assert(thread != nullptr, "invariant");
-  assert(thread == Thread::current(), "invariant");
   if (t->retired()) {
     return;
   }
+  Thread* const thread = Thread::current();
   while (!t->try_acquire(thread)) {
     if (t->retired()) {
       return;
@@ -106,13 +105,10 @@ static void retired_sensitive_acquire(Type* t, Thread* thread) {
 }
 
 template <typename Operation>
-inline ExclusiveOp<Operation>::ExclusiveOp(Operation& operation) : MutexedWriteOp<Operation>(operation), _thread(Thread::current()) {}
-
-template <typename Operation>
 inline bool ExclusiveOp<Operation>::process(typename Operation::Type* t) {
-  retired_sensitive_acquire(t, _thread);
+  retired_sensitive_acquire(t);
   assert(t->acquired_by_self() || t->retired(), "invariant");
-  // The user is required to ensure proper release of the acquisition.
+  // User is required to ensure proper release of the acquisition
   return MutexedWriteOp<Operation>::process(t);
 }
 
@@ -138,13 +134,10 @@ inline bool DiscardOp<Operation>::process(typename Operation::Type* t) {
 }
 
 template <typename Operation>
-inline ExclusiveDiscardOp<Operation>::ExclusiveDiscardOp(jfr_operation_mode mode) : DiscardOp<Operation>(mode), _thread(Thread::current()) {}
-
-template <typename Operation>
 inline bool ExclusiveDiscardOp<Operation>::process(typename Operation::Type* t) {
-  retired_sensitive_acquire(t, _thread);
+  retired_sensitive_acquire(t);
   assert(t->acquired_by_self() || t->retired(), "invariant");
-  // The user is required to ensure proper release of the acquisition.
+  // User is required to ensure proper release of the acquisition
   return DiscardOp<Operation>::process(t);
 }
 

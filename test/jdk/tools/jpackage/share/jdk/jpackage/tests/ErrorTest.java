@@ -32,7 +32,7 @@ import jdk.jpackage.test.TKit;
 
 /*
  * @test
- * @summary Test jpackage output for erroneous input
+ * @summary jpackage application version testing
  * @library ../../../../helpers
  * @build jdk.jpackage.test.*
  * @modules jdk.jpackage/jdk.jpackage.internal
@@ -44,7 +44,7 @@ import jdk.jpackage.test.TKit;
 
 /*
  * @test
- * @summary Test jpackage output for erroneous input
+ * @summary jpackage application version testing
  * @library ../../../../helpers
  * @build jdk.jpackage.test.*
  * @modules jdk.jpackage/jdk.jpackage.internal
@@ -96,7 +96,7 @@ public final class ErrorTest {
             {"Hello",
                     new String[]{"--type", "invalid-type"},
                     null,
-                    "Invalid or unsupported type: [invalid-type]"},
+                    "Invalid or unsupported type:"},
             // no --input
             {"Hello",
                     null,

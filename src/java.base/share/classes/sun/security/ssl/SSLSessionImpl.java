@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,7 +24,7 @@
  */
 package sun.security.ssl;
 
-import sun.security.provider.X509Factory;
+import sun.security.x509.X509CertImpl;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -154,7 +154,7 @@ final class SSLSessionImpl extends ExtendedSSLSession {
         this.port = -1;
         this.localSupportedSignAlgs = Collections.emptySet();
         this.serverNameIndication = null;
-        this.requestedServerNames = Collections.emptyList();
+        this.requestedServerNames = Collections.<SNIServerName>emptyList();
         this.useExtendedMasterSecret = false;
         this.creationTime = System.currentTimeMillis();
         this.identificationProtocol = null;
@@ -404,7 +404,7 @@ final class SSLSessionImpl extends ExtendedSSLSession {
         // List of SNIServerName
         int len = Short.toUnsignedInt(buf.getShort());
         if (len == 0) {
-            this.requestedServerNames = Collections.emptyList();
+            this.requestedServerNames = Collections.<SNIServerName>emptyList();
         } else {
             requestedServerNames = new ArrayList<>();
             while (len > 0) {
@@ -440,7 +440,7 @@ final class SSLSessionImpl extends ExtendedSSLSession {
         // Get Peer host & port
         i = Byte.toUnsignedInt(buf.get());
         if (i == 0) {
-            this.host = "";
+            this.host = new String();
         } else {
             b = new byte[i];
             buf.get(b, 0, i);
@@ -459,7 +459,7 @@ final class SSLSessionImpl extends ExtendedSSLSession {
                 b = new byte[buf.getInt()];
                 buf.get(b);
                 try {
-                    this.peerCerts[j] = X509Factory.cachedGetX509Cert(b);
+                    this.peerCerts[j] = new X509CertImpl(b);
                 } catch (Exception e) {
                     throw new IOException(e);
                 }
@@ -480,7 +480,7 @@ final class SSLSessionImpl extends ExtendedSSLSession {
                     b = new byte[buf.getInt()];
                     buf.get(b);
                     try {
-                        this.localCerts[i] = X509Factory.cachedGetX509Cert(b);
+                        this.localCerts[i] = new X509CertImpl(b);
                     } catch (Exception e) {
                         throw new IOException(e);
                     }
@@ -1002,7 +1002,8 @@ final class SSLSessionImpl extends ExtendedSSLSession {
             return true;
         }
 
-        if (obj instanceof SSLSessionImpl sess) {
+        if (obj instanceof SSLSessionImpl) {
+            SSLSessionImpl sess = (SSLSessionImpl) obj;
             return (sessionId != null) && (sessionId.equals(
                         sess.getSessionId()));
         }
@@ -1035,7 +1036,7 @@ final class SSLSessionImpl extends ExtendedSSLSession {
         // Certs are immutable objects, therefore we don't clone them.
         // But do need to clone the array, so that nothing is inserted
         // into peerCerts.
-        return peerCerts.clone();
+        return (java.security.cert.Certificate[])peerCerts.clone();
     }
 
     /**
@@ -1053,7 +1054,8 @@ final class SSLSessionImpl extends ExtendedSSLSession {
         // clone to preserve integrity of session ... caller can't
         // change record of peer identity even by accident, much
         // less do it intentionally.
-        return (localCerts == null ? null : localCerts.clone());
+        return (localCerts == null ? null :
+            (java.security.cert.Certificate[])localCerts.clone());
     }
 
     /**
@@ -1370,7 +1372,8 @@ final class SSLSessionImpl extends ExtendedSSLSession {
             }
 
             if (maximumPacketSize > 0) {
-                return Math.max(maximumPacketSize, packetSize);
+                return (maximumPacketSize > packetSize) ?
+                        maximumPacketSize : packetSize;
             }
 
             if (packetSize != 0) {
@@ -1406,7 +1409,8 @@ final class SSLSessionImpl extends ExtendedSSLSession {
             }
 
             if (negotiatedMaxFragLen > 0) {
-                return Math.max(negotiatedMaxFragLen, fragmentSize);
+                return (negotiatedMaxFragLen > fragmentSize) ?
+                        negotiatedMaxFragLen : fragmentSize;
             }
 
             if (fragmentSize != 0) {

@@ -389,7 +389,7 @@ public abstract class InfoWindow extends Window {
                     if (nLines == BALLOON_WORD_LINE_MAX_COUNT) {
                         if (end != BreakIterator.DONE) {
                             lineLabels[nLines - 1].setText(
-                                lineLabels[nLines - 1].getText() + " ...");
+                                new String(lineLabels[nLines - 1].getText() + " ..."));
                         }
                         break;
                     }

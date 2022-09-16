@@ -75,37 +75,40 @@ void ShenandoahVMRoots<CONCURRENT>::oops_do(T* cl, uint worker_id) {
   _strong_roots.oops_do(cl);
 }
 
-template <bool CONCURRENT>
-ShenandoahClassLoaderDataRoots<CONCURRENT>::ShenandoahClassLoaderDataRoots(ShenandoahPhaseTimings::Phase phase, uint n_workers, bool heap_iteration) :
+template <bool CONCURRENT, bool SINGLE_THREADED>
+ShenandoahClassLoaderDataRoots<CONCURRENT, SINGLE_THREADED>::ShenandoahClassLoaderDataRoots(ShenandoahPhaseTimings::Phase phase, uint n_workers) :
   _semaphore(worker_count(n_workers)),
   _phase(phase) {
-  if (heap_iteration) {
-    ClassLoaderDataGraph::clear_claimed_marks(ClassLoaderData::_claim_other);
-  } else {
-    ClassLoaderDataGraph::clear_claimed_marks(ClassLoaderData::_claim_strong);
+  if (!SINGLE_THREADED) {
+    ClassLoaderDataGraph::clear_claimed_marks();
   }
-
-  if (CONCURRENT) {
+  if (CONCURRENT && !SINGLE_THREADED) {
     ClassLoaderDataGraph_lock->lock();
   }
 
-  // Non-concurrent mode only runs at safepoints
+  // Non-concurrent mode only runs at safepoints by VM thread
   assert(CONCURRENT || SafepointSynchronize::is_at_safepoint(), "Must be at a safepoint");
+  assert(CONCURRENT || Thread::current()->is_VM_thread(), "Can only be done by VM thread");
 }
 
-template <bool CONCURRENT>
-ShenandoahClassLoaderDataRoots<CONCURRENT>::~ShenandoahClassLoaderDataRoots() {
-  if (CONCURRENT) {
+template <bool CONCURRENT, bool SINGLE_THREADED>
+ShenandoahClassLoaderDataRoots<CONCURRENT, SINGLE_THREADED>::~ShenandoahClassLoaderDataRoots() {
+  if (CONCURRENT && !SINGLE_THREADED) {
     ClassLoaderDataGraph_lock->unlock();
   }
 }
 
-template <bool CONCURRENT>
-void ShenandoahClassLoaderDataRoots<CONCURRENT>::cld_do_impl(CldDo f, CLDClosure* clds, uint worker_id) {
+template <bool CONCURRENT, bool SINGLE_THREADED>
+void ShenandoahClassLoaderDataRoots<CONCURRENT, SINGLE_THREADED>::cld_do_impl(CldDo f, CLDClosure* clds, uint worker_id) {
   if (CONCURRENT) {
     if (_semaphore.try_acquire()) {
       ShenandoahWorkerTimingsTracker timer(_phase, ShenandoahPhaseTimings::CLDGRoots, worker_id);
-      f(clds);
+      if (SINGLE_THREADED){
+        MutexLocker ml(ClassLoaderDataGraph_lock, Mutex::_no_safepoint_check_flag);
+        f(clds);
+      } else {
+        f(clds);
+      }
       _semaphore.claim_all();
     }
   } else {
@@ -114,13 +117,13 @@ void ShenandoahClassLoaderDataRoots<CONCURRENT>::cld_do_impl(CldDo f, CLDClosure
   }
 }
 
-template <bool CONCURRENT>
-void ShenandoahClassLoaderDataRoots<CONCURRENT>::always_strong_cld_do(CLDClosure* clds, uint worker_id) {
+template <bool CONCURRENT, bool SINGLE_THREADED>
+void ShenandoahClassLoaderDataRoots<CONCURRENT, SINGLE_THREADED>::always_strong_cld_do(CLDClosure* clds, uint worker_id) {
   cld_do_impl(&ClassLoaderDataGraph::always_strong_cld_do, clds, worker_id);
 }
 
-template <bool CONCURRENT>
-void ShenandoahClassLoaderDataRoots<CONCURRENT>::cld_do(CLDClosure* clds, uint worker_id) {
+template <bool CONCURRENT, bool SINGLE_THREADED>
+void ShenandoahClassLoaderDataRoots<CONCURRENT, SINGLE_THREADED>::cld_do(CLDClosure* clds, uint worker_id) {
   cld_do_impl(&ClassLoaderDataGraph::cld_do, clds, worker_id);
 }
 
@@ -152,7 +155,7 @@ public:
 //      we risk executing that code cache blob, and crashing.
 template <typename T>
 void ShenandoahSTWRootScanner::roots_do(T* oops, uint worker_id) {
-  MarkingCodeBlobClosure blobs_cl(oops, !CodeBlobToOopClosure::FixRelocations, true /*FIXME*/);
+  MarkingCodeBlobClosure blobs_cl(oops, !CodeBlobToOopClosure::FixRelocations);
   CLDToOopClosure clds(oops, ClassLoaderData::_claim_strong);
   ResourceMark rm;
 

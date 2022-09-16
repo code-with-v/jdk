@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,6 +35,11 @@ import jdk.javadoc.internal.doclets.toolkit.PackageSummaryWriter;
 
 /**
  * Builds the summary for a given package.
+ *
+ *  <p><b>This is NOT part of any supported API.
+ *  If you write code that depends on this, you do so at your own risk.
+ *  This code and its internal interfaces are subject to change or
+ *  deletion without notice.</b>
  */
 public class PackageSummaryBuilder extends AbstractBuilder {
 
@@ -99,12 +104,12 @@ public class PackageSummaryBuilder extends AbstractBuilder {
      * @throws DocletException if there is a problem while building the documentation
      */
     protected void buildPackageDoc() throws DocletException {
-        Content content = packageWriter.getPackageHeader();
+        Content contentTree = packageWriter.getPackageHeader();
 
         buildContent();
 
         packageWriter.addPackageFooter();
-        packageWriter.printDocument(content);
+        packageWriter.printDocument(contentTree);
         DocFilesHandler docFilesHandler = configuration
                 .getWriterFactory()
                 .getDocFilesHandler(packageElement);
@@ -117,34 +122,34 @@ public class PackageSummaryBuilder extends AbstractBuilder {
      * @throws DocletException if there is a problem while building the documentation
      */
     protected void buildContent() throws DocletException {
-        Content packageContent = packageWriter.getContentHeader();
+        Content packageContentTree = packageWriter.getContentHeader();
 
-        packageWriter.addPackageSignature(packageContent);
-        buildPackageDescription(packageContent);
-        buildPackageTags(packageContent);
-        buildSummary(packageContent);
+        packageWriter.addPackageSignature(packageContentTree);
+        buildPackageDescription(packageContentTree);
+        buildPackageTags(packageContentTree);
+        buildSummary(packageContentTree);
 
-        packageWriter.addPackageContent(packageContent);
+        packageWriter.addPackageContent(packageContentTree);
     }
 
     /**
      * Builds the list of summaries for the different kinds of types in this package.
      *
-     * @param packageContent the package content to which the summaries will
-     *                       be added
+     * @param packageContentTree the package content tree to which the summaries will
+     *                           be added
      * @throws DocletException if there is a problem while building the documentation
      */
-    protected void buildSummary(Content packageContent) throws DocletException {
+    protected void buildSummary(Content packageContentTree) throws DocletException {
         Content summariesList = packageWriter.getSummariesList();
 
         buildRelatedPackagesSummary(summariesList);
         buildAllClassesAndInterfacesSummary(summariesList);
 
-        packageContent.add(packageWriter.getPackageSummary(summariesList));
+        packageContentTree.add(packageWriter.getPackageSummary(summariesList));
     }
 
     /**
-     * Builds a list of "nearby" packages (subpackages, superpackages, and sibling packages).
+     * Builds a list of "nearby" packages (subpackages, super and sibling packages).
      *
      * @param summariesList the list of summaries to which the summary will be added
      */
@@ -165,25 +170,25 @@ public class PackageSummaryBuilder extends AbstractBuilder {
     /**
      * Build the description of the summary.
      *
-     * @param packageContent the content to which the package description will
-     *                       be added
+     * @param packageContentTree the tree to which the package description will
+     *                           be added
      */
-    protected void buildPackageDescription(Content packageContent) {
+    protected void buildPackageDescription(Content packageContentTree) {
         if (options.noComment()) {
             return;
         }
-        packageWriter.addPackageDescription(packageContent);
+        packageWriter.addPackageDescription(packageContentTree);
     }
 
     /**
      * Build the tags of the summary.
      *
-     * @param packageContent the content to which the package tags will be added
+     * @param packageContentTree the tree to which the package tags will be added
      */
-    protected void buildPackageTags(Content packageContent) {
+    protected void buildPackageTags(Content packageContentTree) {
         if (options.noComment()) {
             return;
         }
-        packageWriter.addPackageTags(packageContent);
+        packageWriter.addPackageTags(packageContentTree);
     }
 }

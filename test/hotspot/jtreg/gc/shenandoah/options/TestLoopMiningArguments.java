@@ -23,7 +23,7 @@
  */
 
 /*
- * @test
+ * @test TestLoopMiningArguments
  * @summary Test that loop mining arguments are sane
  * @requires vm.gc.Shenandoah
  * @requires vm.flavor == "server"

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -33,7 +33,6 @@ import java.io.FileDescriptor;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.nio.channels.spi.*;
-import java.util.Objects;
 
 /**
  * Pipe.SourceChannel implementation based on socket connection.
@@ -43,7 +42,7 @@ class SourceChannelImpl
     extends Pipe.SourceChannel
     implements SelChImpl
 {
-    // The SocketChannel associated with this pipe
+    // The SocketChannel assoicated with this pipe
     private final SocketChannel sc;
 
     public FileDescriptor getFD() {
@@ -121,7 +120,8 @@ class SourceChannelImpl
     public long read(ByteBuffer[] dsts, int offset, int length)
         throws IOException
     {
-        Objects.checkFromIndexSize(offset, length, dsts.length);
+        if ((offset < 0) || (length < 0) || (offset > dsts.length - length))
+           throw new IndexOutOfBoundsException();
         try {
             return read(Util.subsequence(dsts, offset, length));
         } catch (AsynchronousCloseException x) {

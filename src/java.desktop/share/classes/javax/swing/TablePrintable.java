@@ -282,9 +282,6 @@ class TablePrintable implements Printable {
         // dictated by the previous two assertions
         assert sf > 0;
 
-        Rectangle bounds = table.getBounds();
-        bounds.x = bounds.y = 0;
-
         // This is in a loop for two reasons:
         // First, it allows us to catch up in case we're called starting
         // with a non-zero pageIndex. Second, we know that we can be called
@@ -306,10 +303,9 @@ class TablePrintable implements Printable {
             // calculate the area of the table to be printed for this page
             findNextClip(scaledWidth, scaledHeight);
 
-            if (!(bounds.intersects(clip))) {
+            if (!((table.getBounds()).intersects(clip))) {
                 return NO_SUCH_PAGE;
             }
-
             last++;
         }
 
@@ -399,12 +395,11 @@ class TablePrintable implements Printable {
         // draw a box around the table
         g2d.setColor(Color.BLACK);
 
-
         // compute the visible portion of table and draw the rect around it
-        Rectangle visibleBounds = clip.intersection(bounds);
+        Rectangle visibleBounds = clip.intersection(table.getBounds());
         Point upperLeft = visibleBounds.getLocation();
-        Point lowerRight = new Point(visibleBounds.x + visibleBounds.width - 1,
-                                     visibleBounds.y + visibleBounds.height - 1);
+        Point lowerRight = new Point(visibleBounds.x + visibleBounds.width,
+                                     visibleBounds.y + visibleBounds.height);
 
         int rMin = table.rowAtPoint(upperLeft);
         int rMax = table.rowAtPoint(lowerRight);
@@ -415,7 +410,7 @@ class TablePrintable implements Printable {
             rMax = table.getRowCount();
         }
         int rowHeight = 0;
-        for(int visrow = rMin; visrow <= rMax; visrow++) {
+        for(int visrow = rMin; visrow < rMax; visrow++) {
             rowHeight += table.getRowHeight(visrow);
         }
         // If PrintMode is FIT_WIDTH, then draw rect for entire column width while

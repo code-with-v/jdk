@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -40,10 +40,10 @@ import java.io.IOException;
  * This class encapsulates a TGS-REP that is sent from the KDC to the
  * Kerberos client.
  */
-final class KrbTgsRep extends KrbKdcRep {
+public class KrbTgsRep extends KrbKdcRep {
     private TGSRep rep;
     private Credentials creds;
-    private Credentials additionalCreds;
+    private Ticket secondTicket;
 
     KrbTgsRep(byte[] ibuf, KrbTgsReq tgsReq)
         throws KrbException, IOException {
@@ -115,19 +115,18 @@ final class KrbTgsRep extends KrbKdcRep {
                                 enc_part.caddr
                                 );
         this.rep = rep;
-        this.additionalCreds = tgsReq.getAdditionalCreds();
+        this.secondTicket = tgsReq.getSecondTicket();
     }
 
     /**
      * Return the credentials that were contained in this KRB-TGS-REP.
      */
-    Credentials getCreds() {
+    public Credentials getCreds() {
         return creds;
     }
 
     sun.security.krb5.internal.ccache.Credentials setCredentials() {
-        return new sun.security.krb5.internal.ccache.Credentials(
-                rep, additionalCreds == null ? null : additionalCreds.ticket);
+        return new sun.security.krb5.internal.ccache.Credentials(rep, secondTicket);
     }
 
     private static boolean isReferralSname(PrincipalName sname) {

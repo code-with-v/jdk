@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -62,7 +62,7 @@ public class StackTrace extends Tool {
             DeadlockDetector.print(tty);
         } catch (Exception exp) {
             exp.printStackTrace();
-            tty.println("Can't print deadlocks: " + exp);
+            tty.println("Can't print deadlocks:" + exp.getMessage());
         }
 
         try {
@@ -111,15 +111,11 @@ public class StackTrace extends Tool {
                             }
 
                             tty.println(")");
-                            try {
-                                vf.printLockInfo(tty, count++);
-                            } catch (Exception e) {
-                                tty.println("\nCould not print lock info: " + e);
-                            }
+                            vf.printLockInfo(tty, count++);
                         }
                     } catch (Exception e) {
-                        tty.println("\nError occurred during stack walking:");
-                        e.printStackTrace(tty);
+                        tty.println("Error occurred during stack walking:");
+                        e.printStackTrace();
                     }
                     tty.println();
                     if (concurrentLocks) {

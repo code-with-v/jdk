@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -86,8 +86,6 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-import jdk.internal.vm.annotation.Stable;
-
 /**
  * A time-zone offset from Greenwich/UTC, such as {@code +02:00}.
  * <p>
@@ -170,11 +168,6 @@ public final class ZoneOffset
      * The string form of the time-zone offset.
      */
     private final transient String id;
-    /**
-     * The zone rules for an offset will always return this offset. Cache it for efficiency.
-     */
-    @Stable
-    private transient ZoneRules rules;
 
     //-----------------------------------------------------------------------
     /**
@@ -424,11 +417,15 @@ public final class ZoneOffset
             throw new DateTimeException("Zone offset not in valid range: -18:00 to +18:00");
         }
         if (totalSeconds % (15 * SECONDS_PER_MINUTE) == 0) {
-            return SECONDS_CACHE.computeIfAbsent(totalSeconds, totalSecs -> {
-                ZoneOffset result = new ZoneOffset(totalSecs);
+            Integer totalSecs = totalSeconds;
+            ZoneOffset result = SECONDS_CACHE.get(totalSecs);
+            if (result == null) {
+                result = new ZoneOffset(totalSeconds);
+                SECONDS_CACHE.putIfAbsent(totalSecs, result);
+                result = SECONDS_CACHE.get(totalSecs);
                 ID_CACHE.putIfAbsent(result.getId(), result);
-                return result;
-            });
+            }
+            return result;
         } else {
             return new ZoneOffset(totalSeconds);
         }
@@ -507,21 +504,7 @@ public final class ZoneOffset
      */
     @Override
     public ZoneRules getRules() {
-        ZoneRules rules = this.rules;
-        if (rules == null) {
-            rules = this.rules = ZoneRules.of(this);
-        }
-        return rules;
-    }
-
-    @Override
-    public ZoneId normalized() {
-        return this;
-    }
-
-    @Override
-    /* package-private */ ZoneOffset getOffset(long epochSecond) {
-        return this;
+        return ZoneRules.of(this);
     }
 
     //-----------------------------------------------------------------------

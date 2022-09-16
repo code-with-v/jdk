@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -145,7 +145,6 @@ public class ShrinkGrowTest {
         // step 2: try to load one more class
         // it should be impossible
         try {
-            log("and finally, a wafer-thin mint");
             eatALittleMemory();
             throwFault("We haven't cleaned metaspace yet!");
         } catch (OutOfMemoryError error) {
@@ -225,7 +224,7 @@ public class ShrinkGrowTest {
             loadedClasses.put(jarUrl, foo);
         } catch (java.net.MalformedURLException badThing) {
             // should never occur
-            throwFault("Unexpected error: " + badThing, badThing);
+            throwFault("Unexpeted error: " + badThing, badThing);
         }
 
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -63,7 +63,6 @@ import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import java.util.zip.ZipException;
 
 import javax.lang.model.SourceVersion;
 import javax.tools.FileObject;
@@ -83,7 +82,6 @@ import com.sun.tools.javac.util.DefinedBy.Api;
 import com.sun.tools.javac.util.List;
 import com.sun.tools.javac.util.ListBuffer;
 
-import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.file.FileVisitOption.FOLLOW_LINKS;
 
 import static javax.tools.StandardLocation.*;
@@ -283,8 +281,13 @@ public class JavacFileManager extends BaseFileManager implements StandardJavaFil
     }
 
     private static void printAscii(String format, Object... args) {
-        String message = new String(
-                String.format(null, format, args).getBytes(US_ASCII), US_ASCII);
+        String message;
+        try {
+            final String ascii = "US-ASCII";
+            message = new String(String.format(null, format, args).getBytes(ascii), ascii);
+        } catch (java.io.UnsupportedEncodingException ex) {
+            throw new AssertionError(ex);
+        }
         System.out.println(message);
     }
 
@@ -561,11 +564,7 @@ public class JavacFileManager extends BaseFileManager implements StandardJavaFil
                 Map<String,String> env = Collections.singletonMap("multi-release", multiReleaseValue);
                 FileSystemProvider jarFSProvider = fsInfo.getJarFSProvider();
                 Assert.checkNonNull(jarFSProvider, "should have been caught before!");
-                try {
-                    this.fileSystem = jarFSProvider.newFileSystem(archivePath, env);
-                } catch (ZipException ze) {
-                    throw new IOException("ZipException opening \"" + archivePath.getFileName() + "\": " + ze.getMessage(), ze);
-                }
+                this.fileSystem = jarFSProvider.newFileSystem(archivePath, env);
             } else {
                 this.fileSystem = FileSystems.newFileSystem(archivePath, (ClassLoader)null);
             }

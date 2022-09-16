@@ -1,7 +1,6 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2019, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2012, 2019 SAP SE. All rights reserved.
- * Copyright (c) 2022, IBM Corp.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -111,7 +110,13 @@ static StringList g_stringlist;
 // eternal - this list is rebuilt on every reload.
 // Note that we do not hand out those entries, but copies of them.
 
-static void print_entry(const loaded_module_t* lm, outputStream* os) {
+struct entry_t {
+  entry_t* next;
+  loaded_module_t info;
+};
+
+static void print_entry(const entry_t* e, outputStream* os) {
+  const loaded_module_t* const lm = &(e->info);
   os->print(" %c text: " INTPTR_FORMAT " - " INTPTR_FORMAT
             ", data: " INTPTR_FORMAT " - " INTPTR_FORMAT " "
             "%s",
@@ -124,50 +129,50 @@ static void print_entry(const loaded_module_t* lm, outputStream* os) {
   }
 }
 
-static loaded_module_t* g_first = NULL;
+static entry_t* g_first = NULL;
 
-static loaded_module_t* find_entry_for_text_address(const void* p) {
-  for (loaded_module_t* lm = g_first; lm; lm = lm->next) {
-    if ((uintptr_t)p >= (uintptr_t)lm->text &&
-        (uintptr_t)p < ((uintptr_t)lm->text + lm->text_len)) {
-      return lm;
+static entry_t* find_entry_for_text_address(const void* p) {
+  for (entry_t* e = g_first; e; e = e->next) {
+    if ((uintptr_t)p >= (uintptr_t)e->info.text &&
+        (uintptr_t)p < ((uintptr_t)e->info.text + e->info.text_len)) {
+      return e;
     }
   }
   return NULL;
 }
 
-static loaded_module_t* find_entry_for_data_address(const void* p) {
-  for (loaded_module_t* lm = g_first; lm; lm = lm->next) {
-    if ((uintptr_t)p >= (uintptr_t)lm->data &&
-        (uintptr_t)p < ((uintptr_t)lm->data + lm->data_len)) {
-      return lm;
+static entry_t* find_entry_for_data_address(const void* p) {
+  for (entry_t* e = g_first; e; e = e->next) {
+    if ((uintptr_t)p >= (uintptr_t)e->info.data &&
+        (uintptr_t)p < ((uintptr_t)e->info.data + e->info.data_len)) {
+      return e;
     }
   }
   return NULL;
 }
 
 // Adds a new entry to the list (ordered by text address ascending).
-static void add_entry_to_list(loaded_module_t* lm, loaded_module_t** start) {
-  loaded_module_t* last = NULL;
-  loaded_module_t* lm2 = *start;
-  while (lm2 && lm2->text < lm->text) {
-    last = lm2;
-    lm2 = lm2->next;
+static void add_entry_to_list(entry_t* e, entry_t** start) {
+  entry_t* last = NULL;
+  entry_t* e2 = *start;
+  while (e2 && e2->info.text < e->info.text) {
+    last = e2;
+    e2 = e2->next;
   }
   if (last) {
-    last->next = lm;
+    last->next = e;
   } else {
-    *start = lm;
+    *start = e;
   }
-  lm->next = lm2;
+  e->next = e2;
 }
 
-static void free_entry_list(loaded_module_t** start) {
-  loaded_module_t* lm = *start;
-  while (lm) {
-    loaded_module_t* const lm2 = lm->next;
-    ::free(lm);
-    lm = lm2;
+static void free_entry_list(entry_t** start) {
+  entry_t* e = *start;
+  while (e) {
+    entry_t* const e2 = e->next;
+    ::free(e);
+    e = e2;
   }
   *start = NULL;
 }
@@ -181,7 +186,7 @@ static bool reload_table() {
 
   trcVerbose("reload module table...");
 
-  loaded_module_t* new_list = NULL;
+  entry_t* new_list = NULL;
   const struct ld_info* ldi = NULL;
 
   // Call loadquery(L_GETINFO..) to get a list of all loaded Dlls from AIX. loadquery
@@ -209,33 +214,33 @@ static bool reload_table() {
 
   for (;;) {
 
-    loaded_module_t* lm = (loaded_module_t*) ::malloc(sizeof(loaded_module_t));
-    if (!lm) {
+    entry_t* e = (entry_t*) ::malloc(sizeof(entry_t));
+    if (!e) {
       trcVerbose("OOM.");
       goto cleanup;
     }
 
-    memset(lm, 0, sizeof(loaded_module_t));
+    memset(e, 0, sizeof(entry_t));
 
-    lm->text     = ldi->ldinfo_textorg;
-    lm->text_len = ldi->ldinfo_textsize;
-    lm->data     = ldi->ldinfo_dataorg;
-    lm->data_len = ldi->ldinfo_datasize;
+    e->info.text = ldi->ldinfo_textorg;
+    e->info.text_len = ldi->ldinfo_textsize;
+    e->info.data = ldi->ldinfo_dataorg;
+    e->info.data_len = ldi->ldinfo_datasize;
 
-    lm->path = g_stringlist.add(ldi->ldinfo_filename);
-    if (!lm->path) {
+    e->info.path = g_stringlist.add(ldi->ldinfo_filename);
+    if (!e->info.path) {
       trcVerbose("OOM.");
       goto cleanup;
     }
 
     // Extract short name
     {
-      const char* p = strrchr(lm->path, '/');
+      const char* p = strrchr(e->info.path, '/');
       if (p) {
         p ++;
-        lm->shortname = p;
+        e->info.shortname = p;
       } else {
-        lm->shortname = lm->path;
+        e->info.shortname = e->info.path;
       }
     }
 
@@ -243,32 +248,32 @@ static bool reload_table() {
     const char* p_mbr_name =
       ldi->ldinfo_filename + strlen(ldi->ldinfo_filename) + 1;
     if (*p_mbr_name) {
-      lm->member = g_stringlist.add(p_mbr_name);
-      if (!lm->member) {
+      e->info.member = g_stringlist.add(p_mbr_name);
+      if (!e->info.member) {
         trcVerbose("OOM.");
         goto cleanup;
       }
     } else {
-      lm->member = NULL;
+      e->info.member = NULL;
     }
 
-    if (strcmp(lm->shortname, "libjvm.so") == 0) {
+    if (strcmp(e->info.shortname, "libjvm.so") == 0) {
       // Note that this, theoretically, is fuzzy. We may accidentally contain
       // more than one libjvm.so. But that is improbable, so lets go with this
       // solution.
-      lm->is_in_vm = true;
+      e->info.is_in_vm = true;
     }
 
     trcVerbose("entry: %p " SIZE_FORMAT ", %p " SIZE_FORMAT ", %s %s %s, %d",
-      lm->text, lm->text_len,
-      lm->data, lm->data_len,
-      lm->path, lm->shortname,
-      (lm->member ? lm->member : "NULL"),
-      lm->is_in_vm
+      e->info.text, e->info.text_len,
+      e->info.data, e->info.data_len,
+      e->info.path, e->info.shortname,
+      (e->info.member ? e->info.member : "NULL"),
+      e->info.is_in_vm
     );
 
     // Add to list.
-    add_entry_to_list(lm, &new_list);
+    add_entry_to_list(e, &new_list);
 
     // Next entry...
     if (ldi->ldinfo_next) {
@@ -299,23 +304,6 @@ cleanup:
 
 } // end LoadedLibraries::reload()
 
-// Callback for loaded module information (from os.hpp)
-// Input parameters:
-//    char*     module_file_name,
-//    address   module_base_addr,
-//    address   module_top_addr,
-//    void*     param
-static bool for_each_internal(os::LoadedModulesCallbackFunc cb, void* param) {
-
-  for (const loaded_module_t* lm = g_first; lm; lm = lm->next) {
-    (*cb)(lm->shortname,
-          (address) lm->text,
-          (address) lm->text + lm->text_len,
-          param);
-  }
-
-  return true;
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Externals
@@ -334,8 +322,8 @@ void LoadedLibraries::print(outputStream* os) {
   if (!g_first) {
     reload_table();
   }
-  for (loaded_module_t* lm = g_first; lm; lm = lm->next) {
-    print_entry(lm, os);
+  for (entry_t* e = g_first; e; e = e->next) {
+    print_entry(e, os);
     os->cr();
   }
 }
@@ -346,17 +334,14 @@ bool LoadedLibraries::find_for_text_address(const void* p,
   if (!g_first) {
     reload_table();
   }
-
-  const loaded_module_t* const lm = find_entry_for_text_address(p);
-  if (!lm) {
-    return false;
+  const entry_t* const e = find_entry_for_text_address(p);
+  if (e) {
+    if (info) {
+      *info = e->info;
+    }
+    return true;
   }
-
-  if (info) {
-    memcpy(info, lm, sizeof(loaded_module_t));
-    info->next = nullptr;
-  }
-  return true;
+  return false;
 }
 
 
@@ -368,30 +353,13 @@ bool LoadedLibraries::find_for_data_address (
   if (!g_first) {
     reload_table();
   }
-
-  const loaded_module_t* const lm = find_entry_for_data_address(p);
-  if (!lm) {
-    return false;
-  }
-
-  if (info) {
-    memcpy(info, lm, sizeof(loaded_module_t));
-    info->next = nullptr;
-  }
-  return true;
-}
-
-bool LoadedLibraries::for_each(os::LoadedModulesCallbackFunc cb, void* param) {
-  MiscUtils::AutoCritSect lck(&g_cs);
-
-  if (!g_first) {
-    if (!reload_table()) {
-      // If the table is not loaded and cannot be initialized,
-      // then we must quit.
-      return false;
+  const entry_t* const e = find_entry_for_data_address(p);
+  if (e) {
+    if (info) {
+      *info = e->info;
     }
+    return true;
   }
-
-  return for_each_internal(cb, param);
+  return false;
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -160,7 +160,8 @@ final class ECDHKeyExchange {
                 ka.doPhase(peerPublicKey, true);
                 return ka.generateSecret("TlsPremasterSecret");
             } catch (GeneralSecurityException e) {
-                throw new SSLHandshakeException("Could not generate secret", e);
+                throw (SSLHandshakeException) new SSLHandshakeException(
+                    "Could not generate secret").initCause(e);
             }
         }
 
@@ -176,7 +177,8 @@ final class ECDHKeyExchange {
                 PublicKey peerPublicKey = kf.generatePublic(spec);
                 return getAgreedSecret(peerPublicKey);
             } catch (GeneralSecurityException | java.io.IOException e) {
-                throw new SSLHandshakeException("Could not generate secret", e);
+                throw (SSLHandshakeException) new SSLHandshakeException(
+                    "Could not generate secret").initCause(e);
             }
         }
 
@@ -200,8 +202,8 @@ final class ECDHKeyExchange {
                         "ECPublicKey does not comply to algorithm constraints");
                 }
             } catch (GeneralSecurityException | java.io.IOException e) {
-                throw new SSLHandshakeException(
-                        "Could not generate ECPublicKey", e);
+                throw (SSLHandshakeException) new SSLHandshakeException(
+                        "Could not generate ECPublicKey").initCause(e);
             }
         }
 
@@ -321,7 +323,7 @@ final class ECDHKeyExchange {
                 }
             }
 
-            if (x509Possession == null) {
+            if (x509Possession == null || ecdheCredentials == null) {
                 throw shc.conContext.fatal(Alert.HANDSHAKE_FAILURE,
                     "No sufficient ECDHE key agreement parameters negotiated");
             }
@@ -370,7 +372,7 @@ final class ECDHKeyExchange {
                 }
             }
 
-            if (ecdhePossession == null) {
+            if (ecdhePossession == null || x509Credentials == null) {
                 throw chc.conContext.fatal(Alert.HANDSHAKE_FAILURE,
                     "No sufficient ECDH key agreement parameters negotiated");
             }
@@ -414,7 +416,7 @@ final class ECDHKeyExchange {
                 }
             }
 
-            if (ecdhePossession == null) {
+            if (ecdhePossession == null || ecdheCredentials == null) {
                 throw context.conContext.fatal(Alert.HANDSHAKE_FAILURE,
                     "No sufficient ECDHE key agreement parameters negotiated");
             }
@@ -465,7 +467,7 @@ final class ECDHKeyExchange {
                 }
             }
 
-            if (namedGroupPossession == null) {
+            if (namedGroupPossession == null || namedGroupCredentials == null) {
                 throw context.conContext.fatal(Alert.HANDSHAKE_FAILURE,
                     "No sufficient ECDHE/XDH key agreement " +
                             "parameters negotiated");

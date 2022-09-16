@@ -55,8 +55,7 @@
  * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
- */
-package jdk.internal.org.objectweb.asm.tree;
+ */package jdk.internal.org.objectweb.asm.tree;
 
 /**
  * Exception thrown in {@link AnnotationNode#check}, {@link ClassNode#check}, {@link
@@ -70,4 +69,3 @@ public class UnsupportedClassVersionException extends RuntimeException {
 
     private static final long serialVersionUID = -3502347765891805831L;
 }
-

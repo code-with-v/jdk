@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,21 +30,20 @@
 #include "classfile/javaThreadStatus.hpp"
 #include "runtime/handles.hpp"
 #include "runtime/init.hpp"
-#include "runtime/javaThread.hpp"
 #include "runtime/objectMonitor.hpp"
 #include "runtime/perfData.hpp"
 #include "runtime/safepoint.hpp"
+#include "runtime/thread.hpp"
 #include "runtime/threadSMR.hpp"
 #include "services/management.hpp"
 
-class DeadlockCycle;
-class ObjectMonitorsHashtable;
 class OopClosure;
+class ThreadDumpResult;
+class ThreadStackTrace;
+class ThreadSnapshot;
 class StackFrameInfo;
 class ThreadConcurrentLocks;
-class ThreadDumpResult;
-class ThreadSnapshot;
-class ThreadStackTrace;
+class DeadlockCycle;
 
 // VM monitoring and management support for the thread and
 // synchronization subsystem
@@ -78,9 +77,6 @@ private:
   static ThreadDumpResult* _threaddump_list;
 
   static void decrement_thread_counts(JavaThread* jt, bool daemon);
-
-  // test if the JavaThread is a virtual thread or has a mounted virtual thread
-  static bool is_virtual_or_carrier_thread(JavaThread* jt);
 
 public:
   static void init();
@@ -251,8 +247,7 @@ public:
   ThreadStackTrace* get_stack_trace()     { return _stack_trace; }
   ThreadConcurrentLocks* get_concurrent_locks()     { return _concurrent_locks; }
 
-  void        dump_stack_at_safepoint(int max_depth, bool with_locked_monitors,
-                                      ObjectMonitorsHashtable* table, bool full);
+  void        dump_stack_at_safepoint(int max_depth, bool with_locked_monitors);
   void        set_concurrent_locks(ThreadConcurrentLocks* l) { _concurrent_locks = l; }
   void        metadata_do(void f(Metadata*));
 };
@@ -275,7 +270,7 @@ class ThreadStackTrace : public CHeapObj<mtInternal> {
   int             get_stack_depth()     { return _depth; }
 
   void            add_stack_frame(javaVFrame* jvf);
-  void            dump_stack_at_safepoint(int max_depth, ObjectMonitorsHashtable* table, bool full);
+  void            dump_stack_at_safepoint(int max_depth);
   Handle          allocate_fill_stack_trace_element_array(TRAPS);
   void            metadata_do(void f(Metadata*));
   GrowableArray<OopHandle>* jni_locked_monitors() { return _jni_locked_monitors; }
@@ -389,6 +384,7 @@ class ThreadDumpResult : public StackObj {
 
 class DeadlockCycle : public CHeapObj<mtInternal> {
  private:
+  bool _is_deadlock;
   GrowableArray<JavaThread*>* _threads;
   DeadlockCycle*              _next;
  public:
@@ -398,7 +394,9 @@ class DeadlockCycle : public CHeapObj<mtInternal> {
   DeadlockCycle* next()                     { return _next; }
   void           set_next(DeadlockCycle* d) { _next = d; }
   void           add_thread(JavaThread* t)  { _threads->append(t); }
-  void           reset()                    { _threads->clear(); }
+  void           reset()                    { _is_deadlock = false; _threads->clear(); }
+  void           set_deadlock(bool value)   { _is_deadlock = value; }
+  bool           is_deadlock()              { return _is_deadlock; }
   int            num_threads()              { return _threads->length(); }
   GrowableArray<JavaThread*>* threads()     { return _threads; }
   void           print_on_with(ThreadsList * t_list, outputStream* st) const;

@@ -25,7 +25,7 @@
 #ifndef SHARE_JFR_UTILITIES_JFRSPINLOCKHELPER_HPP
 #define SHARE_JFR_UTILITIES_JFRSPINLOCKHELPER_HPP
 
-#include "runtime/javaThread.hpp"
+#include "runtime/thread.hpp"
 
 // this utility could be useful for non cx8 platforms
 

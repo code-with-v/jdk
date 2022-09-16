@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,9 +35,6 @@
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 
 import javadoc.tester.JavadocTester;
 
@@ -86,8 +83,12 @@ public class TestRelativeLinks extends JavadocTester {
             """
                 <a href="C.html#class-fragment">fragment class link</a>""");
 
-        // subclass in same package
+        // subclass in same pacakge
         checkOutput("pkg/D.html", true,
+                """
+                    <a href="relative-class-link.html">relative class link</a>""",
+                """
+                    <a href="C.html#class-fragment">fragment class link</a>""",
                 """
                     <a href="relative-method-link.html">relative method link</a>""",
                 """
@@ -98,6 +99,10 @@ public class TestRelativeLinks extends JavadocTester {
 
         // subclass in subpackage
         checkOutput("pkg/sub/F.html", true,
+                """
+                    <a href="../../pkg/relative-class-link.html">relative class link</a>""",
+                """
+                    <a href="../../pkg/C.html#class-fragment">fragment class link</a>""",
                 """
                     <a href="../../pkg/relative-method-link.html">relative method link</a>""",
                 """
@@ -142,6 +147,10 @@ public class TestRelativeLinks extends JavadocTester {
         // CLASS_USE
         checkOutput("pkg/class-use/C.html", true,
             """
+                <a href="../../pkg/relative-class-link.html">relative class link</a>""",
+            """
+                <a href="../../pkg/C.html#class-fragment">fragment class link</a>""",
+            """
                 <a href="../../pkg/relative-field-link.html">relative field link</a>""",
             """
                 <a href="../../pkg/relative-method-link.html">relative method link</a>""",
@@ -163,7 +172,19 @@ public class TestRelativeLinks extends JavadocTester {
             """
                 <a href="../../pkg/relative-package-link.html">relative package link</a>""",
             """
-                <a href="../../pkg/package-summary.html#package-fragment">package fragment link</a>""");
+                <a href="../../pkg/package-summary.html#package-fragment">package fragment link</a>""",
+            // subclass inheriting relative link doc
+            """
+                <a href="../../pkg/relative-class-link.html">relative class link</a>""",
+            """
+                <a href="../../pkg/C.html#class-fragment">fragment class link</a>""");
+
+        // sibling package summary
+        checkOutput("pkg2/package-summary.html", true,
+            """
+                <a href="../pkg/relative-class-link.html">relative class link</a>""",
+            """
+                 <a href="../pkg/C.html#class-fragment">fragment class link</a>""");
     }
 
     @Override
@@ -179,9 +200,9 @@ public class TestRelativeLinks extends JavadocTester {
     }
 
     private void touch(String file) {
-        Path f = outputDir.resolve(file);
+        File f = new File(outputDir, file);
         out.println("touch " + f);
-        try (OutputStream fos = Files.newOutputStream(f)) {
+        try (FileOutputStream fos = new FileOutputStream(f)) {
         } catch (IOException e) {
             checking("Touch file");
             failed("Error creating file: " + e);

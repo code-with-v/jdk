@@ -169,7 +169,7 @@ public class JFrame  extends Frame implements WindowConstants,
      * This constructor sets the component's locale property to the value
      * returned by <code>JComponent.getDefaultLocale</code>.
      *
-     * @throws HeadlessException if GraphicsEnvironment.isHeadless()
+     * @exception HeadlessException if GraphicsEnvironment.isHeadless()
      * returns true.
      * @see java.awt.GraphicsEnvironment#isHeadless
      * @see Component#setSize
@@ -193,7 +193,7 @@ public class JFrame  extends Frame implements WindowConstants,
      *          to construct the new <code>Frame</code>;
      *          if <code>gc</code> is <code>null</code>, the system
      *          default <code>GraphicsConfiguration</code> is assumed
-     * @throws IllegalArgumentException if <code>gc</code> is not from
+     * @exception IllegalArgumentException if <code>gc</code> is not from
      *          a screen device.  This exception is always thrown when
      *      GraphicsEnvironment.isHeadless() returns true.
      * @see java.awt.GraphicsEnvironment#isHeadless
@@ -213,7 +213,7 @@ public class JFrame  extends Frame implements WindowConstants,
      * returned by <code>JComponent.getDefaultLocale</code>.
      *
      * @param title the title for the frame
-     * @throws HeadlessException if GraphicsEnvironment.isHeadless()
+     * @exception HeadlessException if GraphicsEnvironment.isHeadless()
      * returns true.
      * @see java.awt.GraphicsEnvironment#isHeadless
      * @see Component#setSize
@@ -239,7 +239,7 @@ public class JFrame  extends Frame implements WindowConstants,
      *          to construct the new <code>JFrame</code> with;
      *          if <code>gc</code> is <code>null</code>, the system
      *          default <code>GraphicsConfiguration</code> is assumed
-     * @throws IllegalArgumentException if <code>gc</code> is not from
+     * @exception IllegalArgumentException if <code>gc</code> is not from
      *          a screen device.  This exception is always thrown when
      *      GraphicsEnvironment.isHeadless() returns true.
      * @see java.awt.GraphicsEnvironment#isHeadless
@@ -357,7 +357,7 @@ public class JFrame  extends Frame implements WindowConstants,
      *
      * @param operation the operation which should be performed when the
      *        user closes the frame
-     * @throws IllegalArgumentException if defaultCloseOperation value
+     * @exception IllegalArgumentException if defaultCloseOperation value
      *             isn't one of the above valid values
      * @see #addWindowListener
      * @see #getDefaultCloseOperation
@@ -540,10 +540,10 @@ public class JFrame  extends Frame implements WindowConstants,
      * @param comp the component to be enhanced
      * @param constraints the constraints to be respected
      * @param index the index
-     * @throws IllegalArgumentException if <code>index</code> is invalid
-     * @throws IllegalArgumentException if adding the container's parent
+     * @exception IllegalArgumentException if <code>index</code> is invalid
+     * @exception IllegalArgumentException if adding the container's parent
      *                  to itself
-     * @throws IllegalArgumentException if adding a window to a container
+     * @exception IllegalArgumentException if adding a window to a container
      *
      * @see #setRootPaneCheckingEnabled
      * @see javax.swing.RootPaneContainer
@@ -668,7 +668,7 @@ public class JFrame  extends Frame implements WindowConstants,
      *
      * @param contentPane the <code>contentPane</code> object for this frame
      *
-     * @throws java.awt.IllegalComponentStateException (a runtime
+     * @exception java.awt.IllegalComponentStateException (a runtime
      *            exception) if the content pane parameter is <code>null</code>
      * @see #getContentPane
      * @see RootPaneContainer#setContentPane
@@ -696,7 +696,7 @@ public class JFrame  extends Frame implements WindowConstants,
      * This method is called by the constructor.
      * @param layeredPane the <code>layeredPane</code> object for this frame
      *
-     * @throws java.awt.IllegalComponentStateException (a runtime
+     * @exception java.awt.IllegalComponentStateException (a runtime
      *            exception) if the layered pane parameter is <code>null</code>
      * @see #getLayeredPane
      * @see RootPaneContainer#setLayeredPane

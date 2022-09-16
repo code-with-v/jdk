@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -42,7 +42,7 @@ import sun.security.util.*;
  */
 public class RFC822Name implements GeneralNameInterface
 {
-    private final String name;
+    private String name;
 
     /**
      * Create the RFC822Name object from the passed encoded Der value.
@@ -137,8 +137,10 @@ public class RFC822Name implements GeneralNameInterface
         if (this == obj)
             return true;
 
-        if (!(obj instanceof RFC822Name other))
+        if (!(obj instanceof RFC822Name))
             return false;
+
+        RFC822Name other = (RFC822Name)obj;
 
         // RFC 5280 mandates that these names are
         // not case-sensitive

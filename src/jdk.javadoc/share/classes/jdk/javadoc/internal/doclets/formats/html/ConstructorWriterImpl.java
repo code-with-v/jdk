@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -49,6 +49,11 @@ import static jdk.javadoc.internal.doclets.toolkit.util.VisibleMemberTable.Kind.
 
 /**
  * Writes constructor documentation.
+ *
+ *  <p><b>This is NOT part of any supported API.
+ *  If you write code that depends on this, you do so at your own risk.
+ *  This code and its internal interfaces are subject to change or
+ *  deletion without notice.</b>
  */
 public class ConstructorWriterImpl extends AbstractExecutableMemberWriter
     implements ConstructorWriter, MemberSummaryWriter {
@@ -85,11 +90,11 @@ public class ConstructorWriterImpl extends AbstractExecutableMemberWriter
 
     @Override
     public Content getMemberSummaryHeader(TypeElement typeElement,
-            Content content) {
-        content.add(MarkerComments.START_OF_CONSTRUCTOR_SUMMARY);
-        Content c = new ContentBuilder();
-        writer.addSummaryHeader(this, c);
-        return c;
+            Content memberSummaryTree) {
+        memberSummaryTree.add(MarkerComments.START_OF_CONSTRUCTOR_SUMMARY);
+        Content memberTree = new ContentBuilder();
+        writer.addSummaryHeader(this, memberTree);
+        return memberTree;
     }
 
     @Override
@@ -99,26 +104,26 @@ public class ConstructorWriterImpl extends AbstractExecutableMemberWriter
     }
 
     @Override
-    public Content getConstructorDetailsHeader(Content content) {
-        content.add(MarkerComments.START_OF_CONSTRUCTOR_DETAILS);
-        Content constructorDetails = new ContentBuilder();
-        var heading = HtmlTree.HEADING(Headings.TypeDeclaration.DETAILS_HEADING,
+    public Content getConstructorDetailsTreeHeader(Content memberDetailsTree) {
+        memberDetailsTree.add(MarkerComments.START_OF_CONSTRUCTOR_DETAILS);
+        Content constructorDetailsTree = new ContentBuilder();
+        Content heading = HtmlTree.HEADING(Headings.TypeDeclaration.DETAILS_HEADING,
                 contents.constructorDetailsLabel);
-        constructorDetails.add(heading);
-        return constructorDetails;
+        constructorDetailsTree.add(heading);
+        return constructorDetailsTree;
     }
 
     @Override
-    public Content getConstructorHeaderContent(ExecutableElement constructor) {
-        Content content = new ContentBuilder();
-        var heading = HtmlTree.HEADING(Headings.TypeDeclaration.MEMBER_HEADING,
+    public Content getConstructorDocTreeHeader(ExecutableElement constructor) {
+        Content constructorDocTree = new ContentBuilder();
+        HtmlTree heading = HtmlTree.HEADING(Headings.TypeDeclaration.MEMBER_HEADING,
                 Text.of(name(constructor)));
         HtmlId erasureAnchor = htmlIds.forErasure(constructor);
         if (erasureAnchor != null) {
             heading.setId(erasureAnchor);
         }
-        content.add(heading);
-        return HtmlTree.SECTION(HtmlStyle.detail, content)
+        constructorDocTree.add(heading);
+        return HtmlTree.SECTION(HtmlStyle.detail, constructorDocTree)
                 .setId(htmlIds.forMember(constructor));
     }
 
@@ -132,32 +137,32 @@ public class ConstructorWriterImpl extends AbstractExecutableMemberWriter
     }
 
     @Override
-    public void addDeprecated(ExecutableElement constructor, Content constructorContent) {
-        addDeprecatedInfo(constructor, constructorContent);
+    public void addDeprecated(ExecutableElement constructor, Content constructorDocTree) {
+        addDeprecatedInfo(constructor, constructorDocTree);
     }
 
     @Override
-    public void addPreview(ExecutableElement constructor, Content content) {
-        addPreviewInfo(constructor, content);
+    public void addPreview(ExecutableElement constructor, Content constructorDocTree) {
+        addPreviewInfo(constructor, constructorDocTree);
     }
 
     @Override
-    public void addComments(ExecutableElement constructor, Content constructorContent) {
-        addComment(constructor, constructorContent);
+    public void addComments(ExecutableElement constructor, Content constructorDocTree) {
+        addComment(constructor, constructorDocTree);
     }
 
     @Override
-    public void addTags(ExecutableElement constructor, Content constructorContent) {
-        writer.addTagsInfo(constructor, constructorContent);
+    public void addTags(ExecutableElement constructor, Content constructorDocTree) {
+        writer.addTagsInfo(constructor, constructorDocTree);
     }
 
     @Override
-    public Content getConstructorDetails(Content memberDetailsHeader, Content memberDetails) {
+    public Content getConstructorDetails(Content constructorDetailsTreeHeader, Content constructorDetailsTree) {
         return writer.getDetailsListItem(
                 HtmlTree.SECTION(HtmlStyle.constructorDetails)
                         .setId(HtmlIds.CONSTRUCTOR_DETAIL)
-                        .add(memberDetailsHeader)
-                        .add(memberDetails));
+                        .add(constructorDetailsTreeHeader)
+                        .add(constructorDetailsTree));
     }
 
     @Override
@@ -166,10 +171,10 @@ public class ConstructorWriterImpl extends AbstractExecutableMemberWriter
     }
 
     @Override
-    public void addSummaryLabel(Content content) {
-        var label = HtmlTree.HEADING(Headings.TypeDeclaration.SUMMARY_HEADING,
+    public void addSummaryLabel(Content memberTree) {
+        Content label = HtmlTree.HEADING(Headings.TypeDeclaration.SUMMARY_HEADING,
                 contents.constructorSummaryLabel);
-        content.add(label);
+        memberTree.add(label);
     }
 
     @Override
@@ -201,13 +206,13 @@ public class ConstructorWriterImpl extends AbstractExecutableMemberWriter
     }
 
     @Override
-    public void addInheritedSummaryLabel(TypeElement typeElement, Content content) {
+    public void addInheritedSummaryLabel(TypeElement typeElement, Content inheritedTree) {
     }
 
     @Override
-    protected void addSummaryType(Element member, Content content) {
+    protected void addSummaryType(Element member, Content tdSummaryType) {
         if (foundNonPubConstructor) {
-            var code = new HtmlTree(TagName.CODE);
+            Content code = new HtmlTree(TagName.CODE);
             if (utils.isProtected(member)) {
                 code.add("protected ");
             } else if (utils.isPrivate(member)) {
@@ -218,12 +223,12 @@ public class ConstructorWriterImpl extends AbstractExecutableMemberWriter
                 code.add(
                         resources.getText("doclet.Package_private"));
             }
-            content.add(code);
+            tdSummaryType.add(code);
         }
     }
 
     @Override
-    public Content getMemberHeader(){
-        return writer.getMemberHeader();
+    public Content getMemberTreeHeader(){
+        return writer.getMemberTreeHeader();
     }
 }

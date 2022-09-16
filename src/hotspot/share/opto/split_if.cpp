@@ -31,19 +31,20 @@
 
 //------------------------------split_thru_region------------------------------
 // Split Node 'n' through merge point.
-RegionNode* PhaseIdealLoop::split_thru_region(Node* n, RegionNode* region) {
-  assert(n->is_CFG(), "");
-  RegionNode* r = new RegionNode(region->req());
-  IdealLoopTree* loop = get_loop(n);
-  for (uint i = 1; i < region->req(); i++) {
-    Node* x = n->clone();
-    Node* in0 = n->in(0);
-    if (in0->in(0) == region) x->set_req(0, in0->in(i));
-    for (uint j = 1; j < n->req(); j++) {
-      Node* in = n->in(j);
-      if (get_ctrl(in) == region) {
-        x->set_req(j, in->in(i));
-      }
+Node *PhaseIdealLoop::split_thru_region( Node *n, Node *region ) {
+  uint wins = 0;
+  assert( n->is_CFG(), "" );
+  assert( region->is_Region(), "" );
+  Node *r = new RegionNode( region->req() );
+  IdealLoopTree *loop = get_loop( n );
+  for( uint i = 1; i < region->req(); i++ ) {
+    Node *x = n->clone();
+    Node *in0 = n->in(0);
+    if( in0->in(0) == region ) x->set_req( 0, in0->in(i) );
+    for( uint j = 1; j < n->req(); j++ ) {
+      Node *in = n->in(j);
+      if( get_ctrl(in) == region )
+        x->set_req( j, in->in(i) );
     }
     _igvn.register_new_node_with_optimizer(x);
     set_loop(x, loop);
@@ -55,9 +56,8 @@ RegionNode* PhaseIdealLoop::split_thru_region(Node* n, RegionNode* region) {
   r->set_req(0,region);         // Not a TRUE RegionNode
   _igvn.register_new_node_with_optimizer(r);
   set_loop(r, loop);
-  if (!loop->_child) {
+  if( !loop->_child )
     loop->_body.push(r);
-  }
   return r;
 }
 
@@ -198,24 +198,6 @@ bool PhaseIdealLoop::split_up( Node *n, Node *blk1, Node *blk2 ) {
       _igvn.remove_dead_node( n );
 
       return true;
-    }
-  }
-  if (subgraph_has_opaque(n)) {
-    Unique_Node_List wq;
-    wq.push(n);
-    for (uint i = 0; i < wq.size(); i++) {
-      Node* m = wq.at(i);
-      if (m->is_If()) {
-        assert(skeleton_predicate_has_opaque(m->as_If()), "opaque node not reachable from if?");
-        Node* bol = clone_skeleton_predicate_bool(m, NULL, NULL, m->in(0));
-        _igvn.replace_input_of(m, 1, bol);
-      } else {
-        assert(!m->is_CFG(), "not CFG expected");
-        for (DUIterator_Fast jmax, j = m->fast_outs(jmax); j < jmax; j++) {
-          Node* u = m->fast_out(j);
-          wq.push(u);
-        }
-      }
     }
   }
 
@@ -451,7 +433,7 @@ void PhaseIdealLoop::handle_use( Node *use, Node *def, small_cache *cache, Node 
 //------------------------------do_split_if------------------------------------
 // Found an If getting its condition-code input from a Phi in the same block.
 // Split thru the Region.
-void PhaseIdealLoop::do_split_if(Node* iff, RegionNode** new_false_region, RegionNode** new_true_region) {
+void PhaseIdealLoop::do_split_if( Node *iff ) {
   if (PrintOpto && VerifyLoopOptimizations) {
     tty->print_cr("Split-if");
   }
@@ -460,7 +442,7 @@ void PhaseIdealLoop::do_split_if(Node* iff, RegionNode** new_false_region, Regio
   }
 
   C->set_major_progress();
-  RegionNode *region = iff->in(0)->as_Region();
+  Node *region = iff->in(0);
   Node *region_dom = idom(region);
 
   // We are going to clone this test (and the control flow with it) up through
@@ -509,18 +491,17 @@ void PhaseIdealLoop::do_split_if(Node* iff, RegionNode** new_false_region, Regio
 
   // Now we have no instructions in the block containing the IF.
   // Split the IF.
-  RegionNode *new_iff = split_thru_region(iff, region);
+  Node *new_iff = split_thru_region( iff, region );
 
   // Replace both uses of 'new_iff' with Regions merging True/False
   // paths.  This makes 'new_iff' go dead.
   Node *old_false = NULL, *old_true = NULL;
-  RegionNode* new_false = NULL;
-  RegionNode* new_true = NULL;
+  Node *new_false = NULL, *new_true = NULL;
   for (DUIterator_Last j2min, j2 = iff->last_outs(j2min); j2 >= j2min; --j2) {
     Node *ifp = iff->last_out(j2);
     assert( ifp->Opcode() == Op_IfFalse || ifp->Opcode() == Op_IfTrue, "" );
     ifp->set_req(0, new_iff);
-    RegionNode* ifpx = split_thru_region(ifp, region);
+    Node *ifpx = split_thru_region( ifp, region );
 
     // Replace 'If' projection of a Region with a Region of
     // 'If' projections.
@@ -595,13 +576,6 @@ void PhaseIdealLoop::do_split_if(Node* iff, RegionNode** new_false_region, Regio
   } // End of while merge point has phis
 
   _igvn.remove_dead_node(region);
-
-  if (new_false_region != NULL) {
-    *new_false_region = new_false;
-  }
-  if (new_true_region != NULL) {
-    *new_true_region = new_true;
-  }
 
 #ifndef PRODUCT
   if( VerifyLoopOptimizations ) verify();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,6 +32,7 @@ import sun.awt.CGraphicsDevice;
 import sun.java2d.SurfaceData;
 import sun.java2d.metal.MTLLayer;
 import sun.java2d.opengl.CGLLayer;
+import sun.lwawt.macosx.CFLayer;
 import sun.lwawt.LWWindowPeer;
 import sun.lwawt.PlatformWindow;
 import sun.util.logging.PlatformLogger;
@@ -49,8 +50,8 @@ public class CPlatformEmbeddedFrame implements PlatformWindow {
     private LWWindowPeer peer;
     private CEmbeddedFrame target;
 
-    private volatile int screenX;
-    private volatile int screenY;
+    private volatile int screenX = 0;
+    private volatile int screenY = 0;
 
     @Override // PlatformWindow
     public void initialize(Window target, final LWWindowPeer peer, PlatformWindow owner) {
@@ -198,7 +199,7 @@ public class CPlatformEmbeddedFrame implements PlatformWindow {
 
     /*
      * The method could not be implemented due to CALayer restrictions.
-     * The exception enforces clients not to use it.
+     * The exeption enforce clients not to use it.
      */
     @Override
     public boolean isUnderMouse() {

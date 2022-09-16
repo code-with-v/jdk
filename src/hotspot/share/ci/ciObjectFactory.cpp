@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,6 +27,7 @@
 #include "ci/ciInstance.hpp"
 #include "ci/ciInstanceKlass.hpp"
 #include "ci/ciMemberName.hpp"
+#include "ci/ciNativeEntryPoint.hpp"
 #include "ci/ciMethod.hpp"
 #include "ci/ciMethodData.hpp"
 #include "ci/ciMethodHandle.hpp"
@@ -36,7 +37,6 @@
 #include "ci/ciObjArrayKlass.hpp"
 #include "ci/ciObject.hpp"
 #include "ci/ciObjectFactory.hpp"
-#include "ci/ciReplay.hpp"
 #include "ci/ciSymbol.hpp"
 #include "ci/ciSymbols.hpp"
 #include "ci/ciTypeArray.hpp"
@@ -286,14 +286,6 @@ ciMetadata* ciObjectFactory::cached_metadata(Metadata* key) {
 ciMetadata* ciObjectFactory::get_metadata(Metadata* key) {
   ASSERT_IN_VM;
 
-  if (ReplayCompiles && key->is_klass()) {
-    Klass* k = (Klass*)key;
-    if (k->is_instance_klass() && ciReplay::is_klass_unresolved((InstanceKlass*)k)) {
-      // Klass was unresolved at replay dump time. Simulate this case.
-      return ciEnv::_unloaded_ciinstance_klass;
-    }
-  }
-
 #ifdef ASSERT
   if (CIObjectFactoryVerify) {
     Metadata* last = NULL;
@@ -352,6 +344,8 @@ ciObject* ciObjectFactory::create_new_object(oop o) {
       return new (arena()) ciCallSite(h_i);
     else if (java_lang_invoke_MemberName::is_instance(o))
       return new (arena()) ciMemberName(h_i);
+    else if (jdk_internal_invoke_NativeEntryPoint::is_instance(o))
+      return new (arena()) ciNativeEntryPoint(h_i);
     else if (java_lang_invoke_MethodHandle::is_instance(o))
       return new (arena()) ciMethodHandle(h_i);
     else if (java_lang_invoke_MethodType::is_instance(o))
@@ -384,7 +378,6 @@ ciMetadata* ciObjectFactory::create_new_metadata(Metadata* o) {
   if (o->is_klass()) {
     Klass* k = (Klass*)o;
     if (k->is_instance_klass()) {
-      assert(!ReplayCompiles || ciReplay::no_replay_state() || !ciReplay::is_klass_unresolved((InstanceKlass*)k), "must be whitelisted for replay compilation");
       return new (arena()) ciInstanceKlass(k);
     } else if (k->is_objArray_klass()) {
       return new (arena()) ciObjArrayKlass(k);
@@ -561,7 +554,7 @@ ciInstance* ciObjectFactory::get_unloaded_instance(ciInstanceKlass* instance_kla
 // Get a ciInstance representing an unresolved klass mirror.
 //
 // Currently, this ignores the parameters and returns a unique unloaded instance.
-ciInstance* ciObjectFactory::get_unloaded_klass_mirror(ciKlass* type) {
+ciInstance* ciObjectFactory::get_unloaded_klass_mirror(ciKlass*  type) {
   assert(ciEnv::_Class_klass != NULL, "");
   return get_unloaded_instance(ciEnv::_Class_klass->as_instance_klass());
 }
@@ -576,7 +569,7 @@ ciInstance* ciObjectFactory::get_unloaded_method_handle_constant(ciKlass*  holde
                                                                  ciSymbol* name,
                                                                  ciSymbol* signature,
                                                                  int       ref_kind) {
-  assert(ciEnv::_MethodHandle_klass != NULL, "");
+  if (ciEnv::_MethodHandle_klass == NULL)  return NULL;
   return get_unloaded_instance(ciEnv::_MethodHandle_klass->as_instance_klass());
 }
 
@@ -587,12 +580,12 @@ ciInstance* ciObjectFactory::get_unloaded_method_handle_constant(ciKlass*  holde
 //
 // Currently, this ignores the parameters and returns a unique unloaded instance.
 ciInstance* ciObjectFactory::get_unloaded_method_type_constant(ciSymbol* signature) {
-  assert(ciEnv::_MethodType_klass != NULL, "");
+  if (ciEnv::_MethodType_klass == NULL)  return NULL;
   return get_unloaded_instance(ciEnv::_MethodType_klass->as_instance_klass());
 }
 
 ciInstance* ciObjectFactory::get_unloaded_object_constant() {
-  assert(ciEnv::_Object_klass != NULL, "");
+  if (ciEnv::_Object_klass == NULL)  return NULL;
   return get_unloaded_instance(ciEnv::_Object_klass->as_instance_klass());
 }
 

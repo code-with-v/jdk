@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -60,7 +60,7 @@ public final class ResponderId {
      * @see ResponderId
      * @since 9
      */
-    public enum Type {
+    public static enum Type {
         /**
          * A BY_NAME {@code ResponderId} will be built from a subject name,
          * either as an {@code X500Principal} or a DER-encoded byte array.
@@ -77,7 +77,7 @@ public final class ResponderId {
         private final int tagNumber;
         private final String ridTypeName;
 
-        Type(int value, String name) {
+        private Type(int value, String name) {
             this.tagNumber = value;
             this.ridTypeName = name;
         }
@@ -92,10 +92,10 @@ public final class ResponderId {
         }
     }
 
-    private final Type type;
+    private Type type;
     private X500Principal responderName;
     private KeyIdentifier responderKeyId;
-    private final byte[] encodedRid;
+    private byte[] encodedRid;
 
     /**
      * Constructs a {@code ResponderId} object using an {@code X500Principal}.
@@ -172,7 +172,7 @@ public final class ResponderId {
     }
 
     /**
-     * Return the type of {@code ResponderId}
+     * Return the type of {@ResponderId}
      *
      * @return a number corresponding to the context-specific tag number
      *      used in the DER-encoding for a {@code ResponderId}
@@ -234,8 +234,9 @@ public final class ResponderId {
             return true;
         }
 
-        if (obj instanceof ResponderId respObj) {
-            return Arrays.equals(encodedRid, respObj.getEncoded());
+        if (obj instanceof ResponderId) {
+            ResponderId respObj = (ResponderId)obj;
+                return Arrays.equals(encodedRid, respObj.getEncoded());
         }
 
         return false;

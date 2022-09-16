@@ -174,12 +174,12 @@ public class DefaultMutableTreeNode implements Cloneable,
      * @param   newChild        the MutableTreeNode to insert under this node
      * @param   childIndex      the index in this node's child array
      *                          where this node is to be inserted
-     * @throws       ArrayIndexOutOfBoundsException  if
+     * @exception       ArrayIndexOutOfBoundsException  if
      *                          <code>childIndex</code> is out of bounds
-     * @throws       IllegalArgumentException        if
+     * @exception       IllegalArgumentException        if
      *                          <code>newChild</code> is null or is an
      *                          ancestor of this node
-     * @throws       IllegalStateException   if this node does not allow
+     * @exception       IllegalStateException   if this node does not allow
      *                                          children
      * @see     #isNodeDescendant
      */
@@ -211,7 +211,7 @@ public class DefaultMutableTreeNode implements Cloneable,
      *
      * @param   childIndex      the index in this node's child array
      *                          of the child to remove
-     * @throws       ArrayIndexOutOfBoundsException  if
+     * @exception       ArrayIndexOutOfBoundsException  if
      *                          <code>childIndex</code> is out of bounds
      */
     public void remove(int childIndex) {
@@ -247,7 +247,7 @@ public class DefaultMutableTreeNode implements Cloneable,
      * Returns the child at the specified index in this node's child array.
      *
      * @param   index   an index into this node's child array
-     * @throws       ArrayIndexOutOfBoundsException  if <code>index</code>
+     * @exception       ArrayIndexOutOfBoundsException  if <code>index</code>
      *                                          is out of bounds
      * @return  the TreeNode in this node's child array at  the specified index
      */
@@ -278,7 +278,7 @@ public class DefaultMutableTreeNode implements Cloneable,
      * where n is the number of children.
      *
      * @param   aChild  the TreeNode to search for among this node's children
-     * @throws       IllegalArgumentException        if <code>aChild</code>
+     * @exception       IllegalArgumentException        if <code>aChild</code>
      *                                                  is null
      * @return  an int giving the index of the node in this node's child
      *          array, or <code>-1</code> if the specified node is a not
@@ -382,7 +382,7 @@ public class DefaultMutableTreeNode implements Cloneable,
      * null parent.
      *
      * @param   aChild  a child of this node to remove
-     * @throws       IllegalArgumentException        if <code>aChild</code>
+     * @exception       IllegalArgumentException        if <code>aChild</code>
      *                                  is null or is not a child of this node
      */
     public void remove(MutableTreeNode aChild) {
@@ -412,9 +412,9 @@ public class DefaultMutableTreeNode implements Cloneable,
      *
      * @see             #insert
      * @param   newChild        node to add as a child of this node
-     * @throws       IllegalArgumentException    if <code>newChild</code>
+     * @exception       IllegalArgumentException    if <code>newChild</code>
      *                                          is null
-     * @throws       IllegalStateException   if this node does not allow
+     * @exception       IllegalStateException   if this node does not allow
      *                                          children
      */
     public void add(MutableTreeNode newChild) {
@@ -846,7 +846,7 @@ public class DefaultMutableTreeNode implements Cloneable,
      * @param           ancestor the node to start enumeration from
      * @see             #isNodeAncestor
      * @see             #isNodeDescendant
-     * @throws       IllegalArgumentException if <code>ancestor</code> is
+     * @exception       IllegalArgumentException if <code>ancestor</code> is
      *                                          not an ancestor of this node
      * @return  an enumeration for following the path from an ancestor of
      *          this node to this one
@@ -890,7 +890,7 @@ public class DefaultMutableTreeNode implements Cloneable,
      * throws NoSuchElementException.
      *
      * @return  the first child of this node
-     * @throws       NoSuchElementException  if this node has no children
+     * @exception       NoSuchElementException  if this node has no children
      */
     public TreeNode getFirstChild() {
         if (getChildCount() == 0) {
@@ -905,7 +905,7 @@ public class DefaultMutableTreeNode implements Cloneable,
      * throws NoSuchElementException.
      *
      * @return  the last child of this node
-     * @throws       NoSuchElementException  if this node has no children
+     * @exception       NoSuchElementException  if this node has no children
      */
     public TreeNode getLastChild() {
         if (getChildCount() == 0) {
@@ -925,7 +925,7 @@ public class DefaultMutableTreeNode implements Cloneable,
      *
      * @param           aChild the child node to look for next child after it
      * @see             #children
-     * @throws       IllegalArgumentException if <code>aChild</code> is
+     * @exception       IllegalArgumentException if <code>aChild</code> is
      *                                  null or is not a child of this node
      * @return  the child of this node that immediately follows
      *          <code>aChild</code>
@@ -957,7 +957,7 @@ public class DefaultMutableTreeNode implements Cloneable,
      * and is O(n) where n is the number of children.
      *
      * @param           aChild the child node to look for previous child before it
-     * @throws       IllegalArgumentException if <code>aChild</code> is null
+     * @exception       IllegalArgumentException if <code>aChild</code> is null
      *                                          or is not a child of this node
      * @return  the child of this node that immediately precedes
      *          <code>aChild</code>
@@ -1297,8 +1297,8 @@ public class DefaultMutableTreeNode implements Cloneable,
         Object[]             tValues;
 
         s.defaultWriteObject();
-        // Save the userObject, if it's Serializable.
-        if (userObject instanceof Serializable) {
+        // Save the userObject, if its Serializable.
+        if(userObject != null && userObject instanceof Serializable) {
             tValues = new Object[2];
             tValues[0] = "userObject";
             tValues[1] = userObject;
@@ -1330,7 +1330,7 @@ public class DefaultMutableTreeNode implements Cloneable,
             userObject = tValues[1];
     }
 
-    private static final class PreorderEnumeration implements Enumeration<TreeNode> {
+    private final class PreorderEnumeration implements Enumeration<TreeNode> {
         private final Stack<Enumeration<? extends TreeNode>> stack = new Stack<>();
 
         public PreorderEnumeration(TreeNode rootNode) {
@@ -1362,7 +1362,7 @@ public class DefaultMutableTreeNode implements Cloneable,
 
 
 
-    static final class PostorderEnumeration implements Enumeration<TreeNode> {
+    final class PostorderEnumeration implements Enumeration<TreeNode> {
         protected TreeNode root;
         protected Enumeration<? extends TreeNode> children;
         protected Enumeration<TreeNode> subtree;
@@ -1398,7 +1398,7 @@ public class DefaultMutableTreeNode implements Cloneable,
 
 
 
-    static final class BreadthFirstEnumeration implements Enumeration<TreeNode> {
+    final class BreadthFirstEnumeration implements Enumeration<TreeNode> {
         protected Queue queue;
 
         public BreadthFirstEnumeration(TreeNode rootNode) {
@@ -1430,11 +1430,11 @@ public class DefaultMutableTreeNode implements Cloneable,
 
 
         // A simple queue with a linked list data structure.
-        static final class Queue {
+        final class Queue {
             QNode head; // null if empty
             QNode tail;
 
-            static final class QNode {
+            final class QNode {
                 public Object   object;
                 public QNode    next;   // null if end
                 public QNode(Object object, QNode next) {
@@ -1486,7 +1486,7 @@ public class DefaultMutableTreeNode implements Cloneable,
 
 
 
-    static final class PathBetweenNodesEnumeration implements Enumeration<TreeNode> {
+    final class PathBetweenNodesEnumeration implements Enumeration<TreeNode> {
         protected Stack<TreeNode> stack;
 
         public PathBetweenNodesEnumeration(TreeNode ancestor,

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2007, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2007, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,7 +22,6 @@
  */
 package nsk.share.runner;
 
-import java.util.concurrent.locks.LockSupport;
 import nsk.share.gc.OOMStress;
 import nsk.share.log.*;
 import nsk.share.test.Stresser;
@@ -75,29 +74,8 @@ public class ThreadsRunner implements MultiRunner, LogAware, RunParamsAware {
         }
 
         public Thread newThread(Runnable runnable, String name, int num) {
-            Thread t;
-            if (this.params.useVirtualThreads()) {
-                t = unstartedVirtualThread(runnable);
-            } else {
-                t = new Thread(runnable);
-            }
-            t.setName(name);
-            return t;
+            return new Thread(runnable, name);
         }
-
-        private Thread unstartedVirtualThread(Runnable task) {
-            try {
-                Object builder = Thread.class.getMethod("ofVirtual").invoke(null);
-                Class<?> clazz = Class.forName("java.lang.Thread$Builder");
-                java.lang.reflect.Method unstarted = clazz.getMethod("unstarted", Runnable.class);
-                return (Thread) unstarted.invoke(builder, task);
-            } catch (RuntimeException | Error e) {
-                throw e;
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-
     }
 
     private class ManagedThread implements Runnable {
@@ -120,13 +98,13 @@ public class ThreadsRunner implements MultiRunner, LogAware, RunParamsAware {
         public void run() {
             notStarted.decrementAndGet();
             while (notStarted.get() != 0) {
-                LockSupport.parkNanos(1);
+                Thread.onSpinWait();
             }
             try {
                 stresser.start(runParams.getIterations());
                 while (!this.thread.isInterrupted() && stresser.iteration()) {
                     test.run();
-                    LockSupport.parkNanos(1);
+                    Thread.yield();
                 }
             } catch (OutOfMemoryError oom) {
                 if (test instanceof OOMStress) {

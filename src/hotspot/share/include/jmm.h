@@ -333,8 +333,7 @@ typedef struct jmmInterface_1_ {
   void         (JNICALL *GetDiagnosticCommandArgumentsInfo)
                                                  (JNIEnv *env,
                                                   jstring commandName,
-                                                  dcmdArgInfo *infoArray,
-                                                  jint count);
+                                                  dcmdArgInfo *infoArray);
   jstring      (JNICALL *ExecuteDiagnosticCommand)
                                                  (JNIEnv *env,
                                                   jstring command);

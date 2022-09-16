@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,8 +30,12 @@
 
 #if defined(LINUX) || defined(AIX)
 # include "semaphore_posix.hpp"
+#elif defined(BSD)
+# include "semaphore_bsd.hpp"
+#elif defined(_WINDOWS)
+# include "semaphore_windows.hpp"
 #else
-# include OS_HEADER(semaphore)
+# error "No semaphore implementation provided for this OS"
 #endif
 
 class JavaThread;

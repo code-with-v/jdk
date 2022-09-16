@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2018, Oracle and/or its affiliates. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -72,8 +72,6 @@ import java.util.BitSet;
 import javax.swing.*;
 import javax.swing.event.*;
 
-import static java.nio.charset.StandardCharsets.UTF_16;
-
 /**
  * Font2DTest.java
  *
@@ -135,7 +133,7 @@ public final class Font2DTest extends JPanel
     private static boolean canDisplayCheck = true;
 
     /// Initialize GUI variables and its layouts
-    public Font2DTest( JFrame f) {
+    public Font2DTest( JFrame f, boolean isApplet ) {
         parent = f;
 
         rm = new RangeMenu( this, parent );
@@ -167,8 +165,8 @@ public final class Font2DTest extends JPanel
         contrastSlider.setPaintLabels(true);
         contrastSlider.addChangeListener(this);
         setupPanel();
-        setupMenu();
-        setupDialog();
+        setupMenu( isApplet );
+        setupDialog( isApplet );
 
         if(canDisplayCheck) {
             fireRangeChanged();
@@ -258,7 +256,7 @@ public final class Font2DTest extends JPanel
     }
 
     /// Sets up menu entries
-    private void setupMenu() {
+    private void setupMenu( boolean isApplet ) {
         JMenu fileMenu = new JMenu( "File" );
         JMenu optionMenu = new JMenu( "Option" );
 
@@ -270,7 +268,11 @@ public final class Font2DTest extends JPanel
         fileMenu.add( new MenuItemV2( "Page Setup...", this ));
         fileMenu.add( new MenuItemV2( "Print...", this ));
         fileMenu.addSeparator();
-        fileMenu.add( new MenuItemV2( "Exit", this ));
+        if ( !isApplet )
+          fileMenu.add( new MenuItemV2( "Exit", this ));
+        else
+          fileMenu.add( new MenuItemV2( "Close", this ));
+
         displayGridCBMI = new CheckboxMenuItemV2( "Display Grid", true, this );
         force16ColsCBMI = new CheckboxMenuItemV2( "Force 16 Columns", false, this );
         showFontInfoCBMI = new CheckboxMenuItemV2( "Display Font Info", false, this );
@@ -324,8 +326,11 @@ public final class Font2DTest extends JPanel
     }
 
     /// Sets up the all dialogs used in Font2DTest...
-    private void setupDialog() {
-        filePromptDialog = new JFileChooser();
+    private void setupDialog( boolean isApplet ) {
+        if (!isApplet)
+                filePromptDialog = new JFileChooser( );
+        else
+                filePromptDialog = null;
 
         /// Prepare user text dialog...
         userTextDialog = new JDialog( parent, "User Text", false );
@@ -427,6 +432,8 @@ public final class Font2DTest extends JPanel
 
     /// Changes the message on the status bar
     public void fireChangeStatus( String message, boolean error ) {
+        /// If this is not ran as an applet, use own status bar,
+        /// Otherwise, use the appletviewer/browser's status bar
         statusBar.setText( message );
         if ( error )
           fp.showingError = true;
@@ -591,7 +598,7 @@ public final class Font2DTest extends JPanel
             if (numBytes >= 2 &&
                 (( byteData[0] == (byte) 0xFF && byteData[1] == (byte) 0xFE ) ||
                  ( byteData[0] == (byte) 0xFE && byteData[1] == (byte) 0xFF )))
-              fileText = new String(byteData, UTF_16);
+              fileText = new String( byteData, "UTF-16" );
             /// Otherwise, use system default encoding
             else
               fileText = new String( byteData );
@@ -649,7 +656,7 @@ public final class Font2DTest extends JPanel
                 showFontInfoCBMI.getState() + "\n" +
                 rm.getSelectedItem() + "\n" +
                 range[0] + "\n" + range[1] + "\n" + curOptions + tFileName);
-            byte[] toBeWritten = completeOptions.getBytes(UTF_16);
+            byte[] toBeWritten = completeOptions.getBytes( "UTF-16" );
             bos.write( toBeWritten, 0, toBeWritten.length );
             bos.close();
         }
@@ -714,7 +721,7 @@ public final class Font2DTest extends JPanel
                 (byteData[0] != (byte) 0xFE || byteData[1] != (byte) 0xFF) )
               throw new Exception( "Not a Font2DTest options file" );
 
-            String options = new String(byteData, UTF_16);
+            String options = new String( byteData, "UTF-16" );
             StringTokenizer perLine = new StringTokenizer( options, "\n" );
             String title = perLine.nextToken();
             if ( !title.equals( "Font2DTest Option File" ))
@@ -1023,7 +1030,7 @@ public final class Font2DTest extends JPanel
 
         UIManager.put("swing.boldMetal", Boolean.FALSE);
         final JFrame f = new JFrame( "Font2DTest" );
-        final Font2DTest f2dt = new Font2DTest( f);
+        final Font2DTest f2dt = new Font2DTest( f, false );
         f.addWindowListener( new WindowAdapter() {
             public void windowOpening( WindowEvent e ) { f2dt.repaint(); }
             public void windowClosing( WindowEvent e ) { System.exit(0); }

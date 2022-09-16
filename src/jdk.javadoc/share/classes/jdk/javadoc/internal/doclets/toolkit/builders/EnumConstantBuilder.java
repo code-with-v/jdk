@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -40,6 +40,11 @@ import static jdk.javadoc.internal.doclets.toolkit.util.VisibleMemberTable.Kind.
 
 /**
  * Builds documentation for a enum constants.
+ *
+ *  <p><b>This is NOT part of any supported API.
+ *  If you write code that depends on this, you do so at your own risk.
+ *  This code and its internal interfaces are subject to change or
+ *  deletion without notice.</b>
  */
 public class EnumConstantBuilder extends AbstractMemberBuilder {
 
@@ -97,87 +102,87 @@ public class EnumConstantBuilder extends AbstractMemberBuilder {
     }
 
     @Override
-    public void build(Content target) throws DocletException {
-        buildEnumConstant(target);
+    public void build(Content contentTree) throws DocletException {
+        buildEnumConstant(contentTree);
     }
 
     /**
      * Build the enum constant documentation.
      *
-     * @param target the content to which the documentation will be added
+     * @param detailsList the content tree to which the documentation will be added
      * @throws DocletException is there is a problem while building the documentation
      */
-    protected void buildEnumConstant(Content target) throws DocletException {
+    protected void buildEnumConstant(Content detailsList) throws DocletException {
         if (hasMembersToDocument()) {
-            Content enumConstantsDetailsHeader = writer.getEnumConstantsDetailsHeader(typeElement,
-                    target);
+            Content enumConstantsDetailsTreeHeader = writer.getEnumConstantsDetailsTreeHeader(typeElement,
+                    detailsList);
             Content memberList = writer.getMemberList();
 
             for (Element enumConstant : enumConstants) {
                 currentElement = (VariableElement)enumConstant;
-                Content enumConstants = writer.getEnumConstantsHeader(currentElement,
+                Content enumConstantsTree = writer.getEnumConstantsTreeHeader(currentElement,
                         memberList);
 
-                buildSignature(enumConstants);
-                buildDeprecationInfo(enumConstants);
-                buildPreviewInfo(enumConstants);
-                buildEnumConstantComments(enumConstants);
-                buildTagInfo(enumConstants);
+                buildSignature(enumConstantsTree);
+                buildDeprecationInfo(enumConstantsTree);
+                buildPreviewInfo(enumConstantsTree);
+                buildEnumConstantComments(enumConstantsTree);
+                buildTagInfo(enumConstantsTree);
 
-                memberList.add(writer.getMemberListItem(enumConstants));
+                memberList.add(writer.getMemberListItem(enumConstantsTree));
             }
             Content enumConstantDetails = writer.getEnumConstantsDetails(
-                    enumConstantsDetailsHeader, memberList);
-            target.add(enumConstantDetails);
+                    enumConstantsDetailsTreeHeader, memberList);
+            detailsList.add(enumConstantDetails);
         }
     }
 
     /**
      * Build the signature.
      *
-     * @param target the content to which the documentation will be added
+     * @param enumConstantsTree the content tree to which the documentation will be added
      */
-    protected void buildSignature(Content target) {
-        target.add(writer.getSignature(currentElement));
+    protected void buildSignature(Content enumConstantsTree) {
+        enumConstantsTree.add(writer.getSignature(currentElement));
     }
 
     /**
      * Build the deprecation information.
      *
-     * @param target the content to which the documentation will be added
+     * @param enumConstantsTree the content tree to which the documentation will be added
      */
-    protected void buildDeprecationInfo(Content target) {
-        writer.addDeprecated(currentElement, target);
+    protected void buildDeprecationInfo(Content enumConstantsTree) {
+        writer.addDeprecated(currentElement, enumConstantsTree);
     }
 
     /**
      * Build the preview information.
      *
-     * @param target the content to which the documentation will be added
+     * @param enumConstantsTree the content tree to which the documentation will be added
      */
-    protected void buildPreviewInfo(Content target) {
-        writer.addPreview(currentElement, target);
+    protected void buildPreviewInfo(Content enumConstantsTree) {
+        writer.addPreview(currentElement, enumConstantsTree);
     }
 
     /**
      * Build the comments for the enum constant.  Do nothing if
      * {@link BaseOptions#noComment()} is set to true.
      *
-     * @param target the content to which the documentation will be added
+     * @param enumConstantsTree the content tree to which the documentation will be added
      */
-    protected void buildEnumConstantComments(Content target) {
+    protected void buildEnumConstantComments(Content enumConstantsTree) {
         if (!options.noComment()) {
-            writer.addComments(currentElement, target);
+            writer.addComments(currentElement, enumConstantsTree);
         }
     }
 
     /**
      * Build the tag information.
      *
-     * @param target the content to which the documentation will be added
+     * @param enumConstantsTree the content tree to which the documentation will be added
      */
-    protected void buildTagInfo(Content target) {
-        writer.addTags(currentElement, target);
+    protected void buildTagInfo(Content enumConstantsTree) {
+        writer.addTags(currentElement, enumConstantsTree);
     }
 
     /**

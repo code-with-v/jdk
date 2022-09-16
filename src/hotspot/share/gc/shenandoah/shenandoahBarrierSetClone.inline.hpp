@@ -54,7 +54,7 @@ private:
           fwd = _heap->evacuate_object(obj, _thread);
         }
         assert(obj != fwd || _heap->cancelled_gc(), "must be forwarded");
-        ShenandoahHeap::atomic_update_oop(fwd, p, o);
+        ShenandoahHeap::cas_oop(fwd, p, o);
         obj = fwd;
       }
       if (ENQUEUE) {

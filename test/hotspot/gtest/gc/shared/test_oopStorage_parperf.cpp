@@ -24,7 +24,7 @@
 #include "precompiled.hpp"
 #include "gc/shared/oopStorage.inline.hpp"
 #include "gc/shared/oopStorageParState.inline.hpp"
-#include "gc/shared/workerThread.hpp"
+#include "gc/shared/workgroup.hpp"
 #include "logging/log.hpp"
 #include "logging/logConfiguration.hpp"
 #include "memory/allocation.inline.hpp"
@@ -56,7 +56,7 @@ public:
   OopStorageParIterPerf();
   ~OopStorageParIterPerf();
 
-  WorkerThreads* workers() const;
+  WorkGang* workers() const;
 
   class VM_ParStateTime;
   class Task;
@@ -66,19 +66,22 @@ public:
   void show_task(const Task* task, Tickspan duration, uint nthreads);
   void run_test(uint nthreads);
 
-  static WorkerThreads* _workers;
+  static WorkGang* _workers;
 
   OopStorage _storage;
   oop* _entries[_storage_entries];
 };
 
-WorkerThreads* OopStorageParIterPerf::_workers = NULL;
+WorkGang* OopStorageParIterPerf::_workers = NULL;
 
-WorkerThreads* OopStorageParIterPerf::workers() const {
+WorkGang* OopStorageParIterPerf::workers() const {
   if (_workers == NULL) {
-    WorkerThreads* wg = new WorkerThreads("OopStorageParIterPerf workers", _num_workers);
+    WorkGang* wg = new WorkGang("OopStorageParIterPerf workers",
+                                _num_workers,
+                                false,
+                                false);
     wg->initialize_workers();
-    wg->set_active_workers(_num_workers);
+    wg->update_active_workers(_num_workers);
     _workers = wg;
   }
   return _workers;
@@ -99,7 +102,7 @@ OopStorageParIterPerf::~OopStorageParIterPerf() {
 
 class OopStorageParIterPerf::VM_ParStateTime : public VM_GTestExecuteAtSafepoint {
 public:
-  VM_ParStateTime(WorkerThreads* workers, WorkerTask* task, uint nthreads) :
+  VM_ParStateTime(WorkGang* workers, AbstractGangTask* task, uint nthreads) :
     _workers(workers), _task(task), _nthreads(nthreads)
   {}
 
@@ -108,12 +111,12 @@ public:
   }
 
 private:
-  WorkerThreads* _workers;
-  WorkerTask* _task;
+  WorkGang* _workers;
+  AbstractGangTask* _task;
   uint _nthreads;
 };
 
-class OopStorageParIterPerf::Task : public WorkerTask {
+class OopStorageParIterPerf::Task : public AbstractGangTask {
   typedef OopStorage::ParState<false, false> StateType;
 
   Tickspan* _worker_times;
@@ -122,7 +125,7 @@ class OopStorageParIterPerf::Task : public WorkerTask {
 
 public:
   Task(OopStorage* storage, OopClosure* closure, uint nthreads) :
-    WorkerTask("OopStorageParIterPerf::Task"),
+    AbstractGangTask("OopStorageParIterPerf::Task"),
     _worker_times(NULL),
     _state(storage, nthreads),
     _closure(closure)

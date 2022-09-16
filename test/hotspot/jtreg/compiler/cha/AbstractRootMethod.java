@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,8 +29,8 @@
  *          java.base/jdk.internal.vm.annotation
  * @library /test/lib /
  * @compile Utils.java
- * @build jdk.test.whitebox.WhiteBox
- * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
+ * @build sun.hotspot.WhiteBox
+ * @run driver jdk.test.lib.helpers.ClassFileInstaller sun.hotspot.WhiteBox
  *
  * @run main/othervm -Xbootclasspath/a:. -XX:+IgnoreUnrecognizedVMOptions -XX:+UnlockDiagnosticVMOptions
  *                   -XX:+PrintCompilation -XX:+PrintInlining -XX:+TraceDependencies -verbose:class -XX:CompileCommand=quiet
@@ -38,7 +38,6 @@
  *                   -XX:CompileCommand=compileonly,*::test -XX:CompileCommand=dontinline,*::test
  *                   -Xbatch -Xmixed -XX:+WhiteBoxAPI
  *                   -XX:-TieredCompilation
- *                   -XX:-StressMethodHandleLinkerInlining
  *                      compiler.cha.AbstractRootMethod
  *
  * @run main/othervm -Xbootclasspath/a:. -XX:+IgnoreUnrecognizedVMOptions -XX:+UnlockDiagnosticVMOptions
@@ -47,13 +46,9 @@
  *                   -XX:CompileCommand=compileonly,*::test -XX:CompileCommand=dontinline,*::test
  *                   -Xbatch -Xmixed -XX:+WhiteBoxAPI
  *                   -XX:+TieredCompilation -XX:TieredStopAtLevel=1
- *                   -XX:-StressMethodHandleLinkerInlining
  *                      compiler.cha.AbstractRootMethod
  */
 package compiler.cha;
-
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
 
 import static compiler.cha.Utils.*;
 
@@ -61,14 +56,6 @@ public class AbstractRootMethod {
     public static void main(String[] args) {
         run(AbstractClass.class);
         run(AbstractInterface.class);
-
-        // Implementation limitation: CHA is not performed by C1 during inlining through MH linkers.
-        if (!jdk.test.whitebox.code.Compiler.isC1Enabled()) {
-            run(AbstractClass.TestMH.class, AbstractClass.class);
-            run(AbstractInterface.TestMH.class, AbstractInterface.class);
-        }
-
-        System.out.println("TEST PASSED");
     }
 
     public static class AbstractClass extends ATest<AbstractClass.C> {
@@ -137,21 +124,7 @@ public class AbstractRootMethod {
             call(new G() { public Object m() { return CORRECT; } }); //  Gn <: G.m <: C.m ABSTRACT
             assertCompiled();
         }
-
-        public static class TestMH extends AbstractClass {
-            static final MethodHandle TEST_MH = findVirtualHelper(C.class, "m", Object.class, MethodHandles.lookup());
-
-            @Override
-            public Object test(C obj) {
-                try {
-                    return TEST_MH.invokeExact(obj); // invokevirtual C.m()
-                } catch (Throwable e) {
-                    throw new InternalError(e);
-                }
-            }
-        }
     }
-
     public static class AbstractInterface extends ATest<AbstractInterface.C> {
         public AbstractInterface() {
             super(C.class, D.class);
@@ -219,19 +192,6 @@ public class AbstractRootMethod {
             call(new C() { public Object m() { return CORRECT; } }); //  Cn.m <: C <: I.m ABSTRACT
             call(new G() { public Object m() { return CORRECT; } }); //  Gn <: G.m <: C <: I.m ABSTRACT
             assertCompiled();
-        }
-
-        public static class TestMH extends AbstractInterface {
-            static final MethodHandle TEST_MH = findVirtualHelper(C.class, "m", Object.class, MethodHandles.lookup());
-
-            @Override
-            public Object test(C obj) {
-                try {
-                    return TEST_MH.invokeExact(obj); // invokevirtual C.m()
-                } catch (Throwable e) {
-                    throw new InternalError(e);
-                }
-            }
         }
     }
 }

@@ -39,6 +39,10 @@ public final class NextDiagramAction extends ContextAction<DiagramViewModel> imp
     private DiagramViewModel model;
 
     public NextDiagramAction() {
+        this(Utilities.actionsGlobalContext());
+    }
+
+    public NextDiagramAction(Lookup lookup) {
         putValue(Action.SHORT_DESCRIPTION, "Show next graph of current group");
         putValue(Action.SMALL_ICON, new ImageIcon(ImageUtilities.loadImage("com/sun/hotspot/igv/view/images/next_diagram.png")));
     }
@@ -60,8 +64,12 @@ public final class NextDiagramAction extends ContextAction<DiagramViewModel> imp
 
     @Override
     public void performAction(DiagramViewModel model) {
-        if (model.getSecondPosition() != model.getPositions().size() - 1) {
-            model.setPositions(model.getFirstPosition() + 1, model.getSecondPosition() + 1);
+        int fp = model.getFirstPosition();
+        int sp = model.getSecondPosition();
+        if (sp != model.getPositions().size() - 1) {
+            int nfp = fp + 1;
+            int nsp = sp + 1;
+            model.setPositions(nfp, nsp);
         }
     }
 
@@ -88,7 +96,7 @@ public final class NextDiagramAction extends ContextAction<DiagramViewModel> imp
 
     @Override
     public Action createContextAwareInstance(Lookup arg0) {
-        return new NextDiagramAction();
+        return new NextDiagramAction(arg0);
     }
 
     @Override

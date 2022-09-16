@@ -45,6 +45,11 @@ public final class SaveFilterSettingsAction extends CallableSystemAction {
         return NbBundle.getMessage(SaveFilterSettingsAction.class, "CTL_SaveFilterSettingsAction");
     }
 
+    @Override
+    protected void initialize() {
+        super.initialize();
+    }
+
     public SaveFilterSettingsAction() {
         putValue(Action.SHORT_DESCRIPTION, "Save filter configuration as profile...");
     }

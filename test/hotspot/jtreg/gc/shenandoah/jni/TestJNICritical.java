@@ -22,7 +22,7 @@
  *
  */
 
-/* @test
+/* @test TestJNICritical
  * @summary test JNI critical arrays support in Shenandoah
  * @key randomness
  * @requires vm.gc.Shenandoah

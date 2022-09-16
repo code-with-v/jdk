@@ -54,6 +54,7 @@ import java.util.TooManyListenersException;
  * @author Laurence P. G. Cable
  * @since 1.2
  */
+
 public class      BeanContextServicesSupport extends BeanContextSupport
        implements BeanContextServices {
 
@@ -156,10 +157,6 @@ public class      BeanContextServicesSupport extends BeanContextSupport
      * when the BeanContextSupport is serialized.
      */
 
-    /**
-     * A protected nested class containing per-child information
-     * in the {@code children} hashtable.
-     */
     protected class BCSSChild extends BeanContextSupport.BCSChild  {
 
         /**
@@ -790,10 +787,6 @@ public class      BeanContextServicesSupport extends BeanContextSupport
      * to an enclosing BeanContext.
      */
 
-    /**
-     * Subclasses may subclass this nested class to represent a proxy for
-     * each BeanContextServiceProvider.
-     */
     protected class BCSSProxyServiceProvider implements BeanContextServiceProvider, BeanContextServiceRevokedListener {
 
         BCSSProxyServiceProvider(BeanContextServices bcs) {
@@ -1170,23 +1163,23 @@ public class      BeanContextServicesSupport extends BeanContextSupport
 
         int count = 0;
 
-        for (Map.Entry<Object, BCSSServiceProvider> entry : services.entrySet()) {
-            BCSSServiceProvider bcsp;
+        Iterator<Map.Entry<Object, BCSSServiceProvider>> i = services.entrySet().iterator();
 
-            try {
+        while (i.hasNext() && count < serializable) {
+            Map.Entry<Object, BCSSServiceProvider> entry = i.next();
+            BCSSServiceProvider bcsp  = null;
+
+             try {
                 bcsp = entry.getValue();
-            } catch (ClassCastException cce) {
+             } catch (ClassCastException cce) {
                 continue;
-            }
+             }
 
-            if (bcsp.getServiceProvider() instanceof Serializable) {
+             if (bcsp.getServiceProvider() instanceof Serializable) {
                 oos.writeObject(entry.getKey());
                 oos.writeObject(bcsp);
                 count++;
-            }
-            if (count >= serializable) {
-                break;
-            }
+             }
         }
 
         if (count != serializable)

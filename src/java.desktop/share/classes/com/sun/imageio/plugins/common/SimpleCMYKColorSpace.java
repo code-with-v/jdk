@@ -59,11 +59,11 @@ public final class SimpleCMYKColorSpace extends ColorSpace {
     }
 
     public boolean equals(Object o) {
-        return o instanceof SimpleCMYKColorSpace;
+        return o != null && o instanceof SimpleCMYKColorSpace;
     }
 
     public int hashCode() {
-        return System.identityHashCode(theInstance);
+        return theInstance.hashCode();
     }
 
     public float[] toRGB(float[] colorvalue) {

@@ -36,15 +36,11 @@ package MyPackage;
 /** This test is checking the object allocation path works with heap sampling. */
 public class HeapMonitorStatObjectCorrectnessTest {
 
-  // Do 400000 iterations and expect maxIteration / multiplier samples.
-  private static final int maxIteration = 400_000;
+  // Do 200000 iterations and expect maxIteration / multiplier samples.
+  private static final int maxIteration = 200000;
   private static BigObject obj;
 
-  // 15% error ensures a sanity test without becoming flaky.
-  // Flakiness is due to the fact that this test is dependent on the sampling interval, which is a
-  // statistical geometric variable around the sampling interval. This means that the test could be
-  // unlucky and not achieve the mean average fast enough for the test case.
-  private static final int acceptedErrorPercentage = 15;
+  private native static boolean statsHaveExpectedNumberSamples(int expected, int percentError);
 
   private static void allocate() {
     emptyStorage();
@@ -87,7 +83,11 @@ public class HeapMonitorStatObjectCorrectnessTest {
     double expected = maxIteration;
     expected /= samplingMultiplier;
 
-    if (!HeapMonitor.statsHaveExpectedNumberSamples((int) expected, acceptedErrorPercentage)) {
+    // 10% error ensures a sanity test without becoming flaky.
+    // Flakiness is due to the fact that this test is dependent on the sampling interval, which is a
+    // statistical geometric variable around the sampling interval. This means that the test could be
+    // unlucky and not achieve the mean average fast enough for the test case.
+    if (!HeapMonitor.statsHaveExpectedNumberSamples((int) expected, 10)) {
       throw new RuntimeException("Statistics should show about " + expected + " samples.");
     }
   }
@@ -108,7 +108,11 @@ public class HeapMonitorStatObjectCorrectnessTest {
 
     double expected = maxIteration;
 
-    if (!HeapMonitor.statsHaveExpectedNumberSamples((int) expected, acceptedErrorPercentage)) {
+    // 10% error ensures a sanity test without becoming flaky.
+    // Flakiness is due to the fact that this test is dependent on the sampling interval, which is a
+    // statistical geometric variable around the sampling interval. This means that the test could be
+    // unlucky and not achieve the mean average fast enough for the test case.
+    if (!HeapMonitor.statsHaveExpectedNumberSamples((int) expected, 10)) {
       throw new RuntimeException("Statistics should show about " + expected + " samples.");
     }
   }

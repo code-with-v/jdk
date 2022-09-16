@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,10 +31,15 @@ import java.lang.constant.ConstantDesc;
 import java.lang.constant.ConstantDescs;
 import java.lang.constant.DirectMethodHandleDesc;
 import java.lang.constant.DynamicConstantDesc;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
+import jdk.internal.util.Preconditions;
 import jdk.internal.vm.annotation.DontInline;
 import jdk.internal.vm.annotation.ForceInline;
 import jdk.internal.vm.annotation.IntrinsicCandidate;
@@ -377,7 +382,7 @@ import static java.lang.invoke.MethodHandleStatics.UNSAFE;
  * {@code invokevirtual} instruction is linked.
  * <p>
  * Apart from type descriptor checks, a VarHandles's capability to
- * access its variables is unrestricted.
+ * access it's variables is unrestricted.
  * If a VarHandle is formed on a non-public variable by a class that has access
  * to that variable, the resulting VarHandle can be used in any place by any
  * caller who receives a reference to it.
@@ -471,41 +476,7 @@ import static java.lang.invoke.MethodHandleStatics.UNSAFE;
  * @see MethodType
  * @since 9
  */
-public abstract sealed class VarHandle implements Constable
-     permits IndirectVarHandle, VarHandleSegmentViewBase,
-             VarHandleByteArrayAsChars.ByteArrayViewVarHandle,
-             VarHandleByteArrayAsDoubles.ByteArrayViewVarHandle,
-             VarHandleByteArrayAsFloats.ByteArrayViewVarHandle,
-             VarHandleByteArrayAsInts.ByteArrayViewVarHandle,
-             VarHandleByteArrayAsLongs.ByteArrayViewVarHandle,
-             VarHandleByteArrayAsShorts.ByteArrayViewVarHandle,
-             VarHandleBooleans.Array,
-             VarHandleBooleans.FieldInstanceReadOnly,
-             VarHandleBooleans.FieldStaticReadOnly,
-             VarHandleBytes.Array,
-             VarHandleBytes.FieldInstanceReadOnly,
-             VarHandleBytes.FieldStaticReadOnly,
-             VarHandleChars.Array,
-             VarHandleChars.FieldInstanceReadOnly,
-             VarHandleChars.FieldStaticReadOnly,
-             VarHandleDoubles.Array,
-             VarHandleDoubles.FieldInstanceReadOnly,
-             VarHandleDoubles.FieldStaticReadOnly,
-             VarHandleFloats.Array,
-             VarHandleFloats.FieldInstanceReadOnly,
-             VarHandleFloats.FieldStaticReadOnly,
-             VarHandleInts.Array,
-             VarHandleInts.FieldInstanceReadOnly,
-             VarHandleInts.FieldStaticReadOnly,
-             VarHandleLongs.Array,
-             VarHandleLongs.FieldInstanceReadOnly,
-             VarHandleLongs.FieldStaticReadOnly,
-             VarHandleReferences.Array,
-             VarHandleReferences.FieldInstanceReadOnly,
-             VarHandleReferences.FieldStaticReadOnly,
-             VarHandleShorts.Array,
-             VarHandleShorts.FieldInstanceReadOnly,
-             VarHandleShorts.FieldStaticReadOnly {
+public abstract class VarHandle implements Constable {
     final VarForm vform;
     final boolean exact;
 
@@ -520,6 +491,10 @@ public abstract sealed class VarHandle implements Constable
 
     RuntimeException unsupported() {
         return new UnsupportedOperationException();
+    }
+
+    boolean isDirect() {
+        return true;
     }
 
     VarHandle asDirect() {
@@ -2062,23 +2037,11 @@ public abstract sealed class VarHandle implements Constable
         return accessModeType(accessMode.at.ordinal());
     }
 
-    /**
-     * Validates that the given access descriptors method type matches up with
-     * the access mode of this VarHandle, then returns if this is a direct
-     * method handle. These operations were grouped together to slightly
-     * improve efficiency during startup/warmup.
-     *
-     * @return true if this is a direct VarHandle, false if it's an indirect
-     *         VarHandle.
-     * @throws WrongMethodTypeException if there's an access type mismatch
-     */
     @ForceInline
-    boolean checkAccessModeThenIsDirect(VarHandle.AccessDescriptor ad) {
+    final void checkExactAccessMode(VarHandle.AccessDescriptor ad) {
         if (exact && accessModeType(ad.type) != ad.symbolicMethodTypeExact) {
             throwWrongMethodTypeException(ad);
         }
-        // return true unless overridden in an IndirectVarHandle
-        return true;
     }
 
     @DontInline
@@ -2089,13 +2052,10 @@ public abstract sealed class VarHandle implements Constable
 
     @ForceInline
     final MethodType accessModeType(int accessTypeOrdinal) {
-        MethodType[] mtTable = methodTypeTable;
-        if (mtTable == null) {
-            mtTable = methodTypeTable = new MethodType[VarHandle.AccessType.COUNT];
-        }
-        MethodType mt = mtTable[accessTypeOrdinal];
+        TypesAndInvokers tis = getTypesAndInvokers();
+        MethodType mt = tis.methodType_table[accessTypeOrdinal];
         if (mt == null) {
-            mt = mtTable[accessTypeOrdinal] =
+            mt = tis.methodType_table[accessTypeOrdinal] =
                     accessModeTypeUncached(accessTypeOrdinal);
         }
         return mt;
@@ -2170,24 +2130,34 @@ public abstract sealed class VarHandle implements Constable
     }
 
     @Stable
-    MethodType[] methodTypeTable;
+    TypesAndInvokers typesAndInvokers;
 
-    @Stable
-    MethodHandle[] methodHandleTable;
+    static class TypesAndInvokers {
+        final @Stable
+        MethodType[] methodType_table = new MethodType[VarHandle.AccessType.COUNT];
+
+        final @Stable
+        MethodHandle[] methodHandle_table = new MethodHandle[AccessMode.COUNT];
+    }
+
+    @ForceInline
+    private final TypesAndInvokers getTypesAndInvokers() {
+        TypesAndInvokers tis = typesAndInvokers;
+        if (tis == null) {
+            tis = typesAndInvokers = new TypesAndInvokers();
+        }
+        return tis;
+    }
 
     @ForceInline
     MethodHandle getMethodHandle(int mode) {
-        MethodHandle[] mhTable = methodHandleTable;
-        if (mhTable == null) {
-            mhTable = methodHandleTable = new MethodHandle[AccessMode.COUNT];
-        }
-        MethodHandle mh = mhTable[mode];
+        TypesAndInvokers tis = getTypesAndInvokers();
+        MethodHandle mh = tis.methodHandle_table[mode];
         if (mh == null) {
-            mh = mhTable[mode] = getMethodHandleUncached(mode);
+            mh = tis.methodHandle_table[mode] = getMethodHandleUncached(mode);
         }
         return mh;
     }
-
     private final MethodHandle getMethodHandleUncached(int mode) {
         MethodType mt = accessModeType(AccessMode.values()[mode]).
                 insertParameterTypes(0, VarHandle.class);
@@ -2208,6 +2178,15 @@ public abstract sealed class VarHandle implements Constable
         UNSAFE.putReference(this, VFORM_OFFSET, newVForm);
         UNSAFE.fullFence();
     }
+
+    static final BiFunction<String, List<Number>, ArrayIndexOutOfBoundsException>
+            AIOOBE_SUPPLIER = Preconditions.outOfBoundsExceptionFormatter(
+            new Function<String, ArrayIndexOutOfBoundsException>() {
+                @Override
+                public ArrayIndexOutOfBoundsException apply(String s) {
+                    return new ArrayIndexOutOfBoundsException(s);
+                }
+            });
 
     private static final long VFORM_OFFSET;
 

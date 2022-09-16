@@ -18,7 +18,6 @@ import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
 
 import jdk.internal.org.jline.terminal.impl.NativeSignalHandler;
-import jdk.internal.org.jline.utils.ColorPalette;
 import jdk.internal.org.jline.utils.InfoCmp.Capability;
 import jdk.internal.org.jline.utils.NonBlockingReader;
 
@@ -329,10 +328,4 @@ public interface Terminal extends Closeable, Flushable {
      * @return <code>true</code> if focus tracking is supported
      */
     boolean trackFocus(boolean tracking);
-
-    /**
-     * Color support
-     */
-    ColorPalette getPalette();
-
 }

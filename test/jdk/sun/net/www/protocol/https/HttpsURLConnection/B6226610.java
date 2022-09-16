@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +25,7 @@
  * @test
  * @bug 6226610 6973030
  * @summary HTTP tunnel connections send user headers to proxy
- * @library /test/lib
+ * @modules java.base/sun.net.www
  * @run main/othervm B6226610
  */
 
@@ -37,9 +37,7 @@
 
 import java.io.*;
 import java.net.*;
-
-import jdk.test.lib.net.HttpHeaderParser;
-
+import sun.net.www.MessageHeader;
 
 public class B6226610 {
     static HeaderCheckerProxyTunnelServer proxy;
@@ -140,21 +138,21 @@ class HeaderCheckerProxyTunnelServer extends Thread
     private void processRequests() throws IOException
     {
         InputStream in = clientSocket.getInputStream();
-        HttpHeaderParser mheader = new HttpHeaderParser(in);
-        String statusLine = mheader.getRequestDetails();
+        MessageHeader mheader = new MessageHeader(in);
+        String statusLine = mheader.getValue(0);
 
         if (statusLine.startsWith("CONNECT")) {
            // retrieve the host and port info from the status-line
            retrieveConnectInfo(statusLine);
 
-           if (mheader.getHeaderValue("X-TestHeader") != null) {
+           if (mheader.findValue("X-TestHeader") != null) {
                System.out.println("Proxy should not receive user defined headers for tunneled requests");
                failed = true;
            }
 
            // 6973030
            String value;
-           if ((value = mheader.getHeaderValue("Proxy-Connection").get(0)) == null ||
+           if ((value = mheader.findValue("Proxy-Connection")) == null ||
                 !value.equals("keep-alive")) {
                System.out.println("Proxy-Connection:keep-alive not being sent");
                failed = true;

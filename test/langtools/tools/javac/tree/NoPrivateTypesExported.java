@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2015, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -53,6 +53,7 @@ import javax.lang.model.type.IntersectionType;
 import javax.lang.model.type.TypeMirror;
 import javax.lang.model.type.TypeVariable;
 import javax.lang.model.type.WildcardType;
+import javax.tools.Diagnostic.Kind;
 
 public class NoPrivateTypesExported extends JavacTestingAbstractProcessor {
 
@@ -89,8 +90,7 @@ public class NoPrivateTypesExported extends JavacTestingAbstractProcessor {
             "java.text.",
             "java.util.",
             "javax.lang.model.",
-            "javax.annotation.processing.SupportedSourceVersion",
-            "javax.tools.JavaFileObject"
+            "javax.annotation.processing.SupportedSourceVersion"
         ));
         Set<String> javaxToolsProcessingAcceptableTemp = new HashSet<>();
         javaxToolsProcessingAcceptableTemp.addAll(javaxLangModelAcceptable);
@@ -310,10 +310,10 @@ public class NoPrivateTypesExported extends JavacTestingAbstractProcessor {
     }
 
     private void error(String text) {
-        processingEnv.getMessager().printError(text);
+        processingEnv.getMessager().printMessage(Kind.ERROR, text);
     }
 
     private void note(String text) {
-        processingEnv.getMessager().printNote(text);
+        processingEnv.getMessager().printMessage(Kind.NOTE, text);
     }
 }

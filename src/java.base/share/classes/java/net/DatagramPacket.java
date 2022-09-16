@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1995, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1995, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,10 +24,6 @@
  */
 
 package java.net;
-
-import java.util.Objects;
-
-import jdk.internal.util.Preconditions;
 
 /**
  * This class represents a datagram packet.
@@ -55,6 +51,14 @@ import jdk.internal.util.Preconditions;
  */
 public final
 class DatagramPacket {
+
+    /**
+     * Perform class initialization
+     */
+    static {
+        jdk.internal.loader.BootLoader.loadLibrary("net");
+        init();
+    }
 
     /*
      * The fields of this class are package-private since DatagramSocketImpl
@@ -84,7 +88,7 @@ class DatagramPacket {
      *
      * @since   1.2
      */
-    public DatagramPacket(byte[] buf, int offset, int length) {
+    public DatagramPacket(byte buf[], int offset, int length) {
         setData(buf, offset, length);
     }
 
@@ -102,7 +106,7 @@ class DatagramPacket {
      *          or if the length is greater than the length of the
      *          packet's given buffer.
      */
-    public DatagramPacket(byte[] buf, int length) {
+    public DatagramPacket(byte buf[], int length) {
         this (buf, 0, length);
     }
 
@@ -128,7 +132,7 @@ class DatagramPacket {
      *
      * @since   1.2
      */
-    public DatagramPacket(byte[] buf, int offset, int length,
+    public DatagramPacket(byte buf[], int offset, int length,
                           InetAddress address, int port) {
         setData(buf, offset, length);
         setAddress(address);
@@ -156,7 +160,7 @@ class DatagramPacket {
      *
      * @since   1.4
      */
-    public DatagramPacket(byte[] buf, int offset, int length, SocketAddress address) {
+    public DatagramPacket(byte buf[], int offset, int length, SocketAddress address) {
         setData(buf, offset, length);
         setSocketAddress(address);
     }
@@ -178,7 +182,7 @@ class DatagramPacket {
      *
      * @see     java.net.InetAddress
      */
-    public DatagramPacket(byte[] buf, int length,
+    public DatagramPacket(byte buf[], int length,
                           InetAddress address, int port) {
         this(buf, 0, length, address, port);
     }
@@ -202,7 +206,7 @@ class DatagramPacket {
      *
      * @since   1.4
      */
-    public DatagramPacket(byte[] buf, int length, SocketAddress address) {
+    public DatagramPacket(byte buf[], int length, SocketAddress address) {
         this(buf, 0, length, address);
     }
 
@@ -289,9 +293,12 @@ class DatagramPacket {
      * @since   1.2
      */
     public synchronized void setData(byte[] buf, int offset, int length) {
-        Objects.requireNonNull(buf);
-        Preconditions.checkFromIndexSize(offset, length, buf.length,
-                Preconditions.outOfBoundsExceptionFormatter(IllegalArgumentException::new));
+        /* this will check to see if buf is null */
+        if (length < 0 || offset < 0 ||
+            (length + offset) < 0 ||
+            ((length + offset) > buf.length)) {
+            throw new IllegalArgumentException("illegal length or offset");
+        }
         this.buf = buf;
         this.length = length;
         this.bufLength = length;
@@ -395,9 +402,8 @@ class DatagramPacket {
      * Set the length for this packet. The length of the packet is
      * the number of bytes from the packet's data buffer that will be
      * sent, or the number of bytes of the packet's data buffer that
-     * will be used for receiving data. The {@code length} plus the
-     * {@link #getOffset() offset} must be lesser or equal to the
-     * length of the packet's data buffer.
+     * will be used for receiving data. The length must be lesser or
+     * equal to the offset plus the length of the packet's buffer.
      *
      * @param   length      the length to set for this packet.
      *
@@ -411,9 +417,16 @@ class DatagramPacket {
      * @since   1.1
      */
     public synchronized void setLength(int length) {
-        Preconditions.checkFromIndexSize(offset, length, buf.length,
-                Preconditions.outOfBoundsExceptionFormatter(IllegalArgumentException::new));
+        if ((length + offset) > buf.length || length < 0 ||
+            (length + offset) < 0) {
+            throw new IllegalArgumentException("illegal length");
+        }
         this.length = length;
         this.bufLength = this.length;
     }
+
+    /**
+     * Perform class load-time initializations.
+     */
+    private static native void init();
 }

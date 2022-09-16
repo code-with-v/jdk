@@ -134,7 +134,7 @@ public final class DebugSettings {
             String value = props.getProperty(key, "");
             pout.println(key + " = " + value);
         }
-        return bout.toString();
+        return new String(bout.toByteArray());
     }
 
     /*
@@ -173,9 +173,9 @@ public final class DebugSettings {
         File    propFile = new File(propPath);
         try {
             println("Reading debug settings from '" + propFile.getCanonicalPath() + "'...");
-            try (FileInputStream fin = new FileInputStream(propFile)) {
-                props.load(fin);
-            }
+            FileInputStream     fin = new FileInputStream(propFile);
+            props.load(fin);
+            fin.close();
         } catch ( FileNotFoundException fne ) {
             println("Did not find settings file.");
         } catch ( IOException ioe ) {

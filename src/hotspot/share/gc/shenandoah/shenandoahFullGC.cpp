@@ -25,11 +25,9 @@
 #include "precompiled.hpp"
 
 #include "compiler/oopMap.hpp"
-#include "gc/shared/continuationGCSupport.hpp"
 #include "gc/shared/gcTraceTime.inline.hpp"
 #include "gc/shared/preservedMarks.inline.hpp"
 #include "gc/shared/tlab_globals.hpp"
-#include "gc/shared/workerThread.hpp"
 #include "gc/shenandoah/heuristics/shenandoahHeuristics.hpp"
 #include "gc/shenandoah/shenandoahConcurrentGC.hpp"
 #include "gc/shenandoah/shenandoahCollectionSet.hpp"
@@ -55,12 +53,14 @@
 #include "memory/universe.hpp"
 #include "oops/compressedOops.inline.hpp"
 #include "oops/oop.inline.hpp"
-#include "runtime/javaThread.hpp"
+#include "runtime/biasedLocking.hpp"
 #include "runtime/orderAccess.hpp"
+#include "runtime/thread.hpp"
 #include "runtime/vmThread.hpp"
 #include "utilities/copy.hpp"
 #include "utilities/events.hpp"
 #include "utilities/growableArray.hpp"
+#include "gc/shared/workgroup.hpp"
 
 ShenandoahFullGC::ShenandoahFullGC() :
   _gc_timer(ShenandoahHeap::heap()->gc_timer()),
@@ -182,6 +182,7 @@ void ShenandoahFullGC::do_it(GCCause::Cause gc_cause) {
     heap->sync_pinned_region_status();
 
     // The rest of prologue:
+    BiasedLocking::preserve_marks();
     _preserved_marks->init(heap->workers()->active_workers());
 
     assert(heap->has_forwarded_objects() == has_forwarded_objects, "This should not change");
@@ -229,6 +230,7 @@ void ShenandoahFullGC::do_it(GCCause::Cause gc_cause) {
   {
     // Epilogue
     _preserved_marks->restore(heap->workers());
+    BiasedLocking::restore_marks();
     _preserved_marks->reclaim();
   }
 
@@ -364,7 +366,7 @@ public:
   }
 };
 
-class ShenandoahPrepareForCompactionTask : public WorkerTask {
+class ShenandoahPrepareForCompactionTask : public AbstractGangTask {
 private:
   PreservedMarksSet*        const _preserved_marks;
   ShenandoahHeap*           const _heap;
@@ -372,7 +374,7 @@ private:
 
 public:
   ShenandoahPrepareForCompactionTask(PreservedMarksSet *preserved_marks, ShenandoahHeapRegionSet **worker_slices) :
-    WorkerTask("Shenandoah Prepare For Compaction"),
+    AbstractGangTask("Shenandoah Prepare For Compaction"),
     _preserved_marks(preserved_marks),
     _heap(ShenandoahHeap::heap()), _worker_slices(worker_slices) {
   }
@@ -741,8 +743,6 @@ public:
 
   void do_oop(oop* p)       { do_oop_work(p); }
   void do_oop(narrowOop* p) { do_oop_work(p); }
-  void do_method(Method* m) {}
-  void do_nmethod(nmethod* nm) {}
 };
 
 class ShenandoahAdjustPointersObjectClosure : public ObjectClosure {
@@ -760,14 +760,14 @@ public:
   }
 };
 
-class ShenandoahAdjustPointersTask : public WorkerTask {
+class ShenandoahAdjustPointersTask : public AbstractGangTask {
 private:
   ShenandoahHeap*          const _heap;
   ShenandoahRegionIterator       _regions;
 
 public:
   ShenandoahAdjustPointersTask() :
-    WorkerTask("Shenandoah Adjust Pointers"),
+    AbstractGangTask("Shenandoah Adjust Pointers"),
     _heap(ShenandoahHeap::heap()) {
   }
 
@@ -784,13 +784,13 @@ public:
   }
 };
 
-class ShenandoahAdjustRootPointersTask : public WorkerTask {
+class ShenandoahAdjustRootPointersTask : public AbstractGangTask {
 private:
   ShenandoahRootAdjuster* _rp;
   PreservedMarksSet* _preserved_marks;
 public:
   ShenandoahAdjustRootPointersTask(ShenandoahRootAdjuster* rp, PreservedMarksSet* preserved_marks) :
-    WorkerTask("Shenandoah Adjust Root Pointers"),
+    AbstractGangTask("Shenandoah Adjust Root Pointers"),
     _rp(rp),
     _preserved_marks(preserved_marks) {}
 
@@ -808,7 +808,7 @@ void ShenandoahFullGC::phase3_update_references() {
 
   ShenandoahHeap* heap = ShenandoahHeap::heap();
 
-  WorkerThreads* workers = heap->workers();
+  WorkGang* workers = heap->workers();
   uint nworkers = workers->active_workers();
   {
 #if COMPILER2_OR_JVMCI
@@ -837,27 +837,25 @@ public:
 
   void do_object(oop p) {
     assert(_heap->complete_marking_context()->is_marked(p), "must be marked");
-    size_t size = p->size();
+    size_t size = (size_t)p->size();
     if (p->is_forwarded()) {
       HeapWord* compact_from = cast_from_oop<HeapWord*>(p);
       HeapWord* compact_to = cast_from_oop<HeapWord*>(p->forwardee());
       Copy::aligned_conjoint_words(compact_from, compact_to, size);
       oop new_obj = cast_to_oop(compact_to);
-
-      ContinuationGCSupport::relativize_stack_chunk(new_obj);
       new_obj->init_mark();
     }
   }
 };
 
-class ShenandoahCompactObjectsTask : public WorkerTask {
+class ShenandoahCompactObjectsTask : public AbstractGangTask {
 private:
   ShenandoahHeap* const _heap;
   ShenandoahHeapRegionSet** const _worker_slices;
 
 public:
   ShenandoahCompactObjectsTask(ShenandoahHeapRegionSet** worker_slices) :
-    WorkerTask("Shenandoah Compact Objects"),
+    AbstractGangTask("Shenandoah Compact Objects"),
     _heap(ShenandoahHeap::heap()),
     _worker_slices(worker_slices) {
   }
@@ -956,8 +954,9 @@ void ShenandoahFullGC::compact_humongous_objects() {
       assert(old_start != new_start, "must be real move");
       assert(r->is_stw_move_allowed(), "Region " SIZE_FORMAT " should be movable", r->index());
 
-      Copy::aligned_conjoint_words(r->bottom(), heap->get_region(new_start)->bottom(), words_size);
-      ContinuationGCSupport::relativize_stack_chunk(cast_to_oop<HeapWord*>(r->bottom()));
+      Copy::aligned_conjoint_words(heap->get_region(old_start)->bottom(),
+                                   heap->get_region(new_start)->bottom(),
+                                   words_size);
 
       oop new_obj = cast_to_oop(heap->get_region(new_start)->bottom());
       new_obj->init_mark();
@@ -999,13 +998,13 @@ void ShenandoahFullGC::compact_humongous_objects() {
 // cannot be iterated over using oop->size(). The only way to safely iterate over those is using
 // a valid marking bitmap and valid TAMS pointer. This class only resets marking
 // bitmaps for un-pinned regions, and later we only reset TAMS for unpinned regions.
-class ShenandoahMCResetCompleteBitmapTask : public WorkerTask {
+class ShenandoahMCResetCompleteBitmapTask : public AbstractGangTask {
 private:
   ShenandoahRegionIterator _regions;
 
 public:
   ShenandoahMCResetCompleteBitmapTask() :
-    WorkerTask("Shenandoah Reset Bitmap") {
+    AbstractGangTask("Shenandoah Reset Bitmap") {
   }
 
   void work(uint worker_id) {

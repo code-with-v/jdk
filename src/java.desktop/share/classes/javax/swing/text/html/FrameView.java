@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2017, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,6 +25,7 @@
 package javax.swing.text.html;
 
 import java.awt.*;
+import java.util.*;
 import java.net.*;
 import java.io.*;
 import javax.swing.*;
@@ -100,8 +101,10 @@ class FrameView extends ComponentView implements HyperlinkListener {
                 setMargin();
                 createScrollPane();
                 setBorder();
-            } catch (IOException e) {
+            } catch (MalformedURLException e) {
                 e.printStackTrace();
+            } catch (IOException e1) {
+                e1.printStackTrace();
             }
         }
         createdComponent = true;

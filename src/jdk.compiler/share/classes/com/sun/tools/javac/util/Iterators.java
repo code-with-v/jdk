@@ -39,20 +39,20 @@ import java.util.function.Predicate;
  */
 public class Iterators {
 
-    public static <I, O> Iterator<O> createCompoundIterator(Iterable<I> inputs, Function<I, Iterator<O>> converter) {
-        return new CompoundIterator<>(inputs, converter);
+    public static <I, O> Iterator<O> createCompoundIterator(Iterable<I> inputs, Function<I, Iterator<O>> convertor) {
+        return new CompoundIterator<>(inputs, convertor);
     }
 
     private static class CompoundIterator<I, O> implements Iterator<O> {
 
         private final Iterator<I> inputs;
-        private final Function<I, Iterator<O>> converter;
+        private final Function<I, Iterator<O>> convertor;
         @SuppressWarnings("unchecked")
         private Iterator<O> currentIterator = EMPTY;
 
-        public CompoundIterator(Iterable<I> inputs, Function<I, Iterator<O>> converter) {
+        public CompoundIterator(Iterable<I> inputs, Function<I, Iterator<O>> convertor) {
             this.inputs = inputs.iterator();
-            this.converter = converter;
+            this.convertor = convertor;
         }
 
         public boolean hasNext() {
@@ -75,7 +75,7 @@ public class Iterators {
 
         private void update() {
             while (inputs.hasNext()) {
-                currentIterator = converter.apply(inputs.next());
+                currentIterator = convertor.apply(inputs.next());
                 if (currentIterator.hasNext()) return;
             }
             currentIterator = null;

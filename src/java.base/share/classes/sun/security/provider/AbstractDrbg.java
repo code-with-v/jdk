@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -57,7 +57,7 @@ import static java.security.DrbgParameters.Capability.*;
  * <p>
  * SecureRandom methods like reseed and nextBytes are not thread-safe.
  * An implementation is required to protect shared access to instantiate states
- * (instantiated, nonce) and DRBG states (v, c, key, reseedCounter, etc.).
+ * (instantiated, nonce) and DRBG states (v, c, key, reseedCounter, etc).
  */
 public abstract class AbstractDrbg {
 
@@ -78,7 +78,7 @@ public abstract class AbstractDrbg {
      * after each random bits generation and reset it in reseed. A mechanism
      * does <em>not</em> need to compare it to {@link #reseedInterval}.
      *
-     * Volatile, will be used in double-checked locking.
+     * Volatile, will be used in a double checked locking.
      */
     protected volatile int reseedCounter;
 
@@ -343,9 +343,11 @@ public abstract class AbstractDrbg {
         if (debug != null) {
             debug.println(this, "nextBytes");
         }
-        if (params instanceof DrbgParameters.NextBytes dp) {
+        if (params instanceof DrbgParameters.NextBytes) {
 
             // 800-90Ar1 9.3: Generate Process.
+
+            DrbgParameters.NextBytes dp = (DrbgParameters.NextBytes) params;
 
             // Step 2: max_number_of_bits_per_request
             if (result.length > maxNumberOfBytesPerRequest) {
@@ -376,7 +378,7 @@ public abstract class AbstractDrbg {
             instantiateIfNecessary(null);
 
             // Step 7: Auto reseed (reseedCounter might overflow)
-            // Double-checked locking, safe because reseedCounter is volatile
+            // Double checked locking, safe because reseedCounter is volatile
             if (reseedCounter < 0 || reseedCounter > reseedInterval || pr) {
                 synchronized (this) {
                     if (reseedCounter < 0 || reseedCounter > reseedInterval
@@ -408,7 +410,8 @@ public abstract class AbstractDrbg {
         if (params == null) {
             params = DrbgParameters.reseed(predictionResistanceFlag, null);
         }
-        if (params instanceof DrbgParameters.Reseed dp) {
+        if (params instanceof DrbgParameters.Reseed) {
+            DrbgParameters.Reseed dp = (DrbgParameters.Reseed) params;
 
             // 800-90Ar1 9.2: Reseed Process.
 
@@ -539,7 +542,7 @@ public abstract class AbstractDrbg {
             prseeder = defaultES;
             // According to SP800-90C section 7, a DRBG without live
             // entropy (drbg here, with pr being false) can instantiate
-            // another DRBG with weaker strength. So we choose the highest
+            // another DRBG with weaker strength. So we choose highest
             // strength we support.
             HashDrbg first = new HashDrbg(new MoreDrbgParameters(
                     prseeder, null, "SHA-256", null, false,
@@ -569,10 +572,10 @@ public abstract class AbstractDrbg {
     }
 
     /**
-     * A mechanism shall override this constructor to set up {@link #mechName},
+     * A mechanism shall override this constructor to setup {@link #mechName},
      * {@link #highestSupportedSecurityStrength},
      * {@link #supportPredictionResistance}, {@link #supportReseeding}
-     * or other features like {@link #DEFAULT_STRENGTH}. Finally, it shall
+     * or other features like {@link #DEFAULT_STRENGTH}. Finally it shall
      * call {@link #configure} on {@code params}.
      *
      * @param params the {@link SecureRandomParameters} object.
@@ -588,7 +591,7 @@ public abstract class AbstractDrbg {
      * Returns the current configuration as a {@link DrbgParameters.Instantiation}
      * object.
      *
-     * @return the current configuration
+     * @return the curent configuration
      */
     protected SecureRandomParameters engineGetParameters() {
         // Or read from variable.
@@ -616,7 +619,8 @@ public abstract class AbstractDrbg {
         if (params == null) {
             params = DrbgParameters.instantiation(-1, RESEED_ONLY, null);
         }
-        if (params instanceof MoreDrbgParameters m) {
+        if (params instanceof MoreDrbgParameters) {
+            MoreDrbgParameters m = (MoreDrbgParameters)params;
             this.requestedNonce = m.nonce;
             this.es = m.es;
             this.requestedAlgorithm = m.algorithm;
@@ -624,40 +628,44 @@ public abstract class AbstractDrbg {
             params = DrbgParameters.instantiation(m.strength,
                     m.capability, m.personalizationString);
         }
-        if (params instanceof DrbgParameters.Instantiation inst) {
+        if (params != null) {
+            if (params instanceof DrbgParameters.Instantiation) {
+                DrbgParameters.Instantiation inst =
+                        (DrbgParameters.Instantiation) params;
 
-            // 800-90Ar1 9.1: Instantiate Process. Steps 1-5.
+                // 800-90Ar1 9.1: Instantiate Process. Steps 1-5.
 
-            // Step 1: Check requested_instantiation_security_strength
-            if (inst.getStrength() > highestSupportedSecurityStrength) {
-                throw new IllegalArgumentException("strength too big: "
-                        + inst.getStrength());
+                // Step 1: Check requested_instantiation_security_strength
+                if (inst.getStrength() > highestSupportedSecurityStrength) {
+                    throw new IllegalArgumentException("strength too big: "
+                            + inst.getStrength());
+                }
+
+                // Step 2: Check prediction_resistance_flag
+                if (inst.getCapability().supportsPredictionResistance()
+                        && !supportPredictionResistance) {
+                    throw new IllegalArgumentException("pr not supported");
+                }
+
+                // Step 3: Check personalization_string
+                byte[] ps = inst.getPersonalizationString();
+                if (ps != null && ps.length > maxPersonalizationStringLength) {
+                    throw new IllegalArgumentException("ps too long: "
+                            + ps.length);
+                }
+
+                if (inst.getCapability().supportsReseeding()
+                        && !supportReseeding) {
+                    throw new IllegalArgumentException("reseed not supported");
+                }
+                this.personalizationString = ps;
+                this.predictionResistanceFlag =
+                        inst.getCapability().supportsPredictionResistance();
+                this.requestedInstantiationSecurityStrength = inst.getStrength();
+            } else {
+                throw new IllegalArgumentException("unknown params: "
+                        + params.getClass());
             }
-
-            // Step 2: Check prediction_resistance_flag
-            if (inst.getCapability().supportsPredictionResistance()
-                    && !supportPredictionResistance) {
-                throw new IllegalArgumentException("pr not supported");
-            }
-
-            // Step 3: Check personalization_string
-            byte[] ps = inst.getPersonalizationString();
-            if (ps != null && ps.length > maxPersonalizationStringLength) {
-                throw new IllegalArgumentException("ps too long: "
-                        + ps.length);
-            }
-
-            if (inst.getCapability().supportsReseeding()
-                    && !supportReseeding) {
-                throw new IllegalArgumentException("reseed not supported");
-            }
-            this.personalizationString = ps;
-            this.predictionResistanceFlag =
-                    inst.getCapability().supportsPredictionResistance();
-            this.requestedInstantiationSecurityStrength = inst.getStrength();
-        } else {
-            throw new IllegalArgumentException("unknown params: "
-                    + params.getClass());
         }
 
         // Step 4: Set security_strength

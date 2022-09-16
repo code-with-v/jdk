@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,7 +26,9 @@
 package javax.imageio.metadata;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -90,7 +92,7 @@ public abstract class IIOMetadataFormatImpl implements IIOMetadataFormat {
     // Element name (String) -> Element
     private HashMap<String, Element> elementMap = new HashMap<>();
 
-    static class Element {
+    class Element {
         String elementName;
 
         int childPolicy;
@@ -111,7 +113,7 @@ public abstract class IIOMetadataFormatImpl implements IIOMetadataFormat {
         ObjectValue<?> objectValue;
     }
 
-    static class Attribute {
+    class Attribute {
         String attrName;
 
         int valueType = VALUE_ARBITRARY;
@@ -131,7 +133,7 @@ public abstract class IIOMetadataFormatImpl implements IIOMetadataFormat {
         int listMaxLength;
     }
 
-    static class ObjectValue<T> {
+    class ObjectValue<T> {
         int valueType = VALUE_NONE;
         // ? extends T So that ObjectValue<Object> can take Class<?>
         Class<? extends T> classType = null;
@@ -160,9 +162,9 @@ public abstract class IIOMetadataFormatImpl implements IIOMetadataFormat {
      * @param childPolicy one of the {@code CHILD_POLICY_*} constants,
      * other than {@code CHILD_POLICY_REPEAT}.
      *
-     * @throws IllegalArgumentException if {@code rootName} is
+     * @exception IllegalArgumentException if {@code rootName} is
      * {@code null}.
-     * @throws IllegalArgumentException if {@code childPolicy} is
+     * @exception IllegalArgumentException if {@code childPolicy} is
      * not one of the predefined constants.
      */
     public IIOMetadataFormatImpl(String rootName,
@@ -196,9 +198,9 @@ public abstract class IIOMetadataFormatImpl implements IIOMetadataFormat {
      * @param minChildren the minimum number of children of the node.
      * @param maxChildren the maximum number of children of the node.
      *
-     * @throws IllegalArgumentException if {@code rootName} is
+     * @exception IllegalArgumentException if {@code rootName} is
      * {@code null}.
-     * @throws IllegalArgumentException if {@code minChildren}
+     * @exception IllegalArgumentException if {@code minChildren}
      * is negative or larger than {@code maxChildren}.
      */
     public IIOMetadataFormatImpl(String rootName,
@@ -236,7 +238,7 @@ public abstract class IIOMetadataFormatImpl implements IIOMetadataFormat {
      * @param resourceBaseName a {@code String} containing the new
      * base name.
      *
-     * @throws IllegalArgumentException if
+     * @exception IllegalArgumentException if
      * {@code resourceBaseName} is {@code null}.
      *
      * @see #getResourceBaseName
@@ -307,10 +309,10 @@ public abstract class IIOMetadataFormatImpl implements IIOMetadataFormat {
      * constants, other than {@code CHILD_POLICY_REPEAT},
      * indicating the child policy of the new element.
      *
-     * @throws IllegalArgumentException if {@code parentName}
+     * @exception IllegalArgumentException if {@code parentName}
      * is {@code null}, or is not a legal element name for this
      * format.
-     * @throws IllegalArgumentException if {@code childPolicy}
+     * @exception IllegalArgumentException if {@code childPolicy}
      * is not one of the predefined constants.
      */
     protected void addElement(String elementName,
@@ -344,10 +346,10 @@ public abstract class IIOMetadataFormatImpl implements IIOMetadataFormat {
      * @param minChildren the minimum number of children of the node.
      * @param maxChildren the maximum number of children of the node.
      *
-     * @throws IllegalArgumentException if {@code parentName}
+     * @exception IllegalArgumentException if {@code parentName}
      * is {@code null}, or is not a legal element name for this
      * format.
-     * @throws IllegalArgumentException if {@code minChildren}
+     * @exception IllegalArgumentException if {@code minChildren}
      * is negative or larger than {@code maxChildren}.
      */
     protected void addElement(String elementName,
@@ -383,10 +385,10 @@ public abstract class IIOMetadataFormatImpl implements IIOMetadataFormat {
      * @param elementName the name of the element to be added as a
      * child.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null}, or is not a legal element name for this
      * format.
-     * @throws IllegalArgumentException if {@code parentName}
+     * @exception IllegalArgumentException if {@code parentName}
      * is {@code null}, or is not a legal element name for this
      * format.
      */
@@ -429,12 +431,12 @@ public abstract class IIOMetadataFormatImpl implements IIOMetadataFormat {
      * @param defaultValue the default value for the attribute, or
      * {@code null}.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null}, or is not a legal element name for this
      * format.
-     * @throws IllegalArgumentException if {@code attrName} is
+     * @exception IllegalArgumentException if {@code attrName} is
      * {@code null}.
-     * @throws IllegalArgumentException if {@code dataType} is
+     * @exception IllegalArgumentException if {@code dataType} is
      * not one of the predefined constants.
      */
     protected void addAttribute(String elementName,
@@ -476,19 +478,19 @@ public abstract class IIOMetadataFormatImpl implements IIOMetadataFormat {
      * {@code String}s containing the legal values for the
      * attribute.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null}, or is not a legal element name for this
      * format.
-     * @throws IllegalArgumentException if {@code attrName} is
+     * @exception IllegalArgumentException if {@code attrName} is
      * {@code null}.
-     * @throws IllegalArgumentException if {@code dataType} is
+     * @exception IllegalArgumentException if {@code dataType} is
      * not one of the predefined constants.
-     * @throws IllegalArgumentException if
+     * @exception IllegalArgumentException if
      * {@code enumeratedValues} is {@code null}.
-     * @throws IllegalArgumentException if
+     * @exception IllegalArgumentException if
      * {@code enumeratedValues} does not contain at least one
      * entry.
-     * @throws IllegalArgumentException if
+     * @exception IllegalArgumentException if
      * {@code enumeratedValues} contains an element that is not a
      * {@code String} or is {@code null}.
      */
@@ -556,12 +558,12 @@ public abstract class IIOMetadataFormatImpl implements IIOMetadataFormat {
      * @param maxInclusive {@code true} if {@code maxValue}
      * is inclusive.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null}, or is not a legal element name for this
      * format.
-     * @throws IllegalArgumentException if {@code attrName} is
+     * @exception IllegalArgumentException if {@code attrName} is
      * {@code null}.
-     * @throws IllegalArgumentException if {@code dataType} is
+     * @exception IllegalArgumentException if {@code dataType} is
      * not one of the predefined constants.
      */
     protected void addAttribute(String elementName,
@@ -612,14 +614,14 @@ public abstract class IIOMetadataFormatImpl implements IIOMetadataFormat {
      * @param listMinLength the smallest legal number of list items.
      * @param listMaxLength the largest legal number of list items.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null}, or is not a legal element name for this
      * format.
-     * @throws IllegalArgumentException if {@code attrName} is
+     * @exception IllegalArgumentException if {@code attrName} is
      * {@code null}.
-     * @throws IllegalArgumentException if {@code dataType} is
+     * @exception IllegalArgumentException if {@code dataType} is
      * not one of the predefined constants.
-     * @throws IllegalArgumentException if
+     * @exception IllegalArgumentException if
      * {@code listMinLength} is negative or larger than
      * {@code listMaxLength}.
      */
@@ -666,10 +668,10 @@ public abstract class IIOMetadataFormatImpl implements IIOMetadataFormat {
      * {@code boolean}, ignored if {@code hasDefaultValue}
      * is {@code false}.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null}, or is not a legal element name for this
      * format.
-     * @throws IllegalArgumentException if {@code attrName} is
+     * @exception IllegalArgumentException if {@code attrName} is
      * {@code null}.
      */
     protected void addBooleanAttribute(String elementName,
@@ -700,7 +702,7 @@ public abstract class IIOMetadataFormatImpl implements IIOMetadataFormat {
      * @param elementName the name of the element.
      * @param attrName the name of the attribute being removed.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null}, or is not a legal element name for this format.
      */
     protected void removeAttribute(String elementName, String attrName) {
@@ -726,7 +728,7 @@ public abstract class IIOMetadataFormatImpl implements IIOMetadataFormat {
      * {@code Object} reference, or {@code null}.
      * @param <T> the type of the object.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null}, or is not a legal element name for this format.
      */
     protected <T> void addObjectValue(String elementName,
@@ -763,14 +765,14 @@ public abstract class IIOMetadataFormatImpl implements IIOMetadataFormat {
      * object reference.
      * @param <T> the type of the object.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null}, or is not a legal element name for this format.
-     * @throws IllegalArgumentException if
+     * @exception IllegalArgumentException if
      * {@code enumeratedValues} is {@code null}.
-     * @throws IllegalArgumentException if
+     * @exception IllegalArgumentException if
      * {@code enumeratedValues} does not contain at least one
      * entry.
-     * @throws IllegalArgumentException if
+     * @exception IllegalArgumentException if
      * {@code enumeratedValues} contains an element that is not
      * an instance of the class type denoted by {@code classType}
      * or is {@code null}.
@@ -833,7 +835,7 @@ public abstract class IIOMetadataFormatImpl implements IIOMetadataFormat {
      * is inclusive.
      * @param <T> the type of the object.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null}, or is not a legal element name for this
      * format.
      */
@@ -880,7 +882,7 @@ public abstract class IIOMetadataFormatImpl implements IIOMetadataFormat {
      * @param arrayMinLength the smallest legal length for the array.
      * @param arrayMaxLength the largest legal length for the array.
      *
-     * @throws IllegalArgumentException if {@code elementName} is
+     * @exception IllegalArgumentException if {@code elementName} is
      * not a legal element name for this format.
      */
     protected void addObjectValue(String elementName,
@@ -903,7 +905,7 @@ public abstract class IIOMetadataFormatImpl implements IIOMetadataFormat {
      *
      * @param elementName the name of the element.
      *
-     * @throws IllegalArgumentException if {@code elementName} is
+     * @exception IllegalArgumentException if {@code elementName} is
      * not a legal element name for this format.
      */
     protected void removeObjectValue(String elementName) {
@@ -990,7 +992,7 @@ public abstract class IIOMetadataFormatImpl implements IIOMetadataFormat {
      *
      * @return the element description.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null}, or is not a legal element name for this format.
      *
      * @see #setResourceBaseName
@@ -1130,9 +1132,9 @@ public abstract class IIOMetadataFormatImpl implements IIOMetadataFormat {
      *
      * @return the attribute description.
      *
-     * @throws IllegalArgumentException if {@code elementName}
+     * @exception IllegalArgumentException if {@code elementName}
      * is {@code null}, or is not a legal element name for this format.
-     * @throws IllegalArgumentException if {@code attrName} is
+     * @exception IllegalArgumentException if {@code attrName} is
      * {@code null} or is not a legal attribute name for this
      * element.
      *

@@ -23,7 +23,7 @@
  */
 
 /**
- * @test
+ * @test TestClassLoaderLeak
  * @summary Test OOME in due to classloader leak
  * @requires vm.gc.Shenandoah
  * @library /test/lib

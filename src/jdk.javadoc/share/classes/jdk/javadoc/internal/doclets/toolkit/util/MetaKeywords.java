@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -41,6 +41,11 @@ import jdk.javadoc.internal.doclets.toolkit.Resources;
  * field names to be included as meta keywords in the HTML header
  * of class pages.  These keywords improve search results
  * on browsers that look for keywords.
+ *
+ *  <p><b>This is NOT part of any supported API.
+ *  If you write code that depends on this, you do so at your own risk.
+ *  This code and its internal interfaces are subject to change or
+ *  deletion without notice.</b>
  */
 public class MetaKeywords {
 
@@ -70,7 +75,7 @@ public class MetaKeywords {
      * definitions are on separate pages.
      */
     public List<String> getMetaKeywords(TypeElement typeElement) {
-        var results = new ArrayList<String>();
+        ArrayList<String> results = new ArrayList<>();
 
         // Add field and method keywords only if -keywords option is used
         if (options.keywords()) {
@@ -78,27 +83,31 @@ public class MetaKeywords {
             results.addAll(getMemberKeywords(utils.getFields(typeElement)));
             results.addAll(getMemberKeywords(utils.getMethods(typeElement)));
         }
-        results.trimToSize();
+        ((ArrayList)results).trimToSize();
         return results;
     }
 
     /**
-     * Get the current class for a meta tag keyword, as a singleton list.
+     * Get the current class for a meta tag keyword, as the first
+     * and only element of an array list.
      */
     protected List<String> getClassKeyword(TypeElement typeElement) {
-        String cltypelower = utils.isPlainInterface(typeElement) ? "interface" : "class";
-        return List.of(utils.getFullyQualifiedName(typeElement) + " " + cltypelower);
+        ArrayList<String> metakeywords = new ArrayList<>(1);
+        String cltypelower = utils.isInterface(typeElement) ? "interface" : "class";
+        metakeywords.add(utils.getFullyQualifiedName(typeElement) + " " + cltypelower);
+        return metakeywords;
     }
 
     /**
      * Get the package keywords.
      */
     public List<String> getMetaKeywords(PackageElement packageElement) {
+        List<String> result = new ArrayList<>(1);
         if (options.keywords()) {
-            return List.of(utils.getPackageName(packageElement) + " " + "package");
-        } else {
-            return List.of();
+            String pkgName = utils.getPackageName(packageElement);
+            result.add(pkgName + " " + "package");
         }
+        return result;
     }
 
     /**
@@ -108,9 +117,9 @@ public class MetaKeywords {
      */
     public List<String> getMetaKeywordsForModule(ModuleElement mdle) {
         if (options.keywords()) {
-            return List.of(mdle.getQualifiedName() + " " + "module");
+            return Arrays.asList(mdle.getQualifiedName() + " " + "module");
         } else {
-            return List.of();
+            return Collections.emptyList();
         }
     }
 
@@ -118,16 +127,16 @@ public class MetaKeywords {
      * Get the overview keywords.
      */
     public List<String> getOverviewMetaKeywords(String title, String docTitle) {
+         List<String> result = new ArrayList<>(1);
         if (options.keywords()) {
             String windowOverview = resources.getText(title);
             if (docTitle.length() > 0) {
-                return List.of(windowOverview + ", " + docTitle);
+                result.add(windowOverview + ", " + docTitle);
             } else {
-                return List.of(windowOverview);
+                result.add(windowOverview);
             }
-        } else {
-            return List.of();
         }
+        return result;
     }
 
     /**
@@ -140,16 +149,16 @@ public class MetaKeywords {
      * @param members  array of members to be added to keywords
      */
     protected List<String> getMemberKeywords(List<? extends Element> members) {
-        var results = new ArrayList<String>();
+        ArrayList<String> results = new ArrayList<>();
         for (Element member : members) {
-            String memberName = utils.isMethod(member)
+            String membername = utils.isMethod(member)
                     ? utils.getSimpleName(member) + "()"
                     : utils.getSimpleName(member);
-            if (!results.contains(memberName)) {
-                results.add(memberName);
+            if (!results.contains(membername)) {
+                results.add(membername);
             }
         }
-        results.trimToSize();
+        ((ArrayList)results).trimToSize();
         return results;
     }
 }

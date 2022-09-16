@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -110,7 +110,9 @@ class WindowsFileAttributeViews {
                             // retry succeeded
                             x = null;
                         }
-                    } catch (SecurityException | WindowsException | IOException ignore) {
+                    } catch (SecurityException ignore) {
+                    } catch (WindowsException ignore) {
+                    } catch (IOException ignore) {
                         // ignore exceptions to let original exception be thrown
                     }
                 }

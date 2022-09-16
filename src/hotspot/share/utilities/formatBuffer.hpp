@@ -62,7 +62,7 @@ class FormatBuffer : public FormatBufferBase {
   int size() { return bufsz; }
 
  private:
-  NONCOPYABLE(FormatBuffer);
+  FormatBuffer(const FormatBuffer &); // prevent copies
   char _buffer[bufsz];
 
  protected:

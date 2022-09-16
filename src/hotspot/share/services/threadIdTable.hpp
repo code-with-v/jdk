@@ -26,7 +26,7 @@
 #ifndef SHARE_SERVICES_THREADIDTABLE_HPP
 #define SHARE_SERVICES_THREADIDTABLE_HPP
 
-#include "memory/allStatic.hpp"
+#include "memory/allocation.hpp"
 
 class JavaThread;
 class ThreadsList;

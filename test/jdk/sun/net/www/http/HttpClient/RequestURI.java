@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2006, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,14 +25,13 @@
  * @test
  * @bug 6469663
  * @summary HTTP Request-URI contains fragment when connecting through proxy
- * @library /test/lib
+ * @modules java.base/sun.net.www
  * @run main/othervm RequestURI
  */
 
 import java.net.*;
 import java.io.*;
-
-import jdk.test.lib.net.HttpHeaderParser;
+import sun.net.www.MessageHeader;
 
 // Create a Server listening on port 5001 to act as the proxy. Requests
 // never need to be forwared from it. We are only interested in the
@@ -92,8 +91,8 @@ class RequestURIServer extends Thread
             InputStream is = sock.getInputStream();
             OutputStream os = sock.getOutputStream();
 
-            HttpHeaderParser headers =  new HttpHeaderParser (is);
-            String requestLine = headers.getRequestDetails();
+            MessageHeader headers =  new MessageHeader (is);
+            String requestLine = headers.getValue(0);
 
             int first  = requestLine.indexOf(' ');
             int second  = requestLine.lastIndexOf(' ');

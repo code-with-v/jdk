@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002-2021, the original author or authors.
+ * Copyright (c) 2002-2018, the original author or authors.
  *
  * This software is distributable under the BSD license. See the terms of the
  * BSD license in the documentation provided with this software.
@@ -17,7 +17,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
 
@@ -28,7 +27,6 @@ import jdk.internal.org.jline.terminal.Attributes.LocalFlag;
 import jdk.internal.org.jline.terminal.Cursor;
 import jdk.internal.org.jline.terminal.MouseEvent;
 import jdk.internal.org.jline.terminal.Terminal;
-import jdk.internal.org.jline.utils.ColorPalette;
 import jdk.internal.org.jline.utils.Curses;
 import jdk.internal.org.jline.utils.InfoCmp;
 import jdk.internal.org.jline.utils.InfoCmp.Capability;
@@ -40,11 +38,10 @@ public abstract class AbstractTerminal implements Terminal {
     protected final String name;
     protected final String type;
     protected final Charset encoding;
-    protected final Map<Signal, SignalHandler> handlers = new ConcurrentHashMap<>();
+    protected final Map<Signal, SignalHandler> handlers = new HashMap<>();
     protected final Set<Capability> bools = new HashSet<>();
     protected final Map<Capability, Integer> ints = new HashMap<>();
     protected final Map<Capability, String> strings = new HashMap<>();
-    protected final ColorPalette palette = new ColorPalette(this);
     protected Status status;
     protected Runnable onClose;
 
@@ -54,8 +51,8 @@ public abstract class AbstractTerminal implements Terminal {
 
     public AbstractTerminal(String name, String type, Charset encoding, SignalHandler signalHandler) throws IOException {
         this.name = name;
-        this.type = type != null ? type : "ansi";
-        this.encoding = encoding != null ? encoding : System.out.charset();
+        this.type = type;
+        this.encoding = encoding != null ? encoding : Charset.defaultCharset();
         for (Signal signal : Signal.values()) {
             handlers.put(signal, signalHandler);
         }
@@ -200,10 +197,12 @@ public abstract class AbstractTerminal implements Terminal {
 
     protected void parseInfoCmp() {
         String capabilities = null;
-        try {
-            capabilities = InfoCmp.getInfoCmp(type);
-        } catch (Exception e) {
-            Log.warn("Unable to retrieve infocmp for type " + type, e);
+        if (type != null) {
+            try {
+                capabilities = InfoCmp.getInfoCmp(type);
+            } catch (Exception e) {
+                Log.warn("Unable to retrieve infocmp for type " + type, e);
+            }
         }
         if (capabilities == null) {
             capabilities = InfoCmp.getLoadedInfoCmp("ansi");
@@ -242,7 +241,7 @@ public abstract class AbstractTerminal implements Terminal {
 
     @Override
     public boolean hasFocusSupport() {
-        return type.startsWith("xterm");
+        return type != null && type.startsWith("xterm");
     }
 
     @Override
@@ -284,8 +283,4 @@ public abstract class AbstractTerminal implements Terminal {
         return false;
     }
 
-    @Override
-    public ColorPalette getPalette() {
-        return palette;
-    }
 }

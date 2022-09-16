@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,14 +28,13 @@
  *          get overwritten when the sourcepath is equal to the destination
  *          directory.
  *          Also test that -docfilessubdirs and -excludedocfilessubdir both work.
- * @library /tools/lib ../../lib
+ * @library ../../lib
  * @modules jdk.javadoc/jdk.javadoc.internal.tool
- * @build toolbox.ToolBox javadoc.tester.*
+ * @build javadoc.tester.*
  * @run main TestDocFileDir
  */
 
 import javadoc.tester.JavadocTester;
-import toolbox.ToolBox;
 
 public class TestDocFileDir extends JavadocTester {
 
@@ -44,12 +43,10 @@ public class TestDocFileDir extends JavadocTester {
         tester.runTests();
     }
 
-    ToolBox tb = new ToolBox();
-
     // Output dir = "", Input dir = ""
     @Test
     public void test1() {
-        tb.copyDir(testSrc("pkg"), "pkg");
+        copyDir(testSrc("pkg"), ".");
         setOutputDirectoryCheck(DirectoryCheck.NO_HTML_FILES);
         javadoc("pkg/C.java");
         checkExit(Exit.OK);
@@ -61,7 +58,7 @@ public class TestDocFileDir extends JavadocTester {
     @Test
     public void test2() {
         String outdir = "out2";
-        tb.copyDir(testSrc("pkg"), outdir + "/pkg");
+        copyDir(testSrc("pkg"), outdir);
         setOutputDirectoryCheck(DirectoryCheck.NO_HTML_FILES);
         javadoc("-d", outdir,
             "-sourcepath", "blah" + PS + outdir + PS + "blah",

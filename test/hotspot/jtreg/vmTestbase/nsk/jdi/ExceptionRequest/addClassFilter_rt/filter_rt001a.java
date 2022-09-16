@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,7 @@
 package nsk.jdi.ExceptionRequest.addClassFilter_rt;
 
 import nsk.share.*;
+import nsk.share.jpda.*;
 import nsk.share.jdi.*;
 
 /**
@@ -53,8 +54,8 @@ public class filter_rt001a {
 
     //====================================================== test program
 
-    static Thread thread1 = JDIThreadFactory.newThread(new filter_rt001aThread1("thread1"));
-    static Thread thread2 = JDIThreadFactory.newThread(new filter_rt001aThread2("thread2"));
+    static filter_rt001aThread1 thread1 = new filter_rt001aThread1("thread1");
+    static filter_rt001aThread2 thread2 = new filter_rt001aThread2("thread2");
 
     static filter_rt001aTestClass11 obj = new filter_rt001aTestClass11();
     //------------------------------------------------------ common section
@@ -161,24 +162,27 @@ class filter_rt001aTestClass11 extends filter_rt001aTestClass10{
     }
 }
 
-class filter_rt001aThread1 extends NamedTask {
+class filter_rt001aThread1 extends Thread {
+
+    String tName = null;
 
     public filter_rt001aThread1(String threadName) {
         super(threadName);
+        tName = threadName;
     }
 
     public void run() {
-        filter_rt001a.log1("  'run': enter  :: threadName == " + getName());
+        filter_rt001a.log1("  'run': enter  :: threadName == " + tName);
         try {
             (new filter_rt001aTestClass11()).m11();
         } catch ( NullPointerException e) {
         }
-        filter_rt001a.log1("  'run': exit   :: threadName == " + getName());
+        filter_rt001a.log1("  'run': exit   :: threadName == " + tName);
         return;
     }
 }
 
-class filter_rt001aThread2 extends NamedTask {
+class filter_rt001aThread2 extends Thread {
 
     class filter_rt001aTestClass20{
         void m20() {
@@ -196,17 +200,20 @@ class filter_rt001aThread2 extends NamedTask {
         }
     }
 
+    String tName = null;
+
     public filter_rt001aThread2(String threadName) {
         super(threadName);
+        tName = threadName;
     }
 
     public void run() {
-        filter_rt001a.log1("  'run': enter  :: threadName == " + getName());
+        filter_rt001a.log1("  'run': enter  :: threadName == " + tName);
         try {
             (new filter_rt001aTestClass21()).m21();
         } catch ( NullPointerException e) {
         }
-        filter_rt001a.log1("  'run': exit   :: threadName == " + getName());
+        filter_rt001a.log1("  'run': exit   :: threadName == " + tName);
         return;
     }
 }

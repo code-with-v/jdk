@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -22,19 +22,18 @@
  */
 
 import java.io.IOException;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.MemorySession;
+import java.lang.ref.Cleaner;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
-
+import jdk.incubator.foreign.MemoryAccess;
+import jdk.incubator.foreign.MemorySegment;
+import jdk.incubator.foreign.ResourceScope;
 import jdk.test.lib.RandomFactory;
 import org.testng.annotations.*;
-
-import static java.lang.foreign.ValueLayout.JAVA_BYTE;
 import static org.testng.Assert.*;
 
 /**
@@ -51,9 +50,10 @@ public class AbstractChannelsTest {
         void accept(T action) throws X;
     }
 
-    static MemorySession closeableSessionOrNull(MemorySession session) {
-        return (session.isCloseable()) ?
-                session : null;
+    static ResourceScope closeableScopeOrNull(ResourceScope scope) {
+        if (scope.isImplicit())
+            return null;
+        return scope;
     }
 
     static long remaining(ByteBuffer[] buffers) {
@@ -72,29 +72,29 @@ public class AbstractChannelsTest {
 
     static final Random RANDOM = RandomFactory.getRandom();
 
-    static ByteBuffer segmentBufferOfSize(MemorySession session, int size) {
-        var segment = MemorySegment.allocateNative(size, 1, session);
+    static ByteBuffer segmentBufferOfSize(ResourceScope scope, int size) {
+        var segment = MemorySegment.allocateNative(size, 1, scope);
         for (int i = 0; i < size; i++) {
-            segment.set(JAVA_BYTE, i, ((byte)RANDOM.nextInt()));
+            MemoryAccess.setByteAtOffset(segment, i, ((byte)RANDOM.nextInt()));
         }
         return segment.asByteBuffer();
     }
 
-    static ByteBuffer[] segmentBuffersOfSize(int len, MemorySession session, int size) {
+    static ByteBuffer[] segmentBuffersOfSize(int len, ResourceScope scope, int size) {
         ByteBuffer[] bufs = new ByteBuffer[len];
         for (int i = 0; i < len; i++)
-            bufs[i] = segmentBufferOfSize(session, size);
+            bufs[i] = segmentBufferOfSize(scope, size);
         return bufs;
     }
 
     /**
      * Returns an array of mixed source byte buffers; both heap and direct,
-     * where heap can be from the global session or session-less, and direct are
-     * associated with the given session.
+     * where heap can be from the global scope or scope-less, and direct are
+     * associated with the given scope.
      */
-    static ByteBuffer[] mixedBuffersOfSize(int len, MemorySession session, int size) {
+    static ByteBuffer[] mixedBuffersOfSize(int len, ResourceScope scope, int size) {
         ByteBuffer[] bufs;
-        boolean atLeastOneSessionBuffer = false;
+        boolean atLeastOneScopeBuffer = false;
         do {
             bufs = new ByteBuffer[len];
             for (int i = 0; i < len; i++) {
@@ -105,12 +105,12 @@ public class AbstractChannelsTest {
                     case 1 -> { byte[] b = new byte[size];
                                 RANDOM.nextBytes(b);
                                 yield MemorySegment.ofArray(b).asByteBuffer(); }
-                    case 2 -> { atLeastOneSessionBuffer = true;
-                                yield segmentBufferOfSize(session, size); }
+                    case 2 -> { atLeastOneScopeBuffer = true;
+                                yield segmentBufferOfSize(scope, size); }
                     default -> throw new AssertionError("cannot happen");
                 };
             }
-        } while (!atLeastOneSessionBuffer);
+        } while (!atLeastOneScopeBuffer);
         return bufs;
     }
 
@@ -125,75 +125,84 @@ public class AbstractChannelsTest {
         }
     }
 
-    @DataProvider(name = "confinedSessions")
-    public static Object[][] confinedSessions() {
+    @DataProvider(name = "confinedScopes")
+    public static Object[][] confinedScopes() {
         return new Object[][] {
-                { SessionSupplier.NEW_CONFINED          },
+                { ScopeSupplier.NEW_CONFINED          },
+                { ScopeSupplier.NEW_CONFINED_EXPLICIT },
         };
     }
 
-    @DataProvider(name = "sharedSessions")
-    public static Object[][] sharedSessions() {
+    @DataProvider(name = "sharedScopes")
+    public static Object[][] sharedScopes() {
         return new Object[][] {
-                { SessionSupplier.NEW_SHARED          },
+                { ScopeSupplier.NEW_SHARED          },
+                { ScopeSupplier.NEW_SHARED_EXPLICIT },
         };
     }
 
-    @DataProvider(name = "closeableSessions")
-    public static Object[][] closeableSessions() {
-        return Stream.of(sharedSessions(), confinedSessions())
+    @DataProvider(name = "closeableScopes")
+    public static Object[][] closeableScopes() {
+        return Stream.of(sharedScopes(), confinedScopes())
                 .flatMap(Arrays::stream)
                 .toArray(Object[][]::new);
     }
 
-    @DataProvider(name = "implicitSessions")
-    public static Object[][] implicitSessions() {
+    @DataProvider(name = "implicitScopes")
+    public static Object[][] implicitScopes() {
         return new Object[][] {
-                { SessionSupplier.GLOBAL       },
+                { ScopeSupplier.NEW_IMPLICIT },
+                { ScopeSupplier.GLOBAL       },
         };
     }
 
-    @DataProvider(name = "sharedAndImplicitSessions")
-    public static Object[][] sharedAndImplicitSessions() {
-        return Stream.of(sharedSessions(), implicitSessions())
+    @DataProvider(name = "sharedAndImplicitScopes")
+    public static Object[][] sharedAndImplicitScopes() {
+        return Stream.of(sharedScopes(), implicitScopes())
                 .flatMap(Arrays::stream)
                 .toArray(Object[][]::new);
     }
 
-    @DataProvider(name = "allSessions")
-    public static Object[][] allSessions() {
-        return Stream.of(implicitSessions(), closeableSessions())
+    @DataProvider(name = "allScopes")
+    public static Object[][] allScopes() {
+        return Stream.of(implicitScopes(), closeableScopes())
                 .flatMap(Arrays::stream)
                 .toArray(Object[][]::new);
     }
 
-    @DataProvider(name = "sharedSessionsAndTimeouts")
-    public static Object[][] sharedSessionsAndTimeouts() {
+    @DataProvider(name = "sharedScopesAndTimeouts")
+    public static Object[][] sharedScopesAndTimeouts() {
         return new Object[][] {
-                { SessionSupplier.NEW_SHARED          ,  0 },
-                { SessionSupplier.NEW_SHARED          , 30 },
+                { ScopeSupplier.NEW_SHARED          ,  0 },
+                { ScopeSupplier.NEW_SHARED_EXPLICIT ,  0 },
+                { ScopeSupplier.NEW_SHARED          , 30 },
+                { ScopeSupplier.NEW_SHARED_EXPLICIT , 30 },
         };
     }
 
-    static class SessionSupplier implements Supplier<MemorySession> {
+    static class ScopeSupplier implements Supplier<ResourceScope> {
 
-        static final Supplier<MemorySession> NEW_CONFINED =
-                new SessionSupplier(MemorySession::openConfined, "newConfinedSession()");
-        static final Supplier<MemorySession> NEW_SHARED =
-                new SessionSupplier(MemorySession::openShared, "newSharedSession()");
-        static final Supplier<MemorySession> NEW_IMPLICIT =
-                new SessionSupplier(MemorySession::openImplicit, "newImplicitSession()");
-        static final Supplier<MemorySession> GLOBAL =
-                new SessionSupplier(MemorySession::global, "globalSession()");
+        static final Supplier<ResourceScope> NEW_CONFINED =
+                new ScopeSupplier(() -> ResourceScope.newConfinedScope(), "newConfinedScope()");
+        static final Supplier<ResourceScope> NEW_CONFINED_EXPLICIT =
+                new ScopeSupplier(() -> ResourceScope.newConfinedScope(Cleaner.create()), "newConfinedScope(Cleaner)");
+        static final Supplier<ResourceScope> NEW_SHARED =
+                new ScopeSupplier(() -> ResourceScope.newSharedScope(), "newSharedScope()");
+        static final Supplier<ResourceScope> NEW_SHARED_EXPLICIT =
+                new ScopeSupplier(() -> ResourceScope.newSharedScope(Cleaner.create()), "newSharedScope(Cleaner)");
+        static final Supplier<ResourceScope> NEW_IMPLICIT =
+                new ScopeSupplier(() -> ResourceScope.newImplicitScope(), "newImplicitScope()");
+        static final Supplier<ResourceScope> GLOBAL =
+                new ScopeSupplier(() -> ResourceScope.globalScope(), "globalScope()");
 
-        private final Supplier<MemorySession> supplier;
+        private final Supplier<ResourceScope> supplier;
         private final String str;
-        private SessionSupplier(Supplier<MemorySession> supplier, String str) {
+        private ScopeSupplier(Supplier<ResourceScope> supplier, String str) {
             this.supplier = supplier;
             this.str = str;
         }
         @Override public String toString() { return str; }
-        @Override public MemorySession get() { return supplier.get(); }
+        @Override public ResourceScope get() { return supplier.get(); }
     }
 }
 

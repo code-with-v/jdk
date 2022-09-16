@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -42,7 +42,7 @@ import java.util.Arrays;
  * This class encapsulates a Kerberos TGS-REQ that is sent from the
  * client to the KDC.
  */
-public class KrbTgsReq extends KrbKdcReq {
+public class KrbTgsReq {
 
     private PrincipalName princName;
     private PrincipalName clientAlias;
@@ -50,31 +50,34 @@ public class KrbTgsReq extends KrbKdcReq {
     private PrincipalName serverAlias;
     private TGSReq tgsReqMessg;
     private KerberosTime ctime;
-    private Credentials additionalCreds = null;
+    private Ticket secondTicket = null;
     private boolean useSubkey = false;
     EncryptionKey tgsReqKey;
+
+    private byte[] obuf;
+    private byte[] ibuf;
 
     // Used in CredentialsUtil
     public KrbTgsReq(KDCOptions options, Credentials asCreds,
             PrincipalName cname, PrincipalName clientAlias,
             PrincipalName sname, PrincipalName serverAlias,
-            Credentials additionalCreds, PAData[] extraPAs)
-            throws KrbException, IOException {
+            Ticket[] additionalTickets, PAData[] extraPAs)
+        throws KrbException, IOException {
         this(options,
-                asCreds,
-                cname,
-                clientAlias,
-                sname,
-                serverAlias,
-                null, // KerberosTime from
-                null, // KerberosTime till
-                null, // KerberosTime rtime
-                null, // int[] eTypes
-                null, // HostAddresses addresses
-                null, // AuthorizationData authorizationData
-                additionalCreds,
-                null, // EncryptionKey subKey
-                extraPAs);
+             asCreds,
+             cname,
+             clientAlias,
+             sname,
+             serverAlias,
+             null, // KerberosTime from
+             null, // KerberosTime till
+             null, // KerberosTime rtime
+             null, // int[] eTypes
+             null, // HostAddresses addresses
+             null, // AuthorizationData authorizationData
+             additionalTickets,
+             null, // EncryptionKey subKey
+             extraPAs);
     }
 
     // Called by Credentials, KrbCred
@@ -89,11 +92,11 @@ public class KrbTgsReq extends KrbKdcReq {
             int[] eTypes,
             HostAddresses addresses,
             AuthorizationData authorizationData,
-            Credentials additionalCreds,
+            Ticket[] additionalTickets,
             EncryptionKey subKey) throws KrbException, IOException {
         this(options, asCreds, asCreds.getClient(), asCreds.getClientAlias(),
                 sname, serverAlias, from, till, rtime, eTypes,
-                addresses, authorizationData, additionalCreds, subKey, null);
+                addresses, authorizationData, additionalTickets, subKey, null);
     }
 
     private KrbTgsReq(
@@ -109,7 +112,7 @@ public class KrbTgsReq extends KrbKdcReq {
             int[] eTypes,
             HostAddresses addresses,
             AuthorizationData authorizationData,
-            Credentials additionalCreds,
+            Ticket[] additionalTickets,
             EncryptionKey subKey,
             PAData[] extraPAs) throws KrbException, IOException {
 
@@ -151,24 +154,24 @@ public class KrbTgsReq extends KrbKdcReq {
             if (!(asCreds.flags.get(KDCOptions.POSTDATED)))
                 throw new KrbException(Krb5.KRB_AP_ERR_REQ_OPTIONS);
         } else {
-            if (from != null) from = null;
+            if (from != null)  from = null;
         }
         if (options.get(KDCOptions.RENEWABLE)) {
             if (!(asCreds.flags.get(KDCOptions.RENEWABLE)))
                 throw new KrbException(Krb5.KRB_AP_ERR_REQ_OPTIONS);
         } else {
-            if (rtime != null) rtime = null;
+            if (rtime != null)  rtime = null;
         }
         if (options.get(KDCOptions.ENC_TKT_IN_SKEY) || options.get(KDCOptions.CNAME_IN_ADDL_TKT)) {
-            if (additionalCreds == null)
+            if (additionalTickets == null)
                 throw new KrbException(Krb5.KRB_AP_ERR_REQ_OPTIONS);
             // in TGS_REQ there could be more than one additional
             // tickets,  but in file-based credential cache,
             // there is only one additional ticket field.
-            this.additionalCreds = additionalCreds;
+            secondTicket = additionalTickets[0];
         } else {
-            if (additionalCreds != null)
-                additionalCreds = null;
+            if (additionalTickets != null)
+                additionalTickets = null;
         }
 
         tgsReqMessg = createRequest(
@@ -184,7 +187,7 @@ public class KrbTgsReq extends KrbKdcReq {
                 eTypes,
                 addresses,
                 authorizationData,
-                additionalCreds,
+                additionalTickets,
                 subKey,
                 extraPAs);
         obuf = tgsReqMessg.asn1Encode();
@@ -204,15 +207,33 @@ public class KrbTgsReq extends KrbKdcReq {
     }
 
     /**
+     * Sends a TGS request to the realm of the target.
+     * @throws KrbException
+     * @throws IOException
+     */
+    public void send() throws IOException, KrbException {
+        String realmStr = null;
+        if (servName != null)
+            realmStr = servName.getRealmString();
+        KdcComm comm = new KdcComm(realmStr);
+        ibuf = comm.send(obuf);
+    }
+
+    public KrbTgsRep getReply()
+        throws KrbException, IOException {
+        return new KrbTgsRep(ibuf, this);
+    }
+
+    /**
      * Sends the request, waits for a reply, and returns the Credentials.
      * Used in Credentials, KrbCred, and internal/CredentialsUtil.
      */
     public Credentials sendAndGetCreds() throws IOException, KrbException {
-        String realmStr = servName != null
-                ? servName.getRealmString()
-                : null;
-        KdcComm comm = new KdcComm(realmStr);
-        return new KrbTgsRep(comm.send(this), this).getCreds();
+        KrbTgsRep tgs_rep = null;
+        String kdc = null;
+        send();
+        tgs_rep = getReply();
+        return tgs_rep.getCreds();
     }
 
     KerberosTime getCtime() {
@@ -232,7 +253,7 @@ public class KrbTgsReq extends KrbKdcReq {
                          int[] eTypes,
                          HostAddresses addresses,
                          AuthorizationData authorizationData,
-                         Credentials additionalCreds,
+                         Ticket[] additionalTickets,
                          EncryptionKey subKey,
                          PAData[] extraPAs)
         throws IOException, KrbException, UnknownHostException {
@@ -281,8 +302,6 @@ public class KrbTgsReq extends KrbKdcReq {
                     KeyUsage.KU_TGS_REQ_AUTH_DATA_SESSKEY);
         }
 
-        Ticket[] additionalTickets = additionalCreds == null ? null
-                : new Ticket[] { additionalCreds.getTicket() };
         KDCReqBody reqBody = new KDCReqBody(
                                             kdc_options,
                                             cname,
@@ -297,7 +316,9 @@ public class KrbTgsReq extends KrbKdcReq {
                                             additionalTickets);
 
         byte[] temp = reqBody.asn1Encode(Krb5.KRB_TGS_REQ);
-        Checksum cksum  = new Checksum(-1, temp, key,
+        // if the checksum type is one of the keyed checksum types,
+        // use session key.
+        Checksum cksum  = new Checksum(Checksum.CKSUMTYPE_DEFAULT, temp, key,
                 KeyUsage.KU_PA_TGS_REQ_CKSUM);
 
         // Usage will be KeyUsage.KU_PA_TGS_REQ_AUTHENTICATOR
@@ -328,8 +349,8 @@ public class KrbTgsReq extends KrbKdcReq {
         return tgsReqMessg;
     }
 
-    Credentials getAdditionalCreds() {
-        return additionalCreds;
+    Ticket getSecondTicket() {
+        return secondTicket;
     }
 
     PrincipalName getClientAlias() {
@@ -340,7 +361,12 @@ public class KrbTgsReq extends KrbKdcReq {
         return serverAlias;
     }
 
+    private static void debug(String message) {
+        //      System.err.println(">>> KrbTgsReq: " + message);
+    }
+
     boolean usedSubkey() {
         return useSubkey;
     }
+
 }

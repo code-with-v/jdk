@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -112,7 +112,7 @@ MIB_IFROW *getIF(jint index) {
         return NULL;
 
     count = GetIfTable(tableP, &size, TRUE);
-    if (count == ERROR_INSUFFICIENT_BUFFER) {
+    if (count == ERROR_INSUFFICIENT_BUFFER || count == ERROR_BUFFER_OVERFLOW) {
         MIB_IFTABLE* newTableP =  (MIB_IFTABLE *)realloc(tableP, size);
         if (newTableP == NULL) {
             free(tableP);
@@ -176,8 +176,6 @@ int enumInterfaces(JNIEnv *env, netif **netifPP)
     DWORD i;
     int lo=0, eth=0, tr=0, fddi=0, ppp=0, sl=0, wlan=0, net=0, wlen=0;
 
-    *netifPP = NULL;
-
     /*
      * Ask the IP Helper library to enumerate the adapters
      */
@@ -189,7 +187,7 @@ int enumInterfaces(JNIEnv *env, netif **netifPP)
     }
 
     ret = GetIfTable(tableP, &size, TRUE);
-    if (ret == ERROR_INSUFFICIENT_BUFFER) {
+    if (ret == ERROR_INSUFFICIENT_BUFFER || ret == ERROR_BUFFER_OVERFLOW) {
         MIB_IFTABLE * newTableP = (MIB_IFTABLE *)realloc(tableP, size);
         if (newTableP == NULL) {
             free(tableP);
@@ -202,20 +200,12 @@ int enumInterfaces(JNIEnv *env, netif **netifPP)
 
     if (ret != NO_ERROR) {
         free(tableP);
-        switch (ret) {
-            case ERROR_INVALID_PARAMETER:
-                JNU_ThrowInternalError(env,
-                    "IP Helper Library GetIfTable function failed: "
-                    "invalid parameter");
-                break;
-            default:
-                SetLastError(ret);
-                JNU_ThrowByNameWithMessageAndLastError(env,
-                    JNU_JAVANETPKG "SocketException",
-                    "IP Helper Library GetIfTable function failed");
-                break;
-        }
-        return -1;
+
+        JNU_ThrowByName(env, "java/lang/Error",
+                "IP Helper Library GetIfTable function failed");
+        // this different error code is to handle the case when we call
+        // GetIpAddrTable in pure IPv6 environment
+        return -2;
     }
 
     /*
@@ -318,8 +308,8 @@ int enumInterfaces(JNIEnv *env, netif **netifPP)
             // it should not fail, because we have called it once before
             if (MultiByteToWideChar(CP_OEMCP, 0, ifrowP->bDescr,
                    ifrowP->dwDescrLen, curr->displayName, wlen) == 0) {
-                JNU_ThrowInternalError(env,
-                    "Cannot get multibyte char for interface display name");
+                JNU_ThrowByName(env, "java/lang/Error",
+                       "Cannot get multibyte char for interface display name");
                 free_netif(netifP);
                 free(tableP);
                 free(curr->name);
@@ -373,9 +363,6 @@ int lookupIPAddrTable(JNIEnv *env, MIB_IPADDRTABLE **tablePP)
     MIB_IPADDRTABLE *tableP;
     ULONG size;
     DWORD ret;
-
-    *tablePP = NULL;
-
     /*
      * Use GetIpAddrTable to enumerate the IP Addresses
      */
@@ -387,7 +374,7 @@ int lookupIPAddrTable(JNIEnv *env, MIB_IPADDRTABLE **tablePP)
     }
 
     ret = GetIpAddrTable(tableP, &size, FALSE);
-    if (ret == ERROR_INSUFFICIENT_BUFFER) {
+    if (ret == ERROR_INSUFFICIENT_BUFFER || ret == ERROR_BUFFER_OVERFLOW) {
         MIB_IPADDRTABLE * newTableP = (MIB_IPADDRTABLE *)realloc(tableP, size);
         if (newTableP == NULL) {
             free(tableP);
@@ -402,19 +389,8 @@ int lookupIPAddrTable(JNIEnv *env, MIB_IPADDRTABLE **tablePP)
         if (tableP != NULL) {
             free(tableP);
         }
-        switch (ret) {
-            case ERROR_INVALID_PARAMETER:
-                JNU_ThrowInternalError(env,
-                    "IP Helper Library GetIpAddrTable function failed: "
-                    "invalid parameter");
-                break;
-            default:
-                SetLastError(ret);
-                JNU_ThrowByNameWithMessageAndLastError(env,
-                    JNU_JAVANETPKG "SocketException",
-                    "IP Helper Library GetIpAddrTable function failed");
-                break;
-        }
+        JNU_ThrowByName(env, "java/lang/Error",
+                "IP Helper Library GetIpAddrTable function failed");
         // this different error code is to handle the case when we call
         // GetIpAddrTable in pure IPv6 environment
         return -2;
@@ -437,15 +413,12 @@ int enumAddresses_win_ipaddrtable(JNIEnv *env, netif *netifP, netaddr **netaddrP
     int count = 0;
     unsigned long mask;
 
-    *netaddrPP = NULL;
-
     /*
      * Iterate through the table to find the addresses with the
      * matching dwIndex. Ignore 0.0.0.0 addresses.
      */
-    if (tableP == NULL) {
+    if (tableP == NULL)
         return 0;
-    }
     count = 0;
     netaddrP = NULL;
 
@@ -458,6 +431,7 @@ int enumAddresses_win_ipaddrtable(JNIEnv *env, netif *netifP, netaddr **netaddrP
             if (curr == NULL) {
                 JNU_ThrowOutOfMemoryError(env, "Native heap allocation failure");
                 free_netaddr(netaddrP);
+                free(tableP);
                 return -1;
             }
 
@@ -523,12 +497,9 @@ int enumAddresses_win_ipaddrtable(JNIEnv *env, netif *netifP, netaddr **netaddrP
 int enumAddresses_win(JNIEnv *env, netif *netifP, netaddr **netaddrPP) {
     MIB_IPADDRTABLE *tableP;
     int count;
-
-    *netaddrPP = NULL;
-
     int ret = lookupIPAddrTable(env, &tableP);
     if (ret < 0) {
-      return ret;
+      return NULL;
     }
     count = enumAddresses_win_ipaddrtable(env, netifP, netaddrPP, tableP);
     free(tableP);
@@ -834,6 +805,7 @@ JNIEXPORT jobject JNICALL Java_java_net_NetworkInterface_getByIndex0
 JNIEXPORT jboolean JNICALL Java_java_net_NetworkInterface_boundInetAddress0
     (JNIEnv *env, jclass cls, jobject iaObj)
 {
+    jobject netifObj = NULL;
     DWORD i;
 
     int family = getInetAddress_family(env, iaObj);
@@ -857,7 +829,9 @@ JNIEXPORT jboolean JNICALL Java_java_net_NetworkInterface_boundInetAddress0
                     break;
                 }
             }
-            free(tableP);
+        }
+        if (tableP != NULL) {
+          free(tableP);
         }
         return found;
     } else {
@@ -927,16 +901,16 @@ JNIEXPORT jobject JNICALL Java_java_net_NetworkInterface_getByInetAddress0
                 /* createNetworkInterface will free addrList */
                 netifObj = createNetworkInterface(env, curr, count, addrList);
                 break;
-            } else {
-                free_netaddr(addrList);
             }
 
             /* on next interface */
             curr = curr->next;
         }
-        /* release the IP address table */
-        free(tableP);
     }
+
+    /* release the IP address table */
+    if (tableP != NULL)
+        free(tableP);
 
     /* release the interface list */
     free_netif(ifList);
@@ -953,7 +927,7 @@ JNIEXPORT jobjectArray JNICALL Java_java_net_NetworkInterface_getAll
     (JNIEnv *env, jclass cls)
 {
     int count;
-    netif *ifList, *curr;
+    netif *ifList = NULL, *curr;
     jobjectArray netIFArr;
     jint arr_index;
 

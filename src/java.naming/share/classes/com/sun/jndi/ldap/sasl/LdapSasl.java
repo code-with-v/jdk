@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2011, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,7 +27,7 @@ package com.sun.jndi.ldap.sasl;
 
 import java.io.*;
 import java.security.cert.X509Certificate;
-import java.util.ArrayList;
+import java.util.Vector;
 import java.util.Hashtable;
 import java.util.StringTokenizer;
 
@@ -42,9 +42,7 @@ import javax.security.sasl.*;
 import com.sun.jndi.ldap.Connection;
 import com.sun.jndi.ldap.LdapClient;
 import com.sun.jndi.ldap.LdapResult;
-import sun.security.util.ChannelBindingException;
-import sun.security.util.TlsChannelBinding;
-import sun.security.util.TlsChannelBinding.TlsChannelBindingType;
+import com.sun.jndi.ldap.sasl.TlsChannelBinding.TlsChannelBindingType;
 
 /**
   * Handles SASL support.
@@ -63,14 +61,6 @@ public final class LdapSasl {
 
     private static final int LDAP_SUCCESS = 0;
     private static final int LDAP_SASL_BIND_IN_PROGRESS = 14;   // LDAPv3
-
-    // TLS channel binding type property
-    private static final String CHANNEL_BINDING_TYPE =
-            "com.sun.jndi.ldap.tls.cbtype";
-
-    // internal TLS channel binding property
-    private static final String CHANNEL_BINDING =
-            "jdk.internal.sasl.tlschannelbinding";
 
     private LdapSasl() {
     }
@@ -123,8 +113,8 @@ public final class LdapSasl {
         String[] mechs = getSaslMechanismNames(authMech);
 
         // Internal TLS Channel Binding property cannot be set explicitly
-        if (env.get(CHANNEL_BINDING) != null) {
-            throw new NamingException(CHANNEL_BINDING +
+        if (env.get(TlsChannelBinding.CHANNEL_BINDING) != null) {
+            throw new NamingException(TlsChannelBinding.CHANNEL_BINDING +
                     " property cannot be set explicitly");
         }
 
@@ -133,24 +123,17 @@ public final class LdapSasl {
         try {
             // Prepare TLS Channel Binding data
             if (conn.isTlsConnection()) {
-                TlsChannelBindingType cbType;
-                try {
-                    cbType = TlsChannelBinding.parseType((String)env.get(CHANNEL_BINDING_TYPE));
-                } catch (ChannelBindingException e) {
-                    throw wrapInNamingException(e);
-                }
+                TlsChannelBindingType cbType =
+                        TlsChannelBinding.parseType(
+                                (String)env.get(TlsChannelBinding.CHANNEL_BINDING_TYPE));
                 if (cbType == TlsChannelBindingType.TLS_SERVER_END_POINT) {
                     // set tls-server-end-point channel binding
                     X509Certificate cert = conn.getTlsServerCertificate();
                     if (cert != null) {
-                        TlsChannelBinding tlsCB;
-                        try {
-                            tlsCB = TlsChannelBinding.create(cert);
-                        } catch (ChannelBindingException e) {
-                            throw wrapInNamingException(e);
-                        }
+                        TlsChannelBinding tlsCB =
+                                TlsChannelBinding.create(cert);
                         envProps = (Hashtable<String, Object>) env.clone();
-                        envProps.put(CHANNEL_BINDING, tlsCB.getData());
+                        envProps.put(TlsChannelBinding.CHANNEL_BINDING, tlsCB.getData());
                     } else {
                         throw new SaslException("No suitable certificate to generate " +
                                 "TLS Channel Binding data");
@@ -233,21 +216,15 @@ public final class LdapSasl {
       */
     private static String[] getSaslMechanismNames(String str) {
         StringTokenizer parser = new StringTokenizer(str);
-        ArrayList<String> mechs = new ArrayList<>(10);
+        Vector<String> mechs = new Vector<>(10);
         while (parser.hasMoreTokens()) {
-            mechs.add(parser.nextToken());
+            mechs.addElement(parser.nextToken());
         }
         String[] mechNames = new String[mechs.size()];
         for (int i = 0; i < mechs.size(); i++) {
-            mechNames[i] = mechs.get(i);
+            mechNames[i] = mechs.elementAt(i);
         }
         return mechNames;
-    }
-
-    private static NamingException wrapInNamingException(Exception e) {
-        NamingException ne = new NamingException();
-        ne.setRootCause(e);
-        return ne;
     }
 
     private static final byte[] NO_BYTES = new byte[0];

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -46,7 +46,7 @@ import sun.security.util.DerValue;
  *
  * <p>
  * The extension is defined in Section 5.2.5 of
- * <a href="https://tools.ietf.org/html/rfc5280">Internet X.509 PKI
+ * <a href="http://tools.ietf.org/html/rfc5280">Internet X.509 PKI
  * Certificate and Certificate Revocation List (CRL) Profile</a>.
  *
  * <p>
@@ -187,7 +187,7 @@ public class IssuingDistributionPointExtension extends Extension
         }
 
         DerInputStream in = val.data;
-        while (in.available() != 0) {
+        while (in != null && in.available() != 0) {
             DerValue opt = in.getDerValue();
 
             if (opt.isContextSpecific(TAG_DISTRIBUTION_POINT) &&
@@ -393,8 +393,7 @@ public class IssuingDistributionPointExtension extends Extension
         if (distributionPoint != null) {
             DerOutputStream tmp = new DerOutputStream();
             distributionPoint.encode(tmp);
-            // DistributionPointName is CHOICE. Do not writeImplicit.
-            tagged.write(DerValue.createTag(DerValue.TAG_CONTEXT, true,
+            tagged.writeImplicit(DerValue.createTag(DerValue.TAG_CONTEXT, true,
                 TAG_DISTRIBUTION_POINT), tmp);
         }
 

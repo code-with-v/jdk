@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010, 2015, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -99,7 +99,8 @@ public class TreePosRoundsTest extends AbstractProcessor {
                 TreePath p = trees.getPath(e);
                 new TestTreeScanner(p.getCompilationUnit(), trees).scan(trees.getPath(e), null);
             } catch (IOException ex) {
-                messager.printError("Cannot get source: " + ex, e);
+                messager.printMessage(Diagnostic.Kind.ERROR,
+                        "Cannot get source: " + ex, e);
             }
         }
 
@@ -164,13 +165,13 @@ public class TreePosRoundsTest extends AbstractProcessor {
 
             int start = (int)sourcePositions.getStartPosition(unit, tree);
             if (start == Diagnostic.NOPOS) {
-                messager.printError("start pos not set for " + trim(tree));
+                messager.printMessage(Diagnostic.Kind.ERROR, "start pos not set for " + trim(tree));
                 return;
             }
 
             int end = (int)sourcePositions.getEndPosition(unit, tree);
             if (end == Diagnostic.NOPOS) {
-                messager.printError("end pos not set for " + trim(tree));
+                messager.printMessage(Diagnostic.Kind.ERROR, "end pos not set for " + trim(tree));
                 return;
             }
 
@@ -189,8 +190,8 @@ public class TreePosRoundsTest extends AbstractProcessor {
             }
 
             if (!equal) {
-                messager.printError("unexpected value found: '" + found +
-                                    "'; expected: '" + expect + "'");
+                messager.printMessage(Diagnostic.Kind.ERROR,
+                        "unexpected value found: '" + found + "'; expected: '" + expect + "'");
             }
         }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,6 +26,7 @@ package nsk.jvmti.RedefineClasses;
 
 
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.HashMap;
@@ -33,7 +34,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.concurrent.ThreadFactory;
 
 import nsk.share.TestFailure;
 import nsk.share.gc.GCTestBase;
@@ -56,7 +56,6 @@ public class StressRedefine extends GCTestBase {
     private static int nonstaticMethodCallersNumber = 10;
     private static int redefiningThreadsNumber = 40;
     private static double corruptingBytecodeProbability = .75;
-    private static boolean virtualThreads = false;
 
     private static volatile Class<?> myClass;
     private static ExecutionController stresser;
@@ -101,8 +100,6 @@ public class StressRedefine extends GCTestBase {
                 redefiningThreadsNumber = Integer.parseInt(args[i + 1]);
             } else if ("-corruptingBytecodeProbability".equals(args[i])) {
                 corruptingBytecodeProbability = Double.parseDouble(args[i + 1]);
-            } else if ("-virtualThreads".equals(args[i])) {
-                virtualThreads = true;
             }
         }
 
@@ -171,15 +168,14 @@ public class StressRedefine extends GCTestBase {
         bytecode = generateAndCompile();
 
         List<Thread> threads = new LinkedList<Thread>();
-        var threadFactory = virtualThreads ? virtualThreadFactory() : platformThreadFactory();
         for (int i = 0; i < staticMethodCallersNumber; i++) {
-            threads.add(threadFactory.newThread(new StaticMethodCaller()));
+            threads.add(new Thread(new StaticMethodCaller()));
         }
         for (int i = 0; i < nonstaticMethodCallersNumber; i++) {
-            threads.add(threadFactory.newThread(new NonstaticMethodCaller()));
+            threads.add(new Thread(new NonstaticMethodCaller()));
         }
         for (int i = 0; i < redefiningThreadsNumber; i++) {
-            threads.add(threadFactory.newThread(new Worker()));
+            threads.add(new Thread(new Worker()));
         }
 
         for (Thread thread : threads) {
@@ -191,23 +187,6 @@ public class StressRedefine extends GCTestBase {
             } catch (InterruptedException e) {
                 throw new TestFailure("Thread " + Thread.currentThread() + " was interrupted:", e);
             }
-        }
-    }
-
-    private static ThreadFactory platformThreadFactory() {
-        return task -> new Thread(task);
-    }
-
-    private static ThreadFactory virtualThreadFactory() {
-        try {
-            Object builder = Thread.class.getMethod("ofVirtual").invoke(null);
-            Class<?> clazz = Class.forName("java.lang.Thread$Builder");
-            java.lang.reflect.Method factory = clazz.getMethod("factory");
-            return (ThreadFactory) factory.invoke(builder);
-        } catch (RuntimeException | Error e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         }
     }
 

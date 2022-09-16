@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -63,7 +63,7 @@ public class IndexedPropertyDescriptor extends PropertyDescriptor {
      *
      * @param propertyName The programmatic name of the property.
      * @param beanClass The Class object for the target bean.
-     * @throws IntrospectionException if an exception occurs during
+     * @exception IntrospectionException if an exception occurs during
      *              introspection.
      */
     public IndexedPropertyDescriptor(String propertyName, Class<?> beanClass)
@@ -94,7 +94,7 @@ public class IndexedPropertyDescriptor extends PropertyDescriptor {
      * @param indexedWriteMethodName The name of the method used for writing
      *          an indexed property value.
      *          May be null if the property is read-only.
-     * @throws IntrospectionException if an exception occurs during
+     * @exception IntrospectionException if an exception occurs during
      *              introspection.
      */
     public IndexedPropertyDescriptor(String propertyName, Class<?> beanClass,
@@ -129,7 +129,7 @@ public class IndexedPropertyDescriptor extends PropertyDescriptor {
      *          May be null if the property is write-only.
      * @param indexedWriteMethod The method used for writing an indexed property value.
      *          May be null if the property is read-only.
-     * @throws IntrospectionException if an exception occurs during
+     * @exception IntrospectionException if an exception occurs during
      *              introspection.
      */
     public IndexedPropertyDescriptor(String propertyName, Method readMethod, Method writeMethod,
@@ -407,7 +407,8 @@ public class IndexedPropertyDescriptor extends PropertyDescriptor {
             return true;
         }
 
-        if (obj instanceof IndexedPropertyDescriptor other) {
+        if (obj != null && obj instanceof IndexedPropertyDescriptor) {
+            IndexedPropertyDescriptor other = (IndexedPropertyDescriptor)obj;
             Method otherIndexedReadMethod = other.getIndexedReadMethod();
             Method otherIndexedWriteMethod = other.getIndexedWriteMethod();
 

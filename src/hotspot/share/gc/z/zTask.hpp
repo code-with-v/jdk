@@ -24,28 +24,28 @@
 #ifndef SHARE_GC_Z_ZTASK_HPP
 #define SHARE_GC_Z_ZTASK_HPP
 
-#include "gc/shared/workerThread.hpp"
+#include "gc/shared/workgroup.hpp"
 #include "memory/allocation.hpp"
 
 class ZTask : public StackObj {
 private:
-  class Task : public WorkerTask {
+  class GangTask : public AbstractGangTask {
   private:
-    ZTask* const _task;
+    ZTask* const _ztask;
 
   public:
-    Task(ZTask* task, const char* name);
+    GangTask(ZTask* ztask, const char* name);
 
     virtual void work(uint worker_id);
   };
 
-  Task _worker_task;
+  GangTask _gang_task;
 
 public:
   ZTask(const char* name);
 
   const char* name() const;
-  WorkerTask* worker_task();
+  AbstractGangTask* gang_task();
 
   virtual void work() = 0;
 };

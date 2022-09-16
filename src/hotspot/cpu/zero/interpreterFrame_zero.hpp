@@ -28,7 +28,7 @@
 
 #include "interpreter/zero/bytecodeInterpreter.hpp"
 #include "oops/method.hpp"
-#include "runtime/javaThread.hpp"
+#include "runtime/thread.hpp"
 #include "stack_zero.hpp"
 #include "utilities/align.hpp"
 

@@ -29,7 +29,6 @@ import javax.swing.*;
 import javax.swing.plaf.*;
 import javax.swing.plaf.basic.*;
 import javax.swing.text.View;
-import javax.swing.tree.DefaultTreeCellRenderer;
 import java.awt.Dimension;
 import java.awt.Rectangle;
 import java.awt.Insets;
@@ -208,14 +207,8 @@ public class SynthLabelUI extends BasicLabelUI implements SynthUI {
         Icon icon = (label.isEnabled()) ? label.getIcon() :
                                           label.getDisabledIcon();
 
-        if (label instanceof DefaultTreeCellRenderer &&
-                label.getForeground() instanceof UIResource) {
-            g.setColor(label.getForeground());
-        } else {
-            g.setColor(context.getStyle().getColor(context,
-                    ColorType.TEXT_FOREGROUND));
-        }
-
+        g.setColor(context.getStyle().getColor(context,
+                                               ColorType.TEXT_FOREGROUND));
         g.setFont(style.getFont(context));
         context.getStyle().getGraphicsUtils(context).paintText(
             context, g, label.getText(), icon,

@@ -99,7 +99,7 @@ final class HotSpotSpeculationEncoding extends ByteArrayOutputStream implements 
             checkOpen();
             if (method instanceof HotSpotResolvedJavaMethodImpl) {
                 try {
-                    dos.writeLong(((HotSpotResolvedJavaMethodImpl) method).getMethodPointer());
+                    dos.writeLong(((HotSpotResolvedJavaMethodImpl) method).getMetaspaceMethod());
                 } catch (IOException e) {
                     throw new InternalError(e);
                 }
@@ -115,7 +115,7 @@ final class HotSpotSpeculationEncoding extends ByteArrayOutputStream implements 
             checkOpen();
             if (type instanceof HotSpotResolvedObjectTypeImpl) {
                 try {
-                    dos.writeLong(((HotSpotResolvedObjectTypeImpl) type).getKlassPointer());
+                    dos.writeLong(((HotSpotResolvedObjectTypeImpl) type).getMetaspaceKlass());
                 } catch (IOException e) {
                     throw new InternalError(e);
                 }

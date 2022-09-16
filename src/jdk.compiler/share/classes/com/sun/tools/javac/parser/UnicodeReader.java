@@ -436,7 +436,7 @@ public class UnicodeReader {
     }
 
     /**
-     * Skip over all occurrences of character.
+     * Skip over all occurances of character.
      *
      * @param ch character to accept.
      */

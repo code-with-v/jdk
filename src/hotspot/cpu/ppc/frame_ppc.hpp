@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2021, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2012, 2021 SAP SE. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -25,6 +25,8 @@
 
 #ifndef CPU_PPC_FRAME_PPC_HPP
 #define CPU_PPC_FRAME_PPC_HPP
+
+#include "runtime/synchronizer.hpp"
 
   //  C frame layout on PPC-64.
   //
@@ -372,17 +374,20 @@
 
  private:
 
-  // Initialize frame members (_pc and _sp must be given)
-  inline void setup();
+  // Find codeblob and set deopt_state.
+  inline void find_codeblob_and_set_pc_and_deopt_state(address pc);
 
  public:
 
-  const ImmutableOopMap* get_oop_map() const;
-
   // Constructors
-  inline frame(intptr_t* sp, address pc, intptr_t* unextended_sp = nullptr, intptr_t* fp = nullptr, CodeBlob* cb = nullptr);
+  inline frame(intptr_t* sp);
+  inline frame(intptr_t* sp, address pc);
+  inline frame(intptr_t* sp, address pc, intptr_t* unextended_sp);
 
  private:
+
+  intptr_t* compiled_sender_sp(CodeBlob* cb) const;
+  address*  compiled_sender_pc_addr(CodeBlob* cb) const;
   address*  sender_pc_addr(void) const;
 
  public:
@@ -394,11 +399,6 @@
   inline void interpreter_frame_set_esp(intptr_t* esp);
   inline void interpreter_frame_set_top_frame_sp(intptr_t* top_frame_sp);
   inline void interpreter_frame_set_sender_sp(intptr_t* sender_sp);
-
-  inline intptr_t* interpreter_frame_last_sp() const;
-
-  template <typename RegisterMapT>
-  static void update_map_with_saved_link(RegisterMapT* map, intptr_t** link_addr);
 
   // Size of a monitor in bytes.
   static int interpreter_frame_monitor_size_in_bytes();
@@ -413,16 +413,12 @@
 
   enum {
     // normal return address is 1 bundle past PC
-    pc_return_offset = 0,
-    metadata_words   = 0,
-    frame_alignment  = 16,
-    // size, in words, of maximum shift in frame position due to alignment
-    align_wiggle     =  1
+    pc_return_offset = 0
   };
 
   static jint interpreter_frame_expression_stack_direction() { return -1; }
 
   // returns the sending frame, without applying any barriers
-  inline frame sender_raw(RegisterMap* map) const;
+  frame sender_raw(RegisterMap* map) const;
 
 #endif // CPU_PPC_FRAME_PPC_HPP

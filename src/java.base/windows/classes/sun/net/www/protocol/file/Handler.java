@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,10 +25,13 @@
 
 package sun.net.www.protocol.file;
 
+import java.net.InetAddress;
 import java.net.URLConnection;
 import java.net.URL;
 import java.net.Proxy;
+import java.net.MalformedURLException;
 import java.net.URLStreamHandler;
+import java.io.InputStream;
 import java.io.IOException;
 import sun.net.www.ParseUtil;
 import java.io.File;
@@ -38,6 +41,14 @@ import java.io.File;
  * @author      James Gosling
  */
 public class Handler extends URLStreamHandler {
+
+    private String getHost(URL url) {
+        String host = url.getHost();
+        if (host == null)
+            host = "";
+        return host;
+    }
+
 
     protected void parseURL(URL u, String spec, int start, int limit) {
         /*
@@ -50,18 +61,18 @@ public class Handler extends URLStreamHandler {
          * rather than forcing this to be fixed in the caller of the URL
          * class where it belongs. Since backslash is an "unwise"
          * character that would normally be encoded if literally intended
-         * as a non-separator character the damage of veering away from the
+         * as a non-seperator character the damage of veering away from the
          * specification is presumably limited.
          */
         super.parseURL(u, spec.replace(File.separatorChar, '/'), start, limit);
     }
 
-    public URLConnection openConnection(URL url)
+    public synchronized URLConnection openConnection(URL url)
         throws IOException {
         return openConnection(url, null);
     }
 
-    public URLConnection openConnection(URL url, Proxy p)
+    public synchronized URLConnection openConnection(URL url, Proxy p)
            throws IOException {
 
         String path;

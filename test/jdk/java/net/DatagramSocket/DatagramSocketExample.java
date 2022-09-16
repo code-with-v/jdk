@@ -33,6 +33,8 @@
  *        jdk.test.lib.net.IPSupport
  * @run main/othervm DatagramSocketExample
  * @run main/othervm -Djava.net.preferIPv4Stack=true DatagramSocketExample
+ * @run main/othervm -Djdk.usePlainDatagramSocketImpl=true DatagramSocketExample
+ * @run main/othervm -Djdk.usePlainDatagramSocketImpl=true -Djava.net.preferIPv4Stack=true DatagramSocketExample
  */
 
 import java.io.IOException;

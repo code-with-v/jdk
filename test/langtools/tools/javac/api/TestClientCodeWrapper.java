@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2017, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -62,8 +62,7 @@ public class TestClientCodeWrapper extends JavacTestingAbstractProcessor {
             defaultFileManager = fm;
 
             for (Method m: getMethodsExcept(JavaFileManager.class,
-                        "close", "getJavaFileForInput", "getLocationForModule", "getServiceLoader",
-                        "contains", "getFileForOutput", "siblingFrom")) {
+                        "close", "getJavaFileForInput", "getLocationForModule", "getServiceLoader", "contains")) {
                 test(m);
             }
 
@@ -279,8 +278,8 @@ public class TestClientCodeWrapper extends JavacTestingAbstractProcessor {
                 f4.getNestingKind();
                 f4.getAccessLevel();
 
-                messager.printNote("informational note",
-                                   roundEnv.getRootElements().iterator().next());
+                messager.printMessage(Diagnostic.Kind.NOTE, "informational note",
+                        roundEnv.getRootElements().iterator().next());
 
             } catch (IOException e) {
                 throw new UserError(e);
@@ -372,12 +371,6 @@ public class TestClientCodeWrapper extends JavacTestingAbstractProcessor {
         }
 
         @Override
-        public JavaFileObject getJavaFileForOutputForOriginatingFiles(Location location, String className, Kind kind, FileObject... originatingFiles) throws IOException {
-            throwUserExceptionIfNeeded(fileManagerMethod, "getJavaFileForOutputForOriginatingFiles");
-            return wrap(super.getJavaFileForOutputForOriginatingFiles(location, className, kind, originatingFiles));
-        }
-
-        @Override
         public FileObject getFileForInput(Location location, String packageName, String relativeName) throws IOException {
             throwUserExceptionIfNeeded(fileManagerMethod, "getFileForInput");
             return wrap(super.getFileForInput(location, packageName, relativeName));
@@ -387,12 +380,6 @@ public class TestClientCodeWrapper extends JavacTestingAbstractProcessor {
         public FileObject getFileForOutput(Location location, String packageName, String relativeName, FileObject sibling) throws IOException {
             throwUserExceptionIfNeeded(fileManagerMethod, "getFileForOutput");
             return wrap(super.getFileForOutput(location, packageName, relativeName, sibling));
-        }
-
-        @Override
-        public FileObject getFileForOutputForOriginatingFiles(Location location, String packageName, String relativeName, FileObject... originatingFiles) throws IOException {
-            throwUserExceptionIfNeeded(fileManagerMethod, "getFileForOutputForOriginatingFiles");
-            return wrap(super.getFileForOutputForOriginatingFiles(location, packageName, relativeName, originatingFiles));
         }
 
         @Override

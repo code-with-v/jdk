@@ -722,7 +722,7 @@ public class Color implements Paint, java.io.Serializable {
      *                            an opaque color as a 24-bit integer
      * @return     the new {@code Color} object.
      * @see        java.lang.Integer#decode
-     * @throws  NumberFormatException  if the specified string cannot
+     * @exception  NumberFormatException  if the specified string cannot
      *                      be interpreted as a decimal,
      *                      octal, or hexadecimal integer.
      * @since      1.1

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -41,7 +41,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Serial;
 import java.io.StringReader;
@@ -312,7 +311,7 @@ public class JEditorPane extends JTextComponent {
      * Creates a <code>JEditorPane</code> based on a specified URL for input.
      *
      * @param initialPage the URL
-     * @throws IOException if the URL is <code>null</code>
+     * @exception IOException if the URL is <code>null</code>
      *          or cannot be accessed
      */
     public JEditorPane(URL initialPage) throws IOException {
@@ -325,7 +324,7 @@ public class JEditorPane extends JTextComponent {
      * a URL specification.
      *
      * @param url the URL
-     * @throws IOException if the URL is <code>null</code> or
+     * @exception IOException if the URL is <code>null</code> or
      *          cannot be accessed
      */
     public JEditorPane(String url) throws IOException {
@@ -340,7 +339,7 @@ public class JEditorPane extends JTextComponent {
      *
      * @param type mime type of the given text
      * @param text the text to initialize with; may be <code>null</code>
-     * @throws NullPointerException if the <code>type</code> parameter
+     * @exception NullPointerException if the <code>type</code> parameter
      *          is <code>null</code>
      */
     public JEditorPane(String type, String text) {
@@ -462,7 +461,7 @@ public class JEditorPane extends JTextComponent {
      * thread is done whether the load was successful or not.
      *
      * @param page the URL of the page
-     * @throws IOException for a <code>null</code> or invalid
+     * @exception IOException for a <code>null</code> or invalid
      *          page specification, or exception from the stream being read
      * @see #getPage
      */
@@ -578,7 +577,7 @@ public class JEditorPane extends JTextComponent {
      *
      * @param in the stream from which to read
      * @param desc an object describing the stream
-     * @throws IOException as thrown by the stream being
+     * @exception IOException as thrown by the stream being
      *          used to initialize
      * @see JTextComponent#read
      * @see #setDocument
@@ -693,7 +692,11 @@ public class JEditorPane extends JTextComponent {
                                 setDocument(doc);
                             }
                         });
-                    } catch (InvocationTargetException | InterruptedException ex) {
+                    } catch (InvocationTargetException ex) {
+                        UIManager.getLookAndFeel().provideErrorFeedback(
+                                                            JEditorPane.this);
+                        return old;
+                    } catch (InterruptedException ex) {
                         UIManager.getLookAndFeel().provideErrorFeedback(
                                                             JEditorPane.this);
                         return old;
@@ -814,7 +817,9 @@ public class JEditorPane extends JTextComponent {
                         handleConnectionProperties(conn);
                     }
                 });
-            } catch (InterruptedException | InvocationTargetException e) {
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } catch (InvocationTargetException e) {
                 throw new RuntimeException(e);
             }
         }
@@ -847,12 +852,16 @@ public class JEditorPane extends JTextComponent {
     private void handlePostData(HttpURLConnection conn, Object postData)
                                                             throws IOException {
         conn.setDoOutput(true);
-        conn.setRequestProperty("Content-Type",
-                "application/x-www-form-urlencoded");
-        try (OutputStream os = conn.getOutputStream();
-             DataOutputStream dos = new DataOutputStream(os))
-        {
-            dos.writeBytes((String)postData);
+        DataOutputStream os = null;
+        try {
+            conn.setRequestProperty("Content-Type",
+                    "application/x-www-form-urlencoded");
+            os = new DataOutputStream(conn.getOutputStream());
+            os.writeBytes((String) postData);
+        } finally {
+            if (os != null) {
+                os.close();
+            }
         }
     }
 
@@ -919,7 +928,7 @@ public class JEditorPane extends JTextComponent {
      * Sets the current URL being displayed.
      *
      * @param url the URL for display
-     * @throws IOException for a <code>null</code> or invalid URL
+     * @exception IOException for a <code>null</code> or invalid URL
      *          specification
      */
     public void setPage(String url) throws IOException {
@@ -1055,9 +1064,14 @@ public class JEditorPane extends JTextComponent {
                     putClientProperty("charset", charset);
                 }
             }
-        } catch (IndexOutOfBoundsException | NullPointerException e) {
+        }
+        catch (IndexOutOfBoundsException e) {
             // malformed parameter list, use charset we have
-        } catch (Exception e) {
+        }
+        catch (NullPointerException e) {
+            // malformed parameter list, use charset we have
+        }
+        catch (Exception e) {
             // malformed parameter list, use charset we have; but complain
             System.err.println("JEditorPane.getCharsetFromContentTypeParameters failed on: " + paramlist);
             e.printStackTrace();
@@ -1468,7 +1482,9 @@ public class JEditorPane extends JTextComponent {
             Reader r = new StringReader(t);
             EditorKit kit = getEditorKit();
             kit.read(r, doc, 0);
-        } catch (IOException | BadLocationException e) {
+        } catch (IOException ioe) {
+            UIManager.getLookAndFeel().provideErrorFeedback(JEditorPane.this);
+        } catch (BadLocationException ble) {
             UIManager.getLookAndFeel().provideErrorFeedback(JEditorPane.this);
         }
     }

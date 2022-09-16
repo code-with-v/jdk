@@ -22,7 +22,7 @@
  *
  */
 
-/* @test
+/* @test TestSingleThreaded
  * @summary test single worker threaded Shenandoah
  * @requires vm.gc.Shenandoah
  * @run main/othervm -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions

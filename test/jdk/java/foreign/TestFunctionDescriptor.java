@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ *  Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  *  DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  *  This code is free software; you can redistribute it and/or modify it
@@ -24,23 +24,28 @@
 
 /*
  * @test
- * @enablePreview
  * @requires ((os.arch == "amd64" | os.arch == "x86_64") & sun.arch.data.model == "64") | os.arch == "aarch64"
- * @run testng/othervm --enable-native-access=ALL-UNNAMED TestFunctionDescriptor
+ * @run testng TestFunctionDescriptor
  */
 
-import java.lang.foreign.FunctionDescriptor;
-import java.lang.foreign.MemoryLayout;
-import java.util.List;
-import java.util.Optional;
+import jdk.incubator.foreign.FunctionDescriptor;
+import jdk.incubator.foreign.MemoryLayout;
 import org.testng.annotations.Test;
 
+import java.lang.constant.Constable;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import static jdk.incubator.foreign.CLinker.C_DOUBLE;
+import static jdk.incubator.foreign.CLinker.C_INT;
+import static jdk.incubator.foreign.CLinker.C_LONG_LONG;
+import static jdk.incubator.foreign.CLinker.C_POINTER;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
-import static org.testng.Assert.assertNotEquals;
 import static org.testng.Assert.assertTrue;
 
-public class TestFunctionDescriptor extends NativeTestHelper {
+public class TestFunctionDescriptor {
 
     static final String DUMMY_ATTR = "dummy";
 
@@ -64,44 +69,55 @@ public class TestFunctionDescriptor extends NativeTestHelper {
     }
 
     @Test
-    public void testAppendArgumentLayouts() {
+    public void testAttribute() {
         FunctionDescriptor fd = FunctionDescriptor.of(C_INT, C_DOUBLE, C_LONG_LONG);
-        fd = fd.appendArgumentLayouts(C_POINTER);
+        fd = fd.withAttribute(DUMMY_ATTR, true);
+
+        assertEquals(fd.argumentLayouts(), List.of(C_DOUBLE, C_LONG_LONG));
+        Optional<MemoryLayout> returnLayoutOp = fd.returnLayout();
+        assertTrue(returnLayoutOp.isPresent());
+        assertEquals(returnLayoutOp.get(), C_INT);
+        assertEquals(fd.attributes().collect(Collectors.toList()), List.of(DUMMY_ATTR));
+        Optional<Constable> attr = fd.attribute(DUMMY_ATTR);
+        assertTrue(attr.isPresent());
+        assertEquals(attr.get(), true);
+    }
+
+    @Test
+    public void testAppendArgumentLayouts() {
+        FunctionDescriptor fd = FunctionDescriptor.of(C_INT, C_DOUBLE, C_LONG_LONG)
+                                                  .withAttribute(DUMMY_ATTR, true);
+        fd = fd.withAppendedArgumentLayouts(C_POINTER);
 
         assertEquals(fd.argumentLayouts(), List.of(C_DOUBLE, C_LONG_LONG, C_POINTER));
         Optional<MemoryLayout> returnLayoutOp = fd.returnLayout();
         assertTrue(returnLayoutOp.isPresent());
         assertEquals(returnLayoutOp.get(), C_INT);
+        assertEquals(fd.attributes().collect(Collectors.toList()), List.of(DUMMY_ATTR));
     }
 
     @Test
     public void testChangeReturnLayout() {
-        FunctionDescriptor fd = FunctionDescriptor.of(C_INT, C_DOUBLE, C_LONG_LONG);
-        fd = fd.changeReturnLayout(C_INT);
+        FunctionDescriptor fd = FunctionDescriptor.of(C_INT, C_DOUBLE, C_LONG_LONG)
+                                                  .withAttribute(DUMMY_ATTR, true);
+        fd = fd.withReturnLayout(C_INT);
 
         assertEquals(fd.argumentLayouts(), List.of(C_DOUBLE, C_LONG_LONG));
         Optional<MemoryLayout> returnLayoutOp = fd.returnLayout();
         assertTrue(returnLayoutOp.isPresent());
         assertEquals(returnLayoutOp.get(), C_INT);
+        assertEquals(fd.attributes().collect(Collectors.toList()), List.of(DUMMY_ATTR));
     }
 
     @Test
     public void testDropReturnLayout() {
-        FunctionDescriptor fd = FunctionDescriptor.of(C_INT, C_DOUBLE, C_LONG_LONG);
-        fd = fd.dropReturnLayout();
+        FunctionDescriptor fd = FunctionDescriptor.of(C_INT, C_DOUBLE, C_LONG_LONG)
+                                                  .withAttribute(DUMMY_ATTR, true);
+        fd = fd.withVoidReturnLayout();
 
         assertEquals(fd.argumentLayouts(), List.of(C_DOUBLE, C_LONG_LONG));
         Optional<MemoryLayout> returnLayoutOp = fd.returnLayout();
         assertFalse(returnLayoutOp.isPresent());
-    }
-
-    @Test
-    public void testEquals() {
-        FunctionDescriptor fd = FunctionDescriptor.of(C_INT, C_INT, C_INT);
-        FunctionDescriptor fd_va1 = FunctionDescriptor.of(C_INT).asVariadic(C_INT, C_INT);
-        FunctionDescriptor fd_va2 = FunctionDescriptor.of(C_INT, C_INT).asVariadic(C_INT);
-        assertEquals(fd, fd);
-        assertNotEquals(fd, fd_va1);
-        assertNotEquals(fd, fd_va2);
+        assertEquals(fd.attributes().collect(Collectors.toList()), List.of(DUMMY_ATTR));
     }
 }

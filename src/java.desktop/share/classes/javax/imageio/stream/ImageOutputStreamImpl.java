@@ -484,7 +484,7 @@ public abstract class ImageOutputStreamImpl
      * beginning of the {@code write(int)} and
      * {@code write(byte[], int, int)} methods.
      *
-     * @throws IOException if an I/O error occurs.
+     * @exception IOException if an I/O error occurs.
      */
     protected final void flushBits() throws IOException {
         checkClosed();

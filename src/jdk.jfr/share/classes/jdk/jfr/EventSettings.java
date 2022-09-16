@@ -27,7 +27,6 @@ package jdk.jfr;
 
 import java.time.Duration;
 import java.util.Map;
-import java.util.Objects;
 
 import jdk.jfr.internal.management.EventSettingsModifier;
 
@@ -39,9 +38,21 @@ import jdk.jfr.internal.management.EventSettingsModifier;
  * chaining.
  * <p>
  * The following example shows how to use the {@code EventSettings} class.
+ * <pre>
+ * {@code
+ * Recording r = new Recording();
+ * r.enable("jdk.CPULoad")
+ *    .withPeriod(Duration.ofSeconds(1));
+ * r.enable("jdk.FileWrite")
+ *    .withoutStackTrace()
+ *    .withThreshold(Duration.ofNanos(10));
+ * r.start();
+ * Thread.sleep(10_000);
+ * r.stop();
+ * r.dump(Files.createTempFile("recording", ".jfr"));
  *
- * {@snippet class="Snippets" region="EventSettingOverview"}
- *
+ * }
+ * </pre>
  * @since 9
  */
 public abstract class EventSettings {
@@ -56,10 +67,8 @@ public abstract class EventSettings {
 
         @Override
         public EventSettings with(String name, String value) {
-            Objects.requireNonNull(name, "name");
-            Objects.requireNonNull(value, "value");
-            delegate.with(name, value);
-            return this;
+             delegate.with(name, value);
+             return this;
         }
 
         @Override
@@ -114,7 +123,6 @@ public abstract class EventSettings {
      * @return event settings object for further configuration, not {@code null}
      */
     public final EventSettings withPeriod(Duration duration) {
-        Objects.requireNonNull(duration, "duration");
         return with(Period.NAME, duration.toNanos() + " ns");
     }
 

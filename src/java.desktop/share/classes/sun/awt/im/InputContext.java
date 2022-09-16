@@ -47,8 +47,8 @@ import java.lang.Character.Subset;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.text.MessageFormat;
-import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Locale;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
@@ -133,7 +133,7 @@ public class InputContext extends java.awt.im.InputContext
 
     /**
      * @see java.awt.im.InputContext#selectInputMethod
-     * @throws NullPointerException when the locale is null.
+     * @exception NullPointerException when the locale is null.
      */
     public synchronized boolean selectInputMethod(Locale locale) {
         if (locale == null) {
@@ -206,7 +206,7 @@ public class InputContext extends java.awt.im.InputContext
     /**
      * @see java.awt.im.InputContext#reconvert
      * @since 1.3
-     * @throws UnsupportedOperationException when input method is null
+     * @exception UnsupportedOperationException when input method is null
      */
     public synchronized void reconvert() {
         InputMethod inputMethod = getInputMethod();
@@ -610,7 +610,7 @@ public class InputContext extends java.awt.im.InputContext
 
     /**
      * @see java.awt.im.InputContext#removeNotify
-     * @throws NullPointerException when the component is null.
+     * @exception NullPointerException when the component is null.
      */
     public synchronized void removeNotify(Component component) {
         if (component == null) {
@@ -662,7 +662,7 @@ public class InputContext extends java.awt.im.InputContext
 
     /**
      * @see java.awt.im.InputContext#dispose
-     * @throws IllegalStateException when the currentClientComponent is not null
+     * @exception IllegalStateException when the currentClientComponent is not null
      */
     public synchronized void dispose() {
         if (currentClientComponent != null) {
@@ -695,10 +695,10 @@ public class InputContext extends java.awt.im.InputContext
         }
         inputMethodLocator = null;
         if (usedInputMethods != null && !usedInputMethods.isEmpty()) {
-            Collection<InputMethod> methods = usedInputMethods.values();
+            Iterator<InputMethod> iterator = usedInputMethods.values().iterator();
             usedInputMethods = null;
-            for (InputMethod method : methods) {
-                method.dispose();
+            while (iterator.hasNext()) {
+                iterator.next().dispose();
             }
         }
 
@@ -723,7 +723,7 @@ public class InputContext extends java.awt.im.InputContext
 
     /**
      * @see java.awt.im.InputContext#setCompositionEnabled(boolean)
-     * @throws UnsupportedOperationException when input method is null
+     * @exception UnsupportedOperationException when input method is null
      */
     public void setCompositionEnabled(boolean enable) {
         InputMethod inputMethod = getInputMethod();
@@ -736,7 +736,7 @@ public class InputContext extends java.awt.im.InputContext
 
     /**
      * @see java.awt.im.InputContext#isCompositionEnabled
-     * @throws UnsupportedOperationException when input method is null
+     * @exception UnsupportedOperationException when input method is null
      */
     public boolean isCompositionEnabled() {
         InputMethod inputMethod = getInputMethod();
@@ -749,7 +749,7 @@ public class InputContext extends java.awt.im.InputContext
 
     /**
      * @return a string with information about the current input method.
-     * @throws UnsupportedOperationException when input method is null
+     * @exception UnsupportedOperationException when input method is null
      */
     public String getInputMethodInfo() {
         InputMethod inputMethod = getInputMethod();
@@ -790,8 +790,8 @@ public class InputContext extends java.awt.im.InputContext
      */
     public void disableNativeIM() {
         InputMethod inputMethod = getInputMethod();
-        if (inputMethod instanceof InputMethodAdapter adapter) {
-            adapter.stopListening();
+        if (inputMethod != null && inputMethod instanceof InputMethodAdapter) {
+            ((InputMethodAdapter)inputMethod).stopListening();
         }
     }
 

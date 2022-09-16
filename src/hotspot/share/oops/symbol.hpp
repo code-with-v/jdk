@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -45,8 +45,8 @@
 // saved in persistent storage.  This does not include the pointer
 // in the SymbolTable bucket (the _literal field in HashtableEntry)
 // that points to the Symbol.  All other stores of a Symbol*
-// to a field of a persistent variable (e.g., the _name field in
-// fieldDescriptor or symbol in a constant pool) is reference counted.
+// to a field of a persistent variable (e.g., the _name filed in
+// fieldDescriptor or _ptr in a CPSlot) is reference counted.
 //
 // 1) The lookup of a "name" in the SymbolTable either creates a Symbol F for
 // "name" and returns a pointer to F or finds a pre-existing Symbol F for
@@ -58,7 +58,7 @@
 //                ^ increment on lookup()
 // and not
 //    Symbol* G = lookup()
-//              ^ increment on assignment
+//              ^ increment on assignmnet
 // The reference count must be decremented manually when the copy of the
 // pointer G is destroyed.
 //
@@ -155,7 +155,7 @@ class Symbol : public MetaspaceObj {
   // Returns the largest size symbol we can safely hold.
   static int max_length() { return max_symbol_length; }
   unsigned identity_hash() const {
-    unsigned addr_bits = (unsigned)((uintptr_t)this >> LogBytesPerWord);
+    unsigned addr_bits = (unsigned)((uintptr_t)this >> (LogMinObjAlignmentInBytes + 3));
     return ((unsigned)extract_hash(_hash_and_refcount) & 0xffff) |
            ((addr_bits ^ (length() << 8) ^ (( _body[0] << 8) | _body[1])) << 16);
   }
@@ -172,16 +172,6 @@ class Symbol : public MetaspaceObj {
   void set_permanent() NOT_CDS_RETURN;
   void make_permanent();
 
-  static void maybe_increment_refcount(Symbol* s) {
-    if (s != NULL) {
-      s->increment_refcount();
-    }
-  }
-  static void maybe_decrement_refcount(Symbol* s) {
-    if (s != NULL) {
-      s->decrement_refcount();
-    }
-  }
   // Function char_at() returns the Symbol's selected u1 byte as a char type.
   //
   // Note that all multi-byte chars have the sign bit set on all their bytes.
@@ -240,8 +230,8 @@ class Symbol : public MetaspaceObj {
     return code_byte == char_at(position);
   }
 
-  // Test if the symbol has the give substring at or after the i-th char.
-  int index_of_at(int i, const char* substr, int substr_len) const;
+  // Tests if the symbol starts with the given prefix.
+  int index_of_at(int i, const char* str, int len) const;
 
   // Three-way compare for sorting; returns -1/0/1 if receiver is </==/> than arg
   // note that the ordering is not alfabetical
@@ -271,7 +261,7 @@ class Symbol : public MetaspaceObj {
   // 'java.lang.Object[][]'.
   void print_as_signature_external_return_type(outputStream *os);
   // Treating the symbol as a signature, print the parameter types
-  // separated by ', ' to the outputStream.  Prints external names as
+  // seperated by ', ' to the outputStream.  Prints external names as
   //  'double' or 'java.lang.Object[][]'.
   void print_as_signature_external_parameters(outputStream *os);
 
@@ -295,10 +285,6 @@ class Symbol : public MetaspaceObj {
   static Symbol* vm_symbol_at(vmSymbolID vm_symbol_id) {
     assert(is_valid_id(vm_symbol_id), "must be");
     return _vm_symbols[static_cast<int>(vm_symbol_id)];
-  }
-
-  static unsigned int compute_hash(const Symbol* const& name) {
-    return (unsigned int) name->identity_hash();
   }
 
 #ifndef PRODUCT

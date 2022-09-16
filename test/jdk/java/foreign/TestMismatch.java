@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ *  Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  *  DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  *  This code is free software; you can redistribute it and/or modify it
@@ -23,20 +23,18 @@
 
 /*
  * @test
- * @enablePreview
  * @run testng TestMismatch
  */
 
-import java.lang.foreign.MemorySession;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
-
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.ValueLayout;
 import java.util.function.IntFunction;
 
+import jdk.incubator.foreign.MemoryLayouts;
+import jdk.incubator.foreign.MemorySegment;
+import jdk.incubator.foreign.ResourceScope;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import static java.lang.System.out;
@@ -45,7 +43,7 @@ import static org.testng.Assert.assertThrows;
 
 public class TestMismatch {
 
-    final static VarHandle BYTE_HANDLE = ValueLayout.JAVA_BYTE.varHandle();
+    final static VarHandle BYTE_HANDLE = MemoryLayouts.JAVA_BYTE.varHandle(byte.class);
 
     // stores a increasing sequence of values into the memory of the given segment
     static MemorySegment initializeSegment(MemorySegment segment) {
@@ -103,8 +101,8 @@ public class TestMismatch {
     public void testEmpty() {
         var s1 = MemorySegment.ofArray(new byte[0]);
         assertEquals(s1.mismatch(s1), -1);
-        try (MemorySession session = MemorySession.openConfined()) {
-            var nativeSegment = MemorySegment.allocateNative(4, 4, session);
+        try (ResourceScope scope = ResourceScope.newConfinedScope()) {
+            var nativeSegment = MemorySegment.allocateNative(4, 4, scope);
             var s2 = nativeSegment.asSlice(0, 0);
             assertEquals(s1.mismatch(s2), -1);
             assertEquals(s2.mismatch(s1), -1);
@@ -114,10 +112,10 @@ public class TestMismatch {
     @Test
     public void testLarge() {
         // skip if not on 64 bits
-        if (ValueLayout.ADDRESS.byteSize() > 32) {
-            try (MemorySession session = MemorySession.openConfined()) {
-                var s1 = MemorySegment.allocateNative((long) Integer.MAX_VALUE + 10L, 8, session);
-                var s2 = MemorySegment.allocateNative((long) Integer.MAX_VALUE + 10L, 8, session);
+        if (MemoryLayouts.ADDRESS.byteSize() > 32) {
+            try (ResourceScope scope = ResourceScope.newConfinedScope()) {
+                var s1 = MemorySegment.allocateNative((long) Integer.MAX_VALUE + 10L, 8, scope);
+                var s2 = MemorySegment.allocateNative((long) Integer.MAX_VALUE + 10L, 8, scope);
                 assertEquals(s1.mismatch(s1), -1);
                 assertEquals(s1.mismatch(s2), -1);
                 assertEquals(s2.mismatch(s1), -1);
@@ -154,9 +152,9 @@ public class TestMismatch {
     @Test
     public void testClosed() {
         MemorySegment s1, s2;
-        try (MemorySession session = MemorySession.openConfined()) {
-            s1 = MemorySegment.allocateNative(4, 1, session);
-            s2 = MemorySegment.allocateNative(4, 1, session);
+        try (ResourceScope scope = ResourceScope.newConfinedScope()) {
+            s1 = MemorySegment.allocateNative(4, 1, scope);
+            s2 = MemorySegment.allocateNative(4, 1, scope);
         }
         assertThrows(ISE, () -> s1.mismatch(s1));
         assertThrows(ISE, () -> s1.mismatch(s2));
@@ -165,8 +163,8 @@ public class TestMismatch {
 
     @Test
     public void testThreadAccess() throws Exception {
-        try (MemorySession session = MemorySession.openConfined()) {
-            var segment = MemorySegment.allocateNative(4, 1, session);
+        try (ResourceScope scope = ResourceScope.newConfinedScope()) {
+            var segment = MemorySegment.allocateNative(4, 1, scope);
             {
                 AtomicReference<RuntimeException> exception = new AtomicReference<>();
                 Runnable action = () -> {
@@ -181,7 +179,7 @@ public class TestMismatch {
                 thread.join();
 
                 RuntimeException e = exception.get();
-                if (!(e instanceof WrongThreadException)) {
+                if (!(e instanceof IllegalStateException)) {
                     throw e;
                 }
             }
@@ -199,7 +197,7 @@ public class TestMismatch {
                 thread.join();
 
                 RuntimeException e = exception.get();
-                if (!(e instanceof WrongThreadException)) {
+                if (!(e instanceof IllegalStateException)) {
                     throw e;
                 }
             }
@@ -207,7 +205,7 @@ public class TestMismatch {
     }
 
     enum SegmentKind {
-        NATIVE(i -> MemorySegment.allocateNative(i, MemorySession.openImplicit())),
+        NATIVE(i -> MemorySegment.allocateNative(i, ResourceScope.newImplicitScope())),
         ARRAY(i -> MemorySegment.ofArray(new byte[i]));
 
         final IntFunction<MemorySegment> segmentFactory;

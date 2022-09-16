@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -52,47 +52,47 @@ public interface RSAPrivateCrtKey extends RSAPrivateKey {
     @Deprecated
     @SuppressWarnings("serial")
     @java.io.Serial
-    long serialVersionUID = -5682214253527700368L;
+    static final long serialVersionUID = -5682214253527700368L;
 
     /**
      * Returns the public exponent.
      *
      * @return the public exponent
      */
-    BigInteger getPublicExponent();
+    public BigInteger getPublicExponent();
 
     /**
      * Returns the primeP.
      *
      * @return the primeP
      */
-    BigInteger getPrimeP();
+    public BigInteger getPrimeP();
 
     /**
      * Returns the primeQ.
      *
      * @return the primeQ
      */
-    BigInteger getPrimeQ();
+    public BigInteger getPrimeQ();
 
     /**
      * Returns the primeExponentP.
      *
      * @return the primeExponentP
      */
-    BigInteger getPrimeExponentP();
+    public BigInteger getPrimeExponentP();
 
     /**
      * Returns the primeExponentQ.
      *
      * @return the primeExponentQ
      */
-    BigInteger getPrimeExponentQ();
+    public BigInteger getPrimeExponentQ();
 
     /**
      * Returns the crtCoefficient.
      *
      * @return the crtCoefficient
      */
-    BigInteger getCrtCoefficient();
+    public BigInteger getCrtCoefficient();
 }

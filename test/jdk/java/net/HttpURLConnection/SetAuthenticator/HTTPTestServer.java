@@ -117,22 +117,12 @@ public class HTTPTestServer extends HTTPTest {
                                         HttpSchemeType schemeType,
                                         HttpHandler delegate)
             throws IOException {
-        return create(protocol, authType, auth, schemeType, null, "MD5");
-    }
-
-    public static HTTPTestServer create(HttpProtocolType protocol,
-                                        HttpAuthType authType,
-                                        HttpTestAuthenticator auth,
-                                        HttpSchemeType schemeType,
-                                        HttpHandler delegate,
-                                        String algorithm)
-            throws IOException {
         Objects.requireNonNull(authType);
         Objects.requireNonNull(auth);
         switch(authType) {
             // A server that performs Server Digest authentication.
             case SERVER: return createServer(protocol, authType, auth,
-                                             schemeType, delegate, algorithm, "/");
+                                             schemeType, delegate, "/");
             // A server that pretends to be a Proxy and performs
             // Proxy Digest authentication. If protocol is HTTPS,
             // then this will create a HttpsProxyTunnel that will
@@ -337,7 +327,6 @@ public class HTTPTestServer extends HTTPTest {
                                         HttpTestAuthenticator auth,
                                         HttpSchemeType schemeType,
                                         HttpHandler delegate,
-                                        String algorithm,
                                         String path)
             throws IOException {
         Objects.requireNonNull(authType);
@@ -347,7 +336,7 @@ public class HTTPTestServer extends HTTPTest {
         final HTTPTestServer server = new HTTPTestServer(impl, null, delegate);
         final HttpHandler hh = server.createHandler(schemeType, auth, authType);
         HttpContext ctxt = impl.createContext(path, hh);
-        server.configureAuthentication(ctxt, schemeType, auth, authType, algorithm);
+        server.configureAuthentication(ctxt, schemeType, auth, authType);
         impl.start();
         return server;
     }
@@ -368,7 +357,7 @@ public class HTTPTestServer extends HTTPTest {
                 : new HTTPTestServer(impl, null, delegate);
         final HttpHandler hh = server.createHandler(schemeType, auth, authType);
         HttpContext ctxt = impl.createContext(path, hh);
-        server.configureAuthentication(ctxt, schemeType, auth, authType, null);
+        server.configureAuthentication(ctxt, schemeType, auth, authType);
         impl.start();
 
         return server;
@@ -396,7 +385,7 @@ public class HTTPTestServer extends HTTPTest {
                 ? createProxy(protocol, targetAuthType,
                               auth, schemeType, targetDelegate, "/")
                 : createServer(targetProtocol, targetAuthType,
-                               auth, schemeType, targetDelegate, "MD5", "/");
+                               auth, schemeType, targetDelegate, "/");
         HttpServer impl = createHttpServer(protocol);
         final HTTPTestServer redirectingServer =
                  new HTTPTestServer(impl, redirectTarget, null);
@@ -442,11 +431,11 @@ public class HTTPTestServer extends HTTPTest {
     private void configureAuthentication(HttpContext ctxt,
                             HttpSchemeType schemeType,
                             HttpTestAuthenticator auth,
-                            HttpAuthType authType, String algorithm) {
+                            HttpAuthType authType) {
         switch(schemeType) {
             case DIGEST:
                 // DIGEST authentication is handled by the handler.
-                ctxt.getFilters().add(new HttpDigestFilter(auth, authType, algorithm));
+                ctxt.getFilters().add(new HttpDigestFilter(auth, authType));
                 break;
             case BASIC:
                 // BASIC authentication is handled by the filter.
@@ -614,21 +603,15 @@ public class HTTPTestServer extends HTTPTest {
         public static String computeDigest(boolean isRequest,
                                             String reqMethod,
                                             char[] password,
-                                            String expectedAlgorithm,
                                             DigestResponse params)
             throws NoSuchAlgorithmException
         {
 
             String A1, HashA1;
             String algorithm = params.getAlgorithm("MD5");
-            if (algorithm.endsWith("-sess")) {
-                algorithm = algorithm.substring(0, algorithm.length() - 5);
-            }
-            if (!algorithm.equalsIgnoreCase(expectedAlgorithm)) {
-                throw new IllegalArgumentException("unexpected algorithm");
-            }
+            boolean md5sess = algorithm.equalsIgnoreCase ("MD5-sess");
 
-            MessageDigest md = MessageDigest.getInstance(algorithm);
+            MessageDigest md = MessageDigest.getInstance(md5sess?"MD5":algorithm);
 
             if (params.username == null) {
                 throw new IllegalArgumentException("missing username");
@@ -793,15 +776,13 @@ public class HTTPTestServer extends HTTPTest {
         private final HttpTestAuthenticator auth;
         private final byte[] nonce;
         private final String ns;
-        private final String algorithm;
-        public HttpDigestFilter(HttpTestAuthenticator auth, HttpAuthType authType, String algorithm) {
+        public HttpDigestFilter(HttpTestAuthenticator auth, HttpAuthType authType) {
             super(authType, authType == HttpAuthType.SERVER
                             ? "Digest Server" : "Digest Proxy");
             this.auth = auth;
             nonce = new byte[16];
             new Random(Instant.now().toEpochMilli()).nextBytes(nonce);
             ns = new BigInteger(1, nonce).toString(16);
-            this.algorithm = (algorithm == null) ? "MD5" : algorithm;
         }
 
         @Override
@@ -809,7 +790,7 @@ public class HTTPTestServer extends HTTPTest {
             throws IOException {
             he.getResponseHeaders().add(getAuthenticate(),
                  "Digest realm=\"" + auth.getRealm() + "\","
-                 + "\r\n    qop=\"auth\", " + "algorithm=\"" + algorithm + "\", "
+                 + "\r\n    qop=\"auth\","
                  + "\r\n    nonce=\"" + ns +"\"");
             System.out.println(type + ": Requesting Digest Authentication "
                  + he.getResponseHeaders().getFirst(getAuthenticate()));
@@ -842,7 +823,7 @@ public class HTTPTestServer extends HTTPTest {
         }
 
         boolean validate(String reqMethod, DigestResponse dg) {
-            if (!this.algorithm.equalsIgnoreCase(dg.getAlgorithm("MD5"))) {
+            if (!"MD5".equalsIgnoreCase(dg.getAlgorithm("MD5"))) {
                 System.out.println(type + ": Unsupported algorithm "
                                    + dg.algorithm);
                 return false;
@@ -873,7 +854,7 @@ public class HTTPTestServer extends HTTPTest {
 
         boolean verify(String reqMethod, DigestResponse dg, char[] pw)
             throws NoSuchAlgorithmException {
-            String response = DigestResponse.computeDigest(true, reqMethod, pw, algorithm, dg);
+            String response = DigestResponse.computeDigest(true, reqMethod, pw, dg);
             if (!dg.response.equals(response)) {
                 System.out.println(type + ": bad response returned by client: "
                                     + dg.response + " expected " + response);

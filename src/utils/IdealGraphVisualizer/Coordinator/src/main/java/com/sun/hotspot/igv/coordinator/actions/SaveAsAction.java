@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2008, 2015, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,9 +24,6 @@
 
 package com.sun.hotspot.igv.coordinator.actions;
 
-import com.sun.hotspot.igv.coordinator.FolderNode;
-import com.sun.hotspot.igv.coordinator.OutlineTopComponent;
-import com.sun.hotspot.igv.data.Folder;
 import com.sun.hotspot.igv.data.GraphDocument;
 import com.sun.hotspot.igv.data.Group;
 import com.sun.hotspot.igv.data.serialization.Printer;
@@ -52,18 +49,13 @@ public final class SaveAsAction extends NodeAction {
 
     @Override
     protected void performAction(Node[] activatedNodes) {
-        final OutlineTopComponent component = OutlineTopComponent.findInstance();
+
         GraphDocument doc = new GraphDocument();
-        for (Node node : activatedNodes) {
-            if (node instanceof FolderNode) {
-                FolderNode folderNode = (FolderNode) node;
-                Folder folder = folderNode.getFolder();
-                if (folder instanceof Group) {
-                    Group group = (Group) folder;
-                    doc.addElement(group);
-                }
-            }
+        for (Node n : activatedNodes) {
+            Group group = n.getLookup().lookup(Group.class);
+            doc.addElement(group);
         }
+
         save(doc);
     }
 
@@ -123,14 +115,12 @@ public final class SaveAsAction extends NodeAction {
 
     @Override
     protected boolean enable(Node[] nodes) {
-        if (nodes.length > 0) {
-            for (Node n : nodes) {
-                if (!(n instanceof FolderNode) || ((FolderNode) n).isRootNode()) {
-                    return false;
-                }
-            }
-            return true;
+
+        int cnt = 0;
+        for (Node n : nodes) {
+            cnt += n.getLookup().lookupAll(Group.class).size();
         }
-        return false;
+
+        return cnt > 0;
     }
 }

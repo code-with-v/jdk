@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -103,8 +103,9 @@ public class AquaTableHeaderUI extends BasicTableHeaderUI {
         }
 
         final TableHeaderUI headerUI = target.getUI();
-        if (!(headerUI instanceof AquaTableHeaderUI aquaHeaderUI)) return;
+        if (headerUI == null || !(headerUI instanceof AquaTableHeaderUI)) return;
 
+        final AquaTableHeaderUI aquaHeaderUI = (AquaTableHeaderUI)headerUI;
         aquaHeaderUI.sortColumn = tableColumn.getModelIndex();
         aquaHeaderUI.sortOrder = sortDirection;
         final AquaTableCellRenderer renderer = aquaHeaderUI.new AquaTableCellRenderer();
@@ -144,7 +145,8 @@ public class AquaTableHeaderUI extends BasicTableHeaderUI {
     }
 
     protected static TableColumn getTableColumn(final JTableHeader target, final Object value) {
-        if (!(value instanceof Integer columnIndex)) return null;
+        if (value == null || !(value instanceof Integer)) return null;
+        final int columnIndex = ((Integer)value).intValue();
 
         final TableColumnModel columnModel = target.getColumnModel();
         if (columnIndex < 0 || columnIndex >= columnModel.getColumnCount()) return null;

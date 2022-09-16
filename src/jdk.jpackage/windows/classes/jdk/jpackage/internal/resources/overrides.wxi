@@ -18,14 +18,15 @@ Value of `Language` attribute of `Product` WiX element. Default value is 1033.
 - JpInstallerVersion
 Value of `InstallerVersion` attribute of `Package` WiX element. Default value is 200.
 
+- JpCompressedMsi
+Value of `Compressed` attribute of `Package` WiX element. Default value is `yes`.
+
 - JpAllowDowngrades
 Should be defined to enable downgrades and undefined to disable downgrades.
-By default it is defined for applications and undefined for Runtime installer.
-Use <?define JpAllowUpgrades = "foo" ?> to enable or <?undef JpAllowUpgrades?>
-to disable (the value doesn't matter).
+Default value is `yes`.
 
 - JpAllowUpgrades
 Should be defined to enable upgrades and undefined to disable upgrades.
-By default it is defined, use <?undef JpAllowUpgrades?> to disable.
+Default value is `yes`.
 -->
 <Include/>

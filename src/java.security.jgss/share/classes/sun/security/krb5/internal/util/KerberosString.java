@@ -29,8 +29,7 @@ import java.io.IOException;
 import sun.security.action.GetPropertyAction;
 import sun.security.util.DerValue;
 
-import static java.nio.charset.StandardCharsets.US_ASCII;
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.nio.charset.StandardCharsets.*;
 
 /**
  * Implements the ASN.1 KerberosString type.

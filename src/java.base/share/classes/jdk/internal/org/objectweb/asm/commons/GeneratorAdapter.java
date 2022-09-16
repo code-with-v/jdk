@@ -56,7 +56,6 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package jdk.internal.org.objectweb.asm.commons;
 
 import java.util.ArrayList;
@@ -233,7 +232,7 @@ public class GeneratorAdapter extends LocalVariablesSorter {
             final int access,
             final String name,
             final String descriptor) {
-        this(/* latest api = */ Opcodes.ASM9, methodVisitor, access, name, descriptor);
+        this(/* latest api = */ Opcodes.ASM8, methodVisitor, access, name, descriptor);
         if (getClass() != GeneratorAdapter.class) {
             throw new IllegalStateException();
         }
@@ -242,8 +241,9 @@ public class GeneratorAdapter extends LocalVariablesSorter {
     /**
       * Constructs a new {@link GeneratorAdapter}.
       *
-      * @param api the ASM API version implemented by this visitor. Must be one of the {@code
-      *     ASM}<i>x</i> values in {@link Opcodes}.
+      * @param api the ASM API version implemented by this visitor. Must be one of {@link
+      *     Opcodes#ASM4}, {@link Opcodes#ASM5}, {@link Opcodes#ASM6}, {@link Opcodes#ASM7} or {@link
+      *     Opcodes#ASM8}.
       * @param methodVisitor the method visitor to which this adapter delegates calls.
       * @param access the method's access flags (see {@link Opcodes}).
       * @param name the method's name.
@@ -1398,4 +1398,3 @@ public class GeneratorAdapter extends LocalVariablesSorter {
         mark(catchLabel);
     }
 }
-

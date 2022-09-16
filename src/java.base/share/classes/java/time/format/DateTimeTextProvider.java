@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2017, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -75,6 +75,7 @@ import java.time.temporal.TemporalField;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -309,7 +310,13 @@ class DateTimeTextProvider {
 
     private Object findStore(TemporalField field, Locale locale) {
         Entry<TemporalField, Locale> key = createEntry(field, locale);
-        return CACHE.computeIfAbsent(key, e -> createStore(e.getKey(), e.getValue()));
+        Object store = CACHE.get(key);
+        if (store == null) {
+            store = createStore(field, locale);
+            CACHE.putIfAbsent(key, store);
+            store = CACHE.get(key);
+        }
+        return store;
     }
 
     private static int toWeekDay(int calWeekDay) {
@@ -546,12 +553,12 @@ class DateTimeTextProvider {
                     }
                 }
                 List<Entry<String, Long>> list = new ArrayList<>(reverse.values());
-                list.sort(COMPARATOR);
+                Collections.sort(list, COMPARATOR);
                 map.put(vtmEntry.getKey(), list);
                 allList.addAll(list);
                 map.put(null, allList);
             }
-            allList.sort(COMPARATOR);
+            Collections.sort(allList, COMPARATOR);
             this.parsable = map;
         }
 

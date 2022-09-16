@@ -45,7 +45,6 @@ public class Infopoint extends Site implements Comparable<Infopoint> {
         super(pcOffset);
         this.debugInfo = debugInfo;
         this.reason = reason;
-        assert reason != InfopointReason.CALL || this instanceof Call : getClass();
     }
 
     @Override

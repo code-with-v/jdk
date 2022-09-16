@@ -26,10 +26,6 @@
 #import <AppKit/AppKit.h>
 #import <jni.h>
 
-extern NSMutableDictionary *sActions;
-extern NSMutableDictionary *sActionSelectors;
-extern NSMutableArray *sAllActionSelectors;
-void initializeActions();
 
 @protocol JavaAccessibilityAction
 

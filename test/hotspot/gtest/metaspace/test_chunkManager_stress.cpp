@@ -61,9 +61,9 @@ class ChunkManagerRandomChunkAllocTest {
     return max_chunks;
   }
 
-  // Return true if, after an allocation error happened, a reserve error seems possible.
+  // Return true if, after an allocation error happened, a reserve error seems likely.
   bool could_be_reserve_error() {
-    return _context.reserve_limit() < max_uintx;
+    return _context.vslist().is_full();
   }
 
   // Return true if, after an allocation error happened, a commit error seems likely.

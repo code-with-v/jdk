@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -29,13 +29,12 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
-import sun.security.util.DerOutputStream;
-import sun.security.util.DerValue;
-import sun.security.util.KnownOIDs;
-import sun.security.util.ObjectIdentifier;
+import sun.security.util.*;
 
 /**
  * This class defines the Extended Key Usage Extension, which
@@ -159,7 +158,7 @@ implements CertAttrSet<String> {
             throw new IOException("Invalid encoding for " +
                                    "ExtendedKeyUsageExtension.");
         }
-        keyUsages = new Vector<>();
+        keyUsages = new Vector<ObjectIdentifier>();
         while (val.data.available() != 0) {
             DerValue seq = val.data.getDerValue();
             ObjectIdentifier usage = seq.getOID();
@@ -274,7 +273,7 @@ implements CertAttrSet<String> {
     }
 
     public List<String> getExtendedKeyUsage() {
-        List<String> al = new ArrayList<>(keyUsages.size());
+        List<String> al = new ArrayList<String>(keyUsages.size());
         for (ObjectIdentifier oid : keyUsages) {
             al.add(oid.toString());
         }

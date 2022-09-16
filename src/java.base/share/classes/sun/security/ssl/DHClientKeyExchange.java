@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -133,14 +133,13 @@ final class DHClientKeyExchange {
         @Override
         public String toString() {
             MessageFormat messageFormat = new MessageFormat(
-                    """
-                            "DH ClientKeyExchange": '{'
-                              "parameters": '{'
-                                "dh_Yc": '{'
-                            {0}
-                                '}',
-                              '}'
-                            '}'""",
+                "\"DH ClientKeyExchange\": '{'\n" +
+                "  \"parameters\": '{'\n" +
+                "    \"dh_Yc\": '{'\n" +
+                "{0}\n" +
+                "    '}',\n" +
+                "  '}'\n" +
+                "'}'",
                 Locale.ENGLISH);
 
             HexDumpEncoder hexEncoder = new HexDumpEncoder();
@@ -296,8 +295,8 @@ final class DHClientKeyExchange {
                 shc.handshakeCredentials.add(
                         new DHECredentials(peerPublicKey, namedGroup));
             } catch (GeneralSecurityException | java.io.IOException e) {
-                throw new SSLHandshakeException(
-                        "Could not generate DHPublicKey", e);
+                throw (SSLHandshakeException)(new SSLHandshakeException(
+                        "Could not generate DHPublicKey").initCause(e));
             }
 
             // update the states

@@ -182,11 +182,7 @@ public abstract class AbstractDiagnosticFormatter implements DiagnosticFormatter
             String s = null;
             depth++;
             try {
-                JCDiagnostic rewrittenDiagnostic = null;
-                if (diagnostic.hasRewriter()) {
-                    rewrittenDiagnostic = diagnostic.rewrite();
-                }
-                s = formatMessage(rewrittenDiagnostic != null ? rewrittenDiagnostic : diagnostic, l);
+                s = formatMessage(diagnostic, l);
             }
             finally {
                 depth--;

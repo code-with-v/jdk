@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -63,7 +63,8 @@ public class DSAKeyFactory extends KeyFactorySpi {
     protected PublicKey engineGeneratePublic(KeySpec keySpec)
     throws InvalidKeySpecException {
         try {
-            if (keySpec instanceof DSAPublicKeySpec dsaPubKeySpec) {
+            if (keySpec instanceof DSAPublicKeySpec) {
+                DSAPublicKeySpec dsaPubKeySpec = (DSAPublicKeySpec)keySpec;
                 return new DSAPublicKeyImpl(dsaPubKeySpec.getY(),
                                     dsaPubKeySpec.getP(),
                                     dsaPubKeySpec.getQ(),
@@ -95,7 +96,8 @@ public class DSAKeyFactory extends KeyFactorySpi {
     protected PrivateKey engineGeneratePrivate(KeySpec keySpec)
             throws InvalidKeySpecException {
         try {
-            if (keySpec instanceof DSAPrivateKeySpec dsaPrivKeySpec) {
+            if (keySpec instanceof DSAPrivateKeySpec) {
+                DSAPrivateKeySpec dsaPrivKeySpec = (DSAPrivateKeySpec)keySpec;
                 return new DSAPrivateKey(dsaPrivKeySpec.getX(),
                                          dsaPrivKeySpec.getP(),
                                          dsaPrivKeySpec.getQ(),

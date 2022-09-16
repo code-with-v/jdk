@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2015, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -85,7 +85,7 @@ public class RDN {
      * @throws IOException on parsing error
      */
     public RDN(String name) throws IOException {
-        this(name, Collections.emptyMap());
+        this(name, Collections.<String, String>emptyMap());
     }
 
     /**
@@ -147,7 +147,7 @@ public class RDN {
         AVA ava = new AVA(new StringReader(avaString), keywordMap);
         avaVec.add(ava);
 
-        assertion = avaVec.toArray(new AVA[0]);
+        assertion = avaVec.toArray(new AVA[avaVec.size()]);
     }
 
     /*
@@ -162,7 +162,7 @@ public class RDN {
      * @throws IOException on parsing error
      */
     RDN(String name, String format) throws IOException {
-        this(name, format, Collections.emptyMap());
+        this(name, format, Collections.<String, String>emptyMap());
     }
 
     /*
@@ -179,10 +179,10 @@ public class RDN {
      */
     RDN(String name, String format, Map<String, String> keywordMap)
         throws IOException {
-        if (!format.equalsIgnoreCase("RFC2253")) {
+        if (format.equalsIgnoreCase("RFC2253") == false) {
             throw new IOException("Unsupported format " + format);
         }
-        int searchOffset;
+        int searchOffset = 0;
         int avaOffset = 0;
         List<AVA> avaVec = new ArrayList<>(3);
         int nextPlus = name.indexOf('+');
@@ -223,7 +223,7 @@ public class RDN {
         AVA ava = new AVA(new StringReader(avaString), AVA.RFC2253, keywordMap);
         avaVec.add(ava);
 
-        assertion = avaVec.toArray(new AVA[0]);
+        assertion = avaVec.toArray(new AVA[avaVec.size()]);
     }
 
     /*
@@ -293,9 +293,10 @@ public class RDN {
         if (this == obj) {
             return true;
         }
-        if (!(obj instanceof RDN other)) {
+        if (obj instanceof RDN == false) {
             return false;
         }
+        RDN other = (RDN)obj;
         if (this.assertion.length != other.assertion.length) {
             return false;
         }
@@ -340,7 +341,7 @@ public class RDN {
     }
 
     /*
-     * Returns a printable form of this RDN, using RFC 1779 style concatenation
+     * Returns a printable form of this RDN, using RFC 1779 style catenation
      * of attribute/value assertions, and emitting attribute type keywords
      * from RFCs 1779, 2253, and 5280.
      */
@@ -361,7 +362,7 @@ public class RDN {
      * RFC 1779. Only RFC 1779 attribute type keywords are emitted.
      */
     public String toRFC1779String() {
-        return toRFC1779String(Collections.emptyMap());
+        return toRFC1779String(Collections.<String, String>emptyMap());
     }
 
     /*
@@ -387,7 +388,7 @@ public class RDN {
      */
     public String toRFC2253String() {
         return toRFC2253StringInternal
-            (false, Collections.emptyMap());
+            (false, Collections.<String, String>emptyMap());
     }
 
     /*
@@ -406,14 +407,14 @@ public class RDN {
      * documented in X500Principal.getName are performed.
      */
     public String toRFC2253String(boolean canonical) {
-        if (!canonical) {
+        if (canonical == false) {
             return toRFC2253StringInternal
-                (false, Collections.emptyMap());
+                (false, Collections.<String, String>emptyMap());
         }
         String c = canonicalString;
         if (c == null) {
             c = toRFC2253StringInternal
-                (true, Collections.emptyMap());
+                (true, Collections.<String, String>emptyMap());
             canonicalString = c;
         }
         return c;
@@ -426,7 +427,7 @@ public class RDN {
          * to a string, the output consists of the string encodings of each
          * AttributeTypeAndValue (according to 2.3), in any order.
          *
-         * Where there is a multivalued RDN, the outputs from adjoining
+         * Where there is a multi-valued RDN, the outputs from adjoining
          * AttributeTypeAndValues are separated by a plus ('+' ASCII 43)
          * character.
          */

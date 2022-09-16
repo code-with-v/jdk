@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,7 @@
 package nsk.jdi.WatchpointRequest.addInstanceFilter;
 
 import nsk.share.*;
+import nsk.share.jpda.*;
 import nsk.share.jdi.*;
 
 /**
@@ -53,8 +54,8 @@ public class instancefilter002a {
 
     //====================================================== test program
 
-    static Thread thread1 = null;
-    static Thread thread2 = null;
+    static Threadinstancefilter002a thread1 = null;
+    static Threadinstancefilter002a thread2 = null;
 
     static instancefilter002aTestClass objTC[] = { new instancefilter002aTestClass(), new instancefilter002aTestClass(), new instancefilter002aTestClass() };
 
@@ -98,8 +99,8 @@ public class instancefilter002a {
     //------------------------------------------------------  section tested
 
                     case 0:
-                            thread1 = JDIThreadFactory.newThread(new Threadinstancefilter002a("thread1"));
-                            thread2 = JDIThreadFactory.newThread(new Threadinstancefilter002a("thread2"));
+                            thread1 = new Threadinstancefilter002a("thread1");
+                            thread2 = new Threadinstancefilter002a("thread2");
                             break;
 
                     case 1:
@@ -148,29 +149,31 @@ public class instancefilter002a {
     static Object lockingObj[] = new Object[2];
     static volatile int number = 0;
 
-    static class Threadinstancefilter002a extends NamedTask {
+    static class Threadinstancefilter002a extends Thread {
 
+        String tName = null;
         int tNumber;
 
         public Threadinstancefilter002a(String threadName) {
             super(threadName);
+            tName = threadName;
             tNumber = number;
             number++;
             lockingObj[tNumber] = threadName;
         }
 
         public void run() {
-            log1("  'run': enter  :: threadName == " + getName());
+            log1("  'run': enter  :: threadName == " + tName);
             if (lockingObj[tNumber] == null)
                 log1("lockingObj[tNumber] == null");
             synchronized(lockingObj[tNumber]) {
                 synchronized (waitnotifyObj) {
                     waitnotifyObj.notify();
                 }
-                log1(" objTC[tNumber].method();  :: threadName == " + getName() + "  tNumber == " + tNumber);
+                log1(" objTC[tNumber].method();  :: threadName == " + tName + "  tNumber == " + tNumber);
                 objTC[tNumber].method();
             }
-            log1("  'run': exit   :: threadName == " + getName());
+            log1("  'run': exit   :: threadName == " + tName);
             return;
         }
     }

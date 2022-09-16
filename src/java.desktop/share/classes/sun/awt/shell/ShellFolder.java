@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,14 +34,14 @@ import java.io.Serial;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Paths;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Vector;
 import java.util.concurrent.Callable;
 
 import javax.swing.SwingConstants;
-import sun.awt.OSInfo;
 
 /**
  * @author Michael Martak
@@ -136,11 +136,11 @@ public abstract class ShellFolder extends File {
         File[] files = super.listFiles();
 
         if (!includeHiddenFiles) {
-            ArrayList<File> v = new ArrayList<>();
+            Vector<File> v = new Vector<>();
             int nameCount = (files == null) ? 0 : files.length;
             for (int i = 0; i < nameCount; i++) {
                 if (!files[i].isHidden()) {
-                    v.add(files[i]);
+                    v.addElement(files[i]);
                 }
             }
             files = v.toArray(new File[v.size()]);
@@ -182,7 +182,9 @@ public abstract class ShellFolder extends File {
      * @see #compareTo(Object)
      */
     public int compareTo(File file2) {
-        if (!(file2 instanceof ShellFolder sf) || sf.isFileSystem()) {
+        if (file2 == null || !(file2 instanceof ShellFolder)
+            || ((file2 instanceof ShellFolder) && ((ShellFolder)file2).isFileSystem())) {
+
             if (isFileSystem()) {
                 return super.compareTo(file2);
             } else {
@@ -232,7 +234,9 @@ public abstract class ShellFolder extends File {
                 managerClass = null;
             }
         // swallow the exceptions below and use default shell folder
-        } catch (ClassNotFoundException | SecurityException | NullPointerException e) {
+        } catch(ClassNotFoundException e) {
+        } catch(NullPointerException e) {
+        } catch(SecurityException e) {
         }
 
         if (managerClass == null) {
@@ -251,12 +255,13 @@ public abstract class ShellFolder extends File {
 
     /**
      * Return a shell folder from a file object
-     * @throws FileNotFoundException if file does not exist
+     * @exception FileNotFoundException if file does not exist
      */
     public static ShellFolder getShellFolder(File file) throws FileNotFoundException {
         if (file instanceof ShellFolder) {
             return (ShellFolder)file;
         }
+
         if (!Files.exists(Paths.get(file.getPath()), LinkOption.NOFOLLOW_LINKS)) {
             throw new FileNotFoundException();
         }
@@ -293,7 +298,7 @@ public abstract class ShellFolder extends File {
      */
     public static File getNormalizedFile(File f) throws IOException {
         File canonical = f.getCanonicalFile();
-        if (f.equals(canonical) || OSInfo.getOSType() == OSInfo.OSType.WINDOWS) {
+        if (f.equals(canonical)) {
             // path of f doesn't contain symbolic links
             return canonical;
         }
@@ -341,7 +346,7 @@ public abstract class ShellFolder extends File {
                 if (commonParent instanceof ShellFolder) {
                     ((ShellFolder) commonParent).sortChildren(files);
                 } else {
-                    files.sort(FILE_COMPARATOR);
+                    Collections.sort(files, FILE_COMPARATOR);
                 }
 
                 return null;
@@ -354,7 +359,7 @@ public abstract class ShellFolder extends File {
         // synchronize the whole code of the sort method once
         invoke(new Callable<Void>() {
             public Void call() {
-                files.sort(FILE_COMPARATOR);
+                Collections.sort(files, FILE_COMPARATOR);
 
                 return null;
             }

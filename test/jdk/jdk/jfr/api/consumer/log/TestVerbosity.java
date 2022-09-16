@@ -42,7 +42,7 @@ import jdk.jfr.Name;
  *      jdk.jfr.api.consumer.log.TestVerbosity trace
  * @run main/othervm
  *      -Xlog:jfr+event*=debug:file=debug.log
- *      -XX:StartFlightRecording:jdk.ExecutionSample#enabled=false
+ *      -XX:StartFlightRecording
  *      jdk.jfr.api.consumer.log.TestVerbosity debug
  * @run main/othervm
  *      -Xlog:jfr+event*=info:file=info.log

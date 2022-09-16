@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,6 +35,11 @@ import jdk.javadoc.internal.doclets.toolkit.ModuleSummaryWriter;
 
 /**
  * Builds the summary for a given module.
+ *
+ *  <p><b>This is NOT part of any supported API.
+ *  If you write code that depends on this, you do so at your own risk.
+ *  This code and its internal interfaces are subject to change or
+ *  deletion without notice.</b>
  */
 public class ModuleSummaryBuilder extends AbstractBuilder {
 
@@ -98,12 +103,12 @@ public class ModuleSummaryBuilder extends AbstractBuilder {
      * @throws DocletException if there is a problem while building the documentation
      */
     protected void buildModuleDoc() throws DocletException {
-        Content content = moduleWriter.getModuleHeader(mdle.getQualifiedName().toString());
+        Content contentTree = moduleWriter.getModuleHeader(mdle.getQualifiedName().toString());
 
         buildContent();
 
         moduleWriter.addModuleFooter();
-        moduleWriter.printDocument(content);
+        moduleWriter.printDocument(contentTree);
         DocFilesHandler docFilesHandler = configuration.getWriterFactory().getDocFilesHandler(mdle);
         docFilesHandler.copyDocFiles();
     }
@@ -114,30 +119,30 @@ public class ModuleSummaryBuilder extends AbstractBuilder {
      * @throws DocletException if there is a problem while building the documentation
      */
     protected void buildContent() throws DocletException {
-        Content moduleContent = moduleWriter.getContentHeader();
+        Content moduleContentTree = moduleWriter.getContentHeader();
 
-        moduleWriter.addModuleSignature(moduleContent);
-        buildModuleDescription(moduleContent);
-        buildSummary(moduleContent);
+        moduleWriter.addModuleSignature(moduleContentTree);
+        buildModuleDescription(moduleContentTree);
+        buildSummary(moduleContentTree);
 
-        moduleWriter.addModuleContent(moduleContent);
+        moduleWriter.addModuleContent(moduleContentTree);
     }
 
     /**
      * Builds the list of summary sections for this module.
      *
-     * @param target the module content to which the summaries will
-     *               be added
+     * @param moduleContentTree the module content tree to which the summaries will
+     *                           be added
      * @throws DocletException if there is a problem while building the documentation
      */
-    protected void buildSummary(Content target) throws DocletException {
+    protected void buildSummary(Content moduleContentTree) throws DocletException {
         Content summariesList = moduleWriter.getSummariesList();
 
         buildPackagesSummary(summariesList);
         buildModulesSummary(summariesList);
         buildServicesSummary(summariesList);
 
-        target.add(moduleWriter.getSummary(summariesList));
+        moduleContentTree.add(moduleWriter.getSummaryTree(summariesList));
     }
 
     /**
@@ -170,12 +175,12 @@ public class ModuleSummaryBuilder extends AbstractBuilder {
     /**
      * Builds the description for this module.
      *
-     * @param moduleContent the content to which the module description will
-     *                      be added
+     * @param moduleContentTree the tree to which the module description will
+     *                           be added
      */
-    protected void buildModuleDescription(Content moduleContent) {
+    protected void buildModuleDescription(Content moduleContentTree) {
         if (!options.noComment()) {
-            moduleWriter.addModuleDescription(moduleContent);
+            moduleWriter.addModuleDescription(moduleContentTree);
         }
     }
 }

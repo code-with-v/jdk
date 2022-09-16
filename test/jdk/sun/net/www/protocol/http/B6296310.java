@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,30 +24,17 @@
 /*
  * @test
  * @bug 6296310
- * @library /test/lib
+ * @modules java.base/sun.net.www
+ * @library ../../httptest/
+ * @build HttpCallback TestHttpServer HttpTransaction
  * @run main/othervm B6296310
  * @run main/othervm -Djava.net.preferIPv6Addresses=true B6296310
  * @summary  REGRESSION: AppletClassLoader.getResourceAsStream() behaviour is wrong in some cases
  */
 
-import java.io.IOException;
-import java.io.OutputStream;
-import java.net.CacheRequest;
-import java.net.CacheResponse;
-import java.net.HttpURLConnection;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.net.ResponseCache;
-import java.net.URI;
-import java.net.URL;
-import java.net.URLConnection;
-import java.util.Map;
-import java.util.concurrent.Executors;
-
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
+import java.net.*;
+import java.io.*;
+import java.util.*;
 
 /*
  * http server returns 200 and content-length=0
@@ -57,7 +44,7 @@ import com.sun.net.httpserver.HttpServer;
 public class B6296310
 {
    static SimpleHttpTransaction httpTrans;
-   static HttpServer server;
+   static TestHttpServer server;
 
    public static void main(String[] args) throws Exception
    {
@@ -69,35 +56,31 @@ public class B6296310
    public static void startHttpServer() throws IOException {
      httpTrans = new SimpleHttpTransaction();
      InetAddress loopback = InetAddress.getLoopbackAddress();
-     server = HttpServer.create(new InetSocketAddress(loopback, 0), 10);
-     server.createContext("/", httpTrans);
-     server.setExecutor(Executors.newSingleThreadExecutor());
-     server.start();
+     server = new TestHttpServer(httpTrans, 1, 10, loopback, 0);
    }
 
    public static void makeHttpCall() throws IOException {
       try {
-         System.out.println("http server listen on: " + server.getAddress().getPort());
+         System.out.println("http server listen on: " + server.getLocalPort());
          URL url = new URL("http" , InetAddress.getLoopbackAddress().getHostAddress(),
-                            server.getAddress().getPort(), "/");
+                            server.getLocalPort(), "/");
          HttpURLConnection uc = (HttpURLConnection)url.openConnection(Proxy.NO_PROXY);
          System.out.println(uc.getResponseCode());
       } finally {
-         server.stop(1);
+         server.terminate();
       }
    }
 }
 
-class SimpleHttpTransaction implements HttpHandler
+class SimpleHttpTransaction implements HttpCallback
 {
    /*
     * Our http server which simply retruns a file with no content
     */
-   @Override
-   public void handle(HttpExchange trans) {
+   public void request(HttpTransaction trans) {
       try {
-         trans.sendResponseHeaders(200, 0);
-         trans.close();
+         trans.setResponseEntityBody("");
+         trans.sendResponse(200, "OK");
       } catch (Exception e) {
          e.printStackTrace();
       }

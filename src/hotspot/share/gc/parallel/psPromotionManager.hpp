@@ -29,7 +29,6 @@
 #include "gc/shared/copyFailedInfo.hpp"
 #include "gc/shared/gcTrace.hpp"
 #include "gc/shared/preservedMarks.hpp"
-#include "gc/shared/stringdedup/stringDedup.hpp"
 #include "gc/shared/taskqueue.hpp"
 #include "memory/padded.hpp"
 #include "utilities/globalDefinitions.hpp"
@@ -82,7 +81,9 @@ class PSPromotionManager {
   bool                                _old_gen_is_full;
 
   PSScannerTasksQueue                 _claimed_stack_depth;
+  OverflowTaskQueue<oop, mtGC>        _claimed_stack_breadth;
 
+  bool                                _totally_drain;
   uint                                _target_stack_size;
 
   uint                                _array_chunk_size;
@@ -90,8 +91,6 @@ class PSPromotionManager {
 
   PreservedMarks*                     _preserved_marks;
   PromotionFailedInfo                 _promotion_failed_info;
-
-  StringDedup::Requests _string_dedup_requests;
 
   // Accessors
   static PSOldGen* old_gen()         { return _old_gen; }
@@ -147,8 +146,6 @@ class PSPromotionManager {
   static void restore_preserved_marks();
 
   void flush_labs();
-  void flush_string_dedup_requests() { _string_dedup_requests.flush(); }
-
   void drain_stacks(bool totally_drain) {
     drain_stacks_depth(totally_drain);
   }

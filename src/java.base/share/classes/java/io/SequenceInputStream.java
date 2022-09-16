@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1994, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,8 +25,8 @@
 
 package java.io;
 
+import java.io.InputStream;
 import java.util.Enumeration;
-import java.util.Objects;
 import java.util.Vector;
 
 /**
@@ -98,7 +98,7 @@ public class SequenceInputStream extends InputStream {
 
     private void peekNextStream() {
         if (e.hasMoreElements()) {
-            in = e.nextElement();
+            in = (InputStream) e.nextElement();
             if (in == null)
                 throw new NullPointerException();
         } else {
@@ -121,11 +121,10 @@ public class SequenceInputStream extends InputStream {
      *           skipped over) from the current underlying input stream
      *           without blocking or {@code 0} if this input stream
      *           has been closed by invoking its {@link #close()} method
-     * @throws   IOException {@inheritDoc}
+     * @throws   IOException  if an I/O error occurs.
      *
      * @since    1.1
      */
-    @Override
     public int available() throws IOException {
         if (in == null) {
             return 0; // no way to signal EOF from available()
@@ -134,7 +133,12 @@ public class SequenceInputStream extends InputStream {
     }
 
     /**
-     * {@inheritDoc}
+     * Reads the next byte of data from this input stream. The byte is
+     * returned as an {@code int} in the range {@code 0} to
+     * {@code 255}. If no byte is available because the end of the
+     * stream has been reached, the value {@code -1} is returned.
+     * This method blocks until input data is available, the end of the
+     * stream is detected, or an exception is thrown.
      * <p>
      * This method
      * tries to read one character from the current substream. If it
@@ -142,10 +146,10 @@ public class SequenceInputStream extends InputStream {
      * method of the current substream and begins reading from the next
      * substream.
      *
-     * @return     {@inheritDoc}
+     * @return     the next byte of data, or {@code -1} if the end of the
+     *             stream is reached.
      * @throws     IOException  if an I/O error occurs.
      */
-    @Override
     public int read() throws IOException {
         while (in != null) {
             int c = in.read();
@@ -158,11 +162,10 @@ public class SequenceInputStream extends InputStream {
     }
 
     /**
-     * Reads up to {@code len} bytes of data from this input stream into an
-     * array of bytes.  If the end of the last contained stream has been reached
-     * then {@code -1} is returned.  Otherwise, if {@code len} is not zero, the
-     * method blocks until at least 1 byte of input is available; if {@code len}
-     * is zero, no bytes are read and {@code 0} is returned.
+     * Reads up to {@code len} bytes of data from this input stream
+     * into an array of bytes.  If {@code len} is not zero, the method
+     * blocks until at least 1 byte of input is available; otherwise, no
+     * bytes are read and {@code 0} is returned.
      * <p>
      * The {@code read} method of {@code SequenceInputStream}
      * tries to read the data from the current substream. If it fails to
@@ -174,26 +177,21 @@ public class SequenceInputStream extends InputStream {
      * @param      off   the start offset in array {@code b}
      *                   at which the data is written.
      * @param      len   the maximum number of bytes read.
-     * @return     the total number of bytes read into the buffer, or
-     *             {@code -1} if there is no more data because the end of
-     *             the last contained stream has been reached.
-     * @throws     NullPointerException if the end of the last contained
-     *             stream has not been reached and {@code b} is {@code null}.
-     * @throws     IndexOutOfBoundsException if the end of the last contained
-     *             stream has not been reached and {@code off} is negative,
+     * @return     int   the number of bytes read.
+     * @throws     NullPointerException If {@code b} is {@code null}.
+     * @throws     IndexOutOfBoundsException If {@code off} is negative,
      *             {@code len} is negative, or {@code len} is
      *             greater than {@code b.length - off}
      * @throws     IOException  if an I/O error occurs.
      */
-    @Override
-    public int read(byte[] b, int off, int len) throws IOException {
+    public int read(byte b[], int off, int len) throws IOException {
         if (in == null) {
             return -1;
         } else if (b == null) {
             throw new NullPointerException();
-        }
-        Objects.checkFromIndexSize(off, len, b.length);
-        if (len == 0) {
+        } else if (off < 0 || len < 0 || len > b.length - off) {
+            throw new IndexOutOfBoundsException();
+        } else if (len == 0) {
             return 0;
         }
         do {
@@ -207,7 +205,8 @@ public class SequenceInputStream extends InputStream {
     }
 
     /**
-     * {@inheritDoc}
+     * Closes this input stream and releases any system resources
+     * associated with the stream.
      * A closed {@code SequenceInputStream}
      * cannot  perform input operations and cannot
      * be reopened.
@@ -217,9 +216,8 @@ public class SequenceInputStream extends InputStream {
      * are requested from the enumeration and closed
      * before the {@code close} method returns.
      *
-     * @throws     IOException {@inheritDoc}
+     * @throws     IOException  if an I/O error occurs.
      */
-    @Override
     public void close() throws IOException {
         IOException ioe = null;
         while (in != null) {

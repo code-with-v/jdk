@@ -32,13 +32,14 @@
 #include "logging/log.hpp"
 #include "runtime/atomic.hpp"
 
-CodeCacheUnloadingTask::CodeCacheUnloadingTask(uint num_workers, bool unloading_occurred) :
+CodeCacheUnloadingTask::CodeCacheUnloadingTask(uint num_workers, BoolObjectClosure* is_alive, bool unloading_occurred) :
+  _unloading_scope(is_alive),
   _unloading_occurred(unloading_occurred),
   _num_workers(num_workers),
   _first_nmethod(NULL),
   _claimed_nmethod(NULL) {
   // Get first alive nmethod
-  CompiledMethodIterator iter(CompiledMethodIterator::all_blobs);
+  CompiledMethodIterator iter(CompiledMethodIterator::only_alive);
   if(iter.next()) {
     _first_nmethod = iter.method();
   }
@@ -52,13 +53,13 @@ CodeCacheUnloadingTask::~CodeCacheUnloadingTask() {
 
 void CodeCacheUnloadingTask::claim_nmethods(CompiledMethod** claimed_nmethods, int *num_claimed_nmethods) {
   CompiledMethod* first;
-  CompiledMethodIterator last(CompiledMethodIterator::all_blobs);
+  CompiledMethodIterator last(CompiledMethodIterator::only_alive);
 
   do {
     *num_claimed_nmethods = 0;
 
     first = _claimed_nmethod;
-    last = CompiledMethodIterator(CompiledMethodIterator::all_blobs, first);
+    last = CompiledMethodIterator(CompiledMethodIterator::only_alive, first);
 
     if (first != NULL) {
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,7 @@
  */
 package jdk.jfr.internal.jfc.model;
 
+import java.text.ParseException;
 import java.util.List;
 import java.util.Optional;
 
@@ -84,10 +85,10 @@ final class XmlConfiguration extends XmlElement {
     }
 
     @Override
-    protected void validateAttributes() throws JFCModelException {
+    protected void validateAttributes() throws ParseException {
         super.validateAttributes();
         if (!attribute("version").equals("2.0")) {
-            throw new JFCModelException("Only .jfc files of version 2.0 is supported");
+            throw new ParseException("Only .jfc files of version 2.0 is supported", -1);
         }
     }
 

@@ -131,15 +131,14 @@ public final class ModulePatcher {
 
                     // exploded directory without following sym links
                     Path top = file;
-                    try (Stream<Path> stream = Files.find(top, Integer.MAX_VALUE,
-                            ((path, attrs) -> attrs.isRegularFile()))) {
-                        stream.filter(path -> (!isAutomatic
-                                      || path.toString().endsWith(".class"))
-                                      && !isHidden(path))
+                    Files.find(top, Integer.MAX_VALUE,
+                               ((path, attrs) -> attrs.isRegularFile()))
+                            .filter(path -> (!isAutomatic
+                                    || path.toString().endsWith(".class"))
+                                    && !isHidden(path))
                             .map(path -> toPackageName(top, path))
                             .filter(Checks::isPackageName)
                             .forEach(packages::add);
-                    }
 
                 }
             }

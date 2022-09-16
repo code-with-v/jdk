@@ -39,7 +39,6 @@
 #include "oops/compressedOops.inline.hpp"
 #include "runtime/atomic.hpp"
 #include "runtime/orderAccess.hpp"
-#include "runtime/threads.hpp"
 #include "utilities/align.hpp"
 
 // Avoid name collision on verify_oop (defined in macroAssembler_arm.hpp)
@@ -422,7 +421,7 @@ public:
   }
 };
 
-class ShenandoahVerifierReachableTask : public WorkerTask {
+class ShenandoahVerifierReachableTask : public AbstractGangTask {
 private:
   const char* _label;
   ShenandoahVerifier::VerifyOptions _options;
@@ -436,7 +435,7 @@ public:
                                   ShenandoahLivenessData* ld,
                                   const char* label,
                                   ShenandoahVerifier::VerifyOptions options) :
-    WorkerTask("Shenandoah Verifier Reachable Objects"),
+    AbstractGangTask("Shenandoah Verifier Reachable Objects"),
     _label(label),
     _options(options),
     _heap(ShenandoahHeap::heap()),
@@ -485,7 +484,7 @@ public:
   }
 };
 
-class ShenandoahVerifierMarkedRegionTask : public WorkerTask {
+class ShenandoahVerifierMarkedRegionTask : public AbstractGangTask {
 private:
   const char* _label;
   ShenandoahVerifier::VerifyOptions _options;
@@ -500,7 +499,7 @@ public:
                                      ShenandoahLivenessData* ld,
                                      const char* label,
                                      ShenandoahVerifier::VerifyOptions options) :
-          WorkerTask("Shenandoah Verifier Marked Objects"),
+          AbstractGangTask("Shenandoah Verifier Marked Objects"),
           _label(label),
           _options(options),
           _heap(ShenandoahHeap::heap()),

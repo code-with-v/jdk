@@ -206,7 +206,7 @@ public class TestSingletonLists extends JavadocTester {
         checking("Check lists");
         ListChecker c = new ListChecker(out, this::readFile);
         try {
-            c.checkDirectory(outputDir);
+            c.checkDirectory(outputDir.toPath());
             c.report();
             int errors = c.getErrorCount();
             if (errors == 0) {

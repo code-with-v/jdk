@@ -56,7 +56,6 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package jdk.internal.org.objectweb.asm.util;
 
 import java.util.EnumSet;
@@ -155,14 +154,15 @@ public class CheckSignatureAdapter extends SignatureVisitor {
       *     null}.
       */
     public CheckSignatureAdapter(final int type, final SignatureVisitor signatureVisitor) {
-        this(/* latest api = */ Opcodes.ASM9, type, signatureVisitor);
+        this(/* latest api = */ Opcodes.ASM8, type, signatureVisitor);
     }
 
     /**
       * Constructs a new {@link CheckSignatureAdapter}.
       *
-      * @param api the ASM API version implemented by this visitor. Must be one of the {@code
-      *     ASM}<i>x</i> values in {@link Opcodes}.
+      * @param api the ASM API version implemented by this visitor. Must be one of {@link
+      *     Opcodes#ASM4}, {@link Opcodes#ASM5}, {@link Opcodes#ASM6}, {@link Opcodes#ASM7} or {@link
+      *     Opcodes#ASM8}.
       * @param type the type of signature to be checked. See {@link #CLASS_SIGNATURE}, {@link
       *     #METHOD_SIGNATURE} and {@link #TYPE_SIGNATURE}.
       * @param signatureVisitor the visitor to which this adapter must delegate calls. May be {@literal
@@ -389,4 +389,3 @@ public class CheckSignatureAdapter extends SignatureVisitor {
         }
     }
 }
-

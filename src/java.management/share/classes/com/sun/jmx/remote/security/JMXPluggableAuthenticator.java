@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2004, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -44,6 +44,7 @@ import javax.security.auth.login.LoginContext;
 import javax.security.auth.login.LoginException;
 import javax.security.auth.spi.LoginModule;
 import com.sun.jmx.remote.util.ClassLogger;
+import com.sun.jmx.remote.util.EnvHelp;
 
 /**
  * <p>This class represents a
@@ -133,8 +134,11 @@ public final class JMXPluggableAuthenticator implements JMXAuthenticator {
                 }
             }
 
-        } catch (LoginException | SecurityException e) {
-            authenticationFailure("authenticate", e);
+        } catch (LoginException le) {
+            authenticationFailure("authenticate", le);
+
+        } catch (SecurityException se) {
+            authenticationFailure("authenticate", se);
         }
     }
 
@@ -224,7 +228,9 @@ public final class JMXPluggableAuthenticator implements JMXAuthenticator {
             se = (SecurityException) exception;
         } else {
             msg = "Authentication failed! " + exception.getMessage();
-            se = new SecurityException(msg, exception);
+            final SecurityException e = new SecurityException(msg);
+            EnvHelp.initCause(e, exception);
+            se = e;
         }
         logException(method, msg, se);
         throw se;
@@ -317,7 +323,7 @@ private static class FileLoginConfig extends Configuration {
 
         Map<String, String> options;
         if (passwordFile != null) {
-            options = new HashMap<>(1);
+            options = new HashMap<String, String>(1);
             options.put(PASSWORD_FILE_OPTION, passwordFile);
             options.put(HASH_PASSWORDS, hashPasswords);
         } else {

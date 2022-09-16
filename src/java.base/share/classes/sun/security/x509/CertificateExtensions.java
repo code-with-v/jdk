@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -28,9 +28,12 @@ package sun.security.x509;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.security.cert.CertificateException;
 import java.util.*;
+
+import sun.security.util.HexDumpEncoder;
 
 import sun.security.util.*;
 
@@ -54,8 +57,8 @@ public class CertificateExtensions implements CertAttrSet<Extension> {
 
     private static final Debug debug = Debug.getInstance("x509");
 
-    private final Map<String,Extension> map = Collections.synchronizedMap(
-            new TreeMap<>());
+    private Map<String,Extension> map = Collections.synchronizedMap(
+            new TreeMap<String,Extension>());
     private boolean unsupportedCritExt = false;
 
     private Map<String,Extension> unparseableExtensions;
@@ -86,7 +89,7 @@ public class CertificateExtensions implements CertAttrSet<Extension> {
         }
     }
 
-    private static final Class<?>[] PARAMS = {Boolean.class, Object.class};
+    private static Class<?>[] PARAMS = {Boolean.class, Object.class};
 
     // Parse the encoded extension
     private void parseExtension(Extension ext) throws IOException {
@@ -106,16 +109,17 @@ public class CertificateExtensions implements CertAttrSet<Extension> {
 
             Object[] passed = new Object[] {Boolean.valueOf(ext.isCritical()),
                     ext.getExtensionValue()};
-            CertAttrSet<?> certExt = (CertAttrSet<?>) cons.newInstance(passed);
-            if (map.put(certExt.getName(), (Extension)certExt) != null) {
-                throw new IOException("Duplicate extensions not allowed");
-            }
+                    CertAttrSet<?> certExt = (CertAttrSet<?>)
+                            cons.newInstance(passed);
+                    if (map.put(certExt.getName(), (Extension)certExt) != null) {
+                        throw new IOException("Duplicate extensions not allowed");
+                    }
         } catch (InvocationTargetException invk) {
             Throwable e = invk.getCause();
-            if (!ext.isCritical()) {
+            if (ext.isCritical() == false) {
                 // ignore errors parsing non-critical extensions
                 if (unparseableExtensions == null) {
-                    unparseableExtensions = new TreeMap<>();
+                    unparseableExtensions = new TreeMap<String,Extension>();
                 }
                 unparseableExtensions.put(ext.getExtensionId().toString(),
                         new UnparseableExtension(ext, e));
@@ -236,7 +240,7 @@ public class CertificateExtensions implements CertAttrSet<Extension> {
         map.remove(name);
     }
 
-    public String getNameByOid(ObjectIdentifier oid) {
+    public String getNameByOid(ObjectIdentifier oid) throws IOException {
         for (String name: map.keySet()) {
             if (map.get(name).getExtensionId().equals(oid)) {
                 return name;
@@ -262,8 +266,11 @@ public class CertificateExtensions implements CertAttrSet<Extension> {
     }
 
     public Map<String,Extension> getUnparseableExtensions() {
-        return (unparseableExtensions == null) ?
-                Collections.emptyMap() : unparseableExtensions;
+        if (unparseableExtensions == null) {
+            return Collections.emptyMap();
+        } else {
+            return unparseableExtensions;
+        }
     }
 
     /**
@@ -344,4 +351,33 @@ public class CertificateExtensions implements CertAttrSet<Extension> {
         return map.toString();
     }
 
+}
+
+class UnparseableExtension extends Extension {
+    private String name;
+    private String exceptionDescription;
+
+    public UnparseableExtension(Extension ext, Throwable why) {
+        super(ext);
+
+        name = "";
+        try {
+            Class<?> extClass = OIDMap.getClass(ext.getExtensionId());
+            if (extClass != null) {
+                Field field = extClass.getDeclaredField("NAME");
+                name = (String)(field.get(null)) + " ";
+            }
+        } catch (Exception e) {
+            // If we cannot find the name, just ignore it
+        }
+
+        this.exceptionDescription = why.toString();
+    }
+
+    @Override public String toString() {
+        return super.toString() +
+                "Unparseable " + name + "extension due to\n" +
+                exceptionDescription + "\n\n" +
+                new HexDumpEncoder().encodeBuffer(getExtensionValue());
+    }
 }

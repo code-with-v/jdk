@@ -27,26 +27,10 @@ package gc.epsilon;
  * @test TestUpdateCountersSteps
  * @requires vm.gc.Epsilon
  * @summary Test EpsilonUpdateCountersStep works
- *
- * @run main/othervm -Xmx64m -Xlog:gc
- *                   -XX:+UnlockExperimentalVMOptions -XX:+UseEpsilonGC
- *                   -XX:EpsilonUpdateCountersStep=1
- *                   gc.epsilon.TestUpdateCountersSteps
- *
- * @run main/othervm -Xmx64m -Xlog:gc
- *                   -XX:+UnlockExperimentalVMOptions -XX:+UseEpsilonGC
- *                   -XX:EpsilonUpdateCountersStep=10
- *                   gc.epsilon.TestUpdateCountersSteps
- *
- * @run main/othervm -Xmx64m -Xlog:gc
- *                   -XX:+UnlockExperimentalVMOptions -XX:+UseEpsilonGC
- *                   -XX:EpsilonUpdateCountersStep=100
- *                   gc.epsilon.TestUpdateCountersSteps
- *
- * @run main/othervm -Xmx64m -Xlog:gc
- *                   -XX:+UnlockExperimentalVMOptions -XX:+UseEpsilonGC
- *                   -XX:EpsilonUpdateCountersStep=1000
- *                   gc.epsilon.TestUpdateCountersSteps
+ * @run main/othervm -XX:+UnlockExperimentalVMOptions -XX:+UseEpsilonGC -Xlog:gc -XX:EpsilonUpdateCountersStep=1    gc.epsilon.TestUpdateCountersSteps
+ * @run main/othervm -XX:+UnlockExperimentalVMOptions -XX:+UseEpsilonGC -Xlog:gc -XX:EpsilonUpdateCountersStep=10   gc.epsilon.TestUpdateCountersSteps
+ * @run main/othervm -XX:+UnlockExperimentalVMOptions -XX:+UseEpsilonGC -Xlog:gc -XX:EpsilonUpdateCountersStep=100  gc.epsilon.TestUpdateCountersSteps
+ * @run main/othervm -XX:+UnlockExperimentalVMOptions -XX:+UseEpsilonGC -Xlog:gc -XX:EpsilonUpdateCountersStep=1000 gc.epsilon.TestUpdateCountersSteps
  */
 
 public class TestUpdateCountersSteps {

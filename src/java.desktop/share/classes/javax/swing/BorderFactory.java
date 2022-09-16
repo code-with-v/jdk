@@ -332,7 +332,7 @@ public class BorderFactory
      * @param type      one of <code>EtchedBorder.RAISED</code>, or
      *                  <code>EtchedBorder.LOWERED</code>
      * @return the <code>Border</code> object
-     * @throws IllegalArgumentException if type is not either
+     * @exception IllegalArgumentException if type is not either
      *                  <code>EtchedBorder.RAISED</code> or
      *                  <code>EtchedBorder.LOWERED</code>
      * @since 1.3

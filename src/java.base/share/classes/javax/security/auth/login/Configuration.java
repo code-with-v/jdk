@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -270,15 +270,17 @@ public abstract class Configuration {
                 } catch (PrivilegedActionException e) {
                     Exception ee = e.getException();
                     if (ee instanceof InstantiationException) {
-                        throw new SecurityException
+                        throw (SecurityException) new
+                            SecurityException
                                     ("Configuration error:" +
                                      ee.getCause().getMessage() +
-                                     "\n", ee.getCause());
+                                     "\n").initCause(ee.getCause());
                     } else {
-                        throw new SecurityException
+                        throw (SecurityException) new
+                            SecurityException
                                     ("Configuration error: " +
                                      ee.toString() +
-                                     "\n", ee);
+                                     "\n").initCause(ee);
                     }
                 }
             }
@@ -321,7 +323,7 @@ public abstract class Configuration {
      * {@code jdk.security.provider.preferred}
      * {@link Security#getProperty(String) Security} property to determine
      * the preferred provider order for the specified algorithm. This
-     * may be different from the order of providers returned by
+     * may be different than the order of providers returned by
      * {@link Security#getProviders() Security.getProviders()}.
      *
      * @param type the specified Configuration type.  See the Configuration
@@ -519,7 +521,7 @@ public abstract class Configuration {
      *
      * <p> This Configuration instance will only have a Provider if it
      * was obtained via a call to {@code Configuration.getInstance}.
-     * Otherwise, this method returns null.
+     * Otherwise this method returns null.
      *
      * @return the Provider of this Configuration, or null.
      *
@@ -534,7 +536,7 @@ public abstract class Configuration {
      *
      * <p> This Configuration instance will only have a type if it
      * was obtained via a call to {@code Configuration.getInstance}.
-     * Otherwise, this method returns null.
+     * Otherwise this method returns null.
      *
      * @return the type of this Configuration, or null.
      *
@@ -549,7 +551,7 @@ public abstract class Configuration {
      *
      * <p> This Configuration instance will only have parameters if it
      * was obtained via a call to {@code Configuration.getInstance}.
-     * Otherwise, this method returns null.
+     * Otherwise this method returns null.
      *
      * @return Configuration parameters, or null.
      *
@@ -595,10 +597,10 @@ public abstract class Configuration {
      */
     private static class ConfigDelegate extends Configuration {
 
-        private final ConfigurationSpi spi;
-        private final Provider p;
-        private final String type;
-        private final Configuration.Parameters params;
+        private ConfigurationSpi spi;
+        private Provider p;
+        private String type;
+        private Configuration.Parameters params;
 
         private ConfigDelegate(ConfigurationSpi spi, Provider p,
                         String type, Configuration.Parameters params) {
@@ -628,5 +630,5 @@ public abstract class Configuration {
      *
      * @since 1.6
      */
-    public interface Parameters { }
+    public static interface Parameters { }
 }

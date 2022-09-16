@@ -24,7 +24,7 @@
 #include "precompiled.hpp"
 #include "gc/shared/oopStorage.inline.hpp"
 #include "gc/shared/oopStorageParState.inline.hpp"
-#include "gc/shared/workerThread.hpp"
+#include "gc/shared/workgroup.hpp"
 #include "memory/allocation.inline.hpp"
 #include "memory/resourceArea.hpp"
 #include "metaprogramming/conditional.hpp"
@@ -863,7 +863,7 @@ TEST_VM_F(OopStorageTestIteration, oops_do) {
 
 class OopStorageTestParIteration : public OopStorageTestIteration {
 public:
-  WorkerThreads* workers();
+  WorkGang* workers();
 
   class VM_ParStateVerify;
 
@@ -871,22 +871,25 @@ public:
   template<bool concurrent, bool is_const> class TaskUsingOopsDo;
 
 private:
-  static WorkerThreads* _workers;
+  static WorkGang* _workers;
 };
 
-WorkerThreads* OopStorageTestParIteration::_workers = NULL;
+WorkGang* OopStorageTestParIteration::_workers = NULL;
 
-WorkerThreads* OopStorageTestParIteration::workers() {
+WorkGang* OopStorageTestParIteration::workers() {
   if (_workers == NULL) {
-    _workers = new WorkerThreads("OopStorageTestParIteration workers", _max_workers);
+    _workers = new WorkGang("OopStorageTestParIteration workers",
+                            _max_workers,
+                            false,
+                            false);
     _workers->initialize_workers();
-    _workers->set_active_workers(_max_workers);
+    _workers->update_active_workers(_max_workers);
   }
   return _workers;
 }
 
 template<bool concurrent, bool is_const>
-class OopStorageTestParIteration::Task : public WorkerTask {
+class OopStorageTestParIteration::Task : public AbstractGangTask {
   typedef OopStorage::ParState<concurrent, is_const> StateType;
 
   typedef typename Conditional<is_const,
@@ -895,7 +898,7 @@ class OopStorageTestParIteration::Task : public WorkerTask {
 
 public:
   Task(const char* name, Storage* storage, VerifyState* vstate) :
-    WorkerTask(name),
+    AbstractGangTask(name),
     _state(storage),
     _vstate(vstate)
   {}
@@ -911,10 +914,10 @@ private:
 };
 
 template<bool concurrent, bool is_const>
-class OopStorageTestParIteration::TaskUsingOopsDo : public WorkerTask {
+class OopStorageTestParIteration::TaskUsingOopsDo : public AbstractGangTask {
 public:
   TaskUsingOopsDo(const char* name, OopStorage* storage, VerifyState* vstate) :
-    WorkerTask(name),
+    AbstractGangTask(name),
     _state(storage),
     _vstate(vstate)
   {}
@@ -931,7 +934,7 @@ private:
 
 class OopStorageTestParIteration::VM_ParStateVerify : public VM_GTestExecuteAtSafepoint {
 public:
-  VM_ParStateVerify(WorkerThreads* workers, WorkerTask* task) :
+  VM_ParStateVerify(WorkGang* workers, AbstractGangTask* task) :
     _workers(workers), _task(task)
   {}
 
@@ -940,8 +943,8 @@ public:
   }
 
 private:
-  WorkerThreads* _workers;
-  WorkerTask* _task;
+  WorkGang* _workers;
+  AbstractGangTask* _task;
 };
 
 TEST_VM_F(OopStorageTestParIteration, par_state_safepoint_iterate) {

@@ -29,7 +29,6 @@ import jdk.test.lib.Asserts;
 
 /*
  * @test
- * @key stress randomness
  * @bug 8252219 8256535
  * @requires vm.debug == true & vm.compiler2.enabled
  * @summary Tests that stress compilations with the same seed yield the same

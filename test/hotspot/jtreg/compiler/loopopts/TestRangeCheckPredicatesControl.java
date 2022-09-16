@@ -22,7 +22,7 @@
  */
 
 /*
- * @test id=Z
+ * @test
  * @key stress randomness
  * @requires vm.gc.Z
  * @bug 8237859

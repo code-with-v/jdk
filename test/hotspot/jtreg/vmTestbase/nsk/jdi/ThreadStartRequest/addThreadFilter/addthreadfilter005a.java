@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,7 @@
 package nsk.jdi.ThreadStartRequest.addThreadFilter;
 
 import nsk.share.*;
+import nsk.share.jpda.*;
 import nsk.share.jdi.*;
 
 /**
@@ -53,7 +54,7 @@ public class addthreadfilter005a {
 
     //====================================================== test program
 
-    static Thread thread1 = null;
+    static Threadaddthreadfilter005a thread1 = null;
 
     static addthreadfilter005aTestClass objTC = new addthreadfilter005aTestClass();
 
@@ -97,7 +98,7 @@ public class addthreadfilter005a {
     //------------------------------------------------------  section tested
 
                     case 0:
-                            thread1 = JDIThreadFactory.newThread(new Threadaddthreadfilter005a("thread1"));
+                            thread1 = new Threadaddthreadfilter005a("thread1");
                             break;
 
                     case 1:
@@ -151,12 +152,14 @@ public class addthreadfilter005a {
     static Object lockingObj[] = new Object[2];
     static volatile int number = 0;
 
-    static class Threadaddthreadfilter005a extends NamedTask {
+    static class Threadaddthreadfilter005a extends Thread {
 
+        String tName = null;
         int tNumber;
 
         public Threadaddthreadfilter005a(String threadName) {
             super(threadName);
+            tName = threadName;
             tNumber = number;
             number++;
             lockingObj[tNumber] = threadName;

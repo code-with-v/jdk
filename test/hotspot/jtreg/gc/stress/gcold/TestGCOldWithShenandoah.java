@@ -24,7 +24,7 @@
 package gc.stress.gcold;
 
 /*
- * @test id=passive
+ * @test TestGCOldWithShenandoah
  * @key stress randomness
  * @library / /test/lib
  * @requires vm.gc.Shenandoah
@@ -52,7 +52,7 @@ package gc.stress.gcold;
  */
 
 /*
- * @test id=aggressive
+ * @test TestGCOldWithShenandoah
  * @key stress randomness
  * @library / /test/lib
  * @requires vm.gc.Shenandoah
@@ -74,7 +74,7 @@ package gc.stress.gcold;
  */
 
 /*
- * @test id=adaptive
+ * @test TestGCOldWithShenandoah
  * @key stress randomness
  * @library / /test/lib
  * @requires vm.gc.Shenandoah
@@ -91,7 +91,7 @@ package gc.stress.gcold;
  */
 
 /*
- * @test id=compact
+ * @test TestGCOldWithShenandoah
  * @key stress randomness
  * @library / /test/lib
  * @requires vm.gc.Shenandoah
@@ -103,7 +103,7 @@ package gc.stress.gcold;
  */
 
 /*
- * @test id=iu-aggressive
+ * @test TestGCOldWithShenandoah
  * @key stress randomness
  * @library / /test/lib
  * @requires vm.gc.Shenandoah
@@ -125,7 +125,7 @@ package gc.stress.gcold;
  */
 
 /*
- * @test id=iu
+ * @test TestGCOldWithShenandoah
  * @key stress randomness
  * @library / /test/lib
  * @requires vm.gc.Shenandoah

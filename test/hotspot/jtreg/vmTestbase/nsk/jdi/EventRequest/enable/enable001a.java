@@ -204,19 +204,22 @@ class enable001aTestClass11 extends enable001aTestClass10{
 
 class enable001aThread1 extends Thread {
 
+    String tName = null;
+
     public enable001aThread1(String threadName) {
         super(threadName);
+        tName = threadName;
     }
 
     public void run() {
-        enable001a.log1("  'run': enter  :: threadName == " + getName());
+        enable001a.log1("  'run': enter  :: threadName == " + tName);
         synchronized(enable001a.waitnotifyObj) {
             enable001a.waitnotifyObj.notify();
         }
         synchronized(enable001a.lockObj) {
             enable001aTestClass11.method11();
         }
-        enable001a.log1("  'run': exit   :: threadName == " + getName());
+        enable001a.log1("  'run': exit   :: threadName == " + tName);
         return;
     }
 }

@@ -23,7 +23,7 @@
  */
 
 /*
- * @test
+ * @test TestModeUnlock
  * @summary Test that Shenandoah modes are unlocked properly
  * @requires vm.gc.Shenandoah
  * @library /test/lib

@@ -22,8 +22,6 @@
  *
  */
 
-#include <stdbool.h>
-
 #ifdef _WIN64
 #define EXPORT __declspec(dllexport)
 #else
@@ -31,10 +29,6 @@
 #endif
 
 EXPORT void empty() {
-}
-
-EXPORT bool identity_bool(bool x) {
-    return x;
 }
 
 EXPORT char identity_char(char x) {

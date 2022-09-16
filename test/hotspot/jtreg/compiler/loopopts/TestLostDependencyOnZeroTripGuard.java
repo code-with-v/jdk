@@ -23,7 +23,6 @@
 
 /**
  * @test
- * @key stress randomness
  * @bug 8263971
  * @summary C2 crashes with SIGFPE with -XX:+StressGCM and -XX:+StressIGVN
  *

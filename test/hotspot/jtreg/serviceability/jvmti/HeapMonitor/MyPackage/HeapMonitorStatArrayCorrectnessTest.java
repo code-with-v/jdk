@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2018, 2019, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2018, 2019, Google and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -36,15 +36,9 @@ package MyPackage;
 public class HeapMonitorStatArrayCorrectnessTest {
 
   private static final int maxCount = 10;
-  // Do 200000 iterations and expect maxIteration / multiplier samples.
-  private static final int maxIteration = 200_000;
+  // Do 100000 iterations and expect maxIteration / multiplier samples.
+  private static final int maxIteration = 100000;
   private static int array[];
-
-  // 15% error ensures a sanity test without becoming flaky.
-  // Flakiness is due to the fact that this test is dependent on the sampling interval, which is a
-  // statistical geometric variable around the sampling interval. This means that the test could be
-  // unlucky and not achieve the mean average fast enough for the test case.
-  private static final int acceptedErrorPercentage = 15;
 
   private static void allocate(int size) {
     for (int j = 0; j < maxIteration; j++) {
@@ -91,7 +85,11 @@ public class HeapMonitorStatArrayCorrectnessTest {
         expected *= 4;
         expected /= samplingMultiplier;
 
-        if (HeapMonitor.statsHaveExpectedNumberSamples((int) expected, acceptedErrorPercentage)) {
+        // 10% error ensures a sanity test without becoming flaky.
+        // Flakiness is due to the fact that this test is dependent on the sampling interval, which is a
+        // statistical geometric variable around the sampling interval. This means that the test could be
+        // unlucky and not achieve the mean average fast enough for the test case.
+        if (HeapMonitor.statsHaveExpectedNumberSamples((int) expected, 10)) {
           break;
         }
       }

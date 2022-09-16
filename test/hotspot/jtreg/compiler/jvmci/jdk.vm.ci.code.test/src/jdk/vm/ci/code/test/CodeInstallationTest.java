@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -54,7 +54,6 @@ public class CodeInstallationTest {
     protected final TargetDescription target;
     protected final ConstantReflectionProvider constantReflection;
     protected final TestHotSpotVMConfig config;
-    protected final Architecture arch;
 
     public CodeInstallationTest() {
         JVMCIBackend backend = JVMCI.getRuntime().getHostJVMCIBackend();
@@ -62,8 +61,7 @@ public class CodeInstallationTest {
         codeCache = backend.getCodeCache();
         target = backend.getTarget();
         constantReflection = backend.getConstantReflection();
-        arch = codeCache.getTarget().arch;
-        config = new TestHotSpotVMConfig(HotSpotJVMCIRuntime.runtime().getConfigStore(), arch);
+        config = new TestHotSpotVMConfig(HotSpotJVMCIRuntime.runtime().getConfigStore());
     }
 
     protected interface TestCompiler {
@@ -72,6 +70,7 @@ public class CodeInstallationTest {
     }
 
     private TestAssembler createAssembler() {
+        Architecture arch = codeCache.getTarget().arch;
         if (arch instanceof AMD64) {
             return new AMD64TestAssembler(codeCache, config);
         } else if (arch instanceof AArch64) {

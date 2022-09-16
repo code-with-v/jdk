@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2014, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -394,7 +395,7 @@ public final class ModuleBootstrap {
         if (isPatched) {
             patcher.patchedModules()
                     .stream()
-                    .filter(mn -> cf.findModule(mn).isEmpty())
+                    .filter(mn -> !cf.findModule(mn).isPresent())
                     .forEach(mn -> warnUnknownModule(PATCH_MODULE, mn));
         }
 
@@ -426,7 +427,7 @@ public final class ModuleBootstrap {
                     if (upgradeModulePath != null
                             && upgradeModulePath.find(name).isPresent())
                         fail(name + ": cannot be loaded from upgrade module path");
-                    if (systemModuleFinder.find(name).isEmpty())
+                    if (!systemModuleFinder.find(name).isPresent())
                         fail(name + ": cannot be loaded from application module path");
                 }
             }
@@ -657,7 +658,7 @@ public final class ModuleBootstrap {
             // the key is $MODULE
             String mn = e.getKey();
             Optional<Module> om = bootLayer.findModule(mn);
-            if (om.isEmpty()) {
+            if (!om.isPresent()) {
                 warnUnknownModule(ADD_READS, mn);
                 continue;
             }
@@ -727,7 +728,7 @@ public final class ModuleBootstrap {
             // The exporting module is in the boot layer
             Module m;
             Optional<Module> om = bootLayer.findModule(mn);
-            if (om.isEmpty()) {
+            if (!om.isPresent()) {
                 warnUnknownModule(option, mn);
                 continue;
             }
@@ -771,23 +772,11 @@ public final class ModuleBootstrap {
         }
     }
 
-    private static final boolean HAS_ENABLE_NATIVE_ACCESS_FLAG;
-    private static final Set<String> NATIVE_ACCESS_MODULES;
-
-    public static boolean hasEnableNativeAccessFlag() {
-        return HAS_ENABLE_NATIVE_ACCESS_FLAG;
-    }
-
-    static {
-        NATIVE_ACCESS_MODULES = decodeEnableNativeAccess();
-        HAS_ENABLE_NATIVE_ACCESS_FLAG = !NATIVE_ACCESS_MODULES.isEmpty();
-    }
-
     /**
      * Process the --enable-native-access option to grant access to restricted methods to selected modules.
      */
     private static void addEnableNativeAccess(ModuleLayer layer) {
-        for (String name : NATIVE_ACCESS_MODULES) {
+        for (String name : decodeEnableNativeAccess()) {
             if (name.equals("ALL-UNNAMED")) {
                 JLA.addEnableNativeAccessAllUnnamed();
             } else {

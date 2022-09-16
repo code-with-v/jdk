@@ -25,8 +25,8 @@
  * @test
  * @bug 8146568
  * @summary repro for: NegativeArraySizeException in ArrayList.grow(int)
- * @run main/manual/othervm -Xmx17g Bug8146568
- * @requires os.maxMemory>17G
+ * @run main/othervm -Xmx17g Bug8146568
+ * @ignore This test has huge memory requirements
  */
 
 public class Bug8146568 {

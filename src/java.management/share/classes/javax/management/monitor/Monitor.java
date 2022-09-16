@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -166,7 +166,7 @@ public abstract class Monitor
      * Remaining attribute names extracted from complex type attribute name.
      */
     private final List<String> remainingAttributes =
-        new CopyOnWriteArrayList<>();
+        new CopyOnWriteArrayList<String>();
 
     /**
      * AccessControlContext of the Monitor.start() caller.
@@ -189,7 +189,7 @@ public abstract class Monitor
      * Map containing the thread pool executor per thread group.
      */
     private static final Map<ThreadPoolExecutor, Void> executors =
-            new WeakHashMap<>();
+            new WeakHashMap<ThreadPoolExecutor, Void>();
 
     /**
      * Lock for executors map.
@@ -353,7 +353,7 @@ public abstract class Monitor
      * List of ObservedObjects to which the attribute to observe belongs.
      */
     final List<ObservedObject> observedObjects =
-        new CopyOnWriteArrayList<>();
+        new CopyOnWriteArrayList<ObservedObject>();
 
     /**
      * Flag denoting that a notification has occurred after changing
@@ -1204,15 +1204,45 @@ public abstract class Monitor
                 MONITOR_LOGGER.log(Level.TRACE, msg);
                 MONITOR_LOGGER.log(Level.TRACE, anf_ex::toString);
             }
-        } catch (MBeanException | ReflectionException| IOException | RuntimeException e) {
+        } catch (MBeanException mb_ex) {
             if (isAlreadyNotified(o, RUNTIME_ERROR_NOTIFIED))
                 return;
             else {
                 notifType = RUNTIME_ERROR;
                 setAlreadyNotified(o, index, RUNTIME_ERROR_NOTIFIED, an);
-                msg = e.getMessage() == null ? "" : e.getMessage();
+                msg = mb_ex.getMessage() == null ? "" : mb_ex.getMessage();
                 MONITOR_LOGGER.log(Level.TRACE, msg);
-                MONITOR_LOGGER.log(Level.TRACE, e::toString);
+                MONITOR_LOGGER.log(Level.TRACE, mb_ex::toString);
+            }
+        } catch (ReflectionException ref_ex) {
+            if (isAlreadyNotified(o, RUNTIME_ERROR_NOTIFIED)) {
+                return;
+            } else {
+                notifType = RUNTIME_ERROR;
+                setAlreadyNotified(o, index, RUNTIME_ERROR_NOTIFIED, an);
+                msg = ref_ex.getMessage() == null ? "" : ref_ex.getMessage();
+                MONITOR_LOGGER.log(Level.TRACE, msg);
+                MONITOR_LOGGER.log(Level.TRACE, ref_ex::toString);
+            }
+        } catch (IOException io_ex) {
+            if (isAlreadyNotified(o, RUNTIME_ERROR_NOTIFIED))
+                return;
+            else {
+                notifType = RUNTIME_ERROR;
+                setAlreadyNotified(o, index, RUNTIME_ERROR_NOTIFIED, an);
+                msg = io_ex.getMessage() == null ? "" : io_ex.getMessage();
+                MONITOR_LOGGER.log(Level.TRACE, msg);
+                MONITOR_LOGGER.log(Level.TRACE, io_ex::toString);
+            }
+        } catch (RuntimeException rt_ex) {
+            if (isAlreadyNotified(o, RUNTIME_ERROR_NOTIFIED))
+                return;
+            else {
+                notifType = RUNTIME_ERROR;
+                setAlreadyNotified(o, index, RUNTIME_ERROR_NOTIFIED, an);
+                msg = rt_ex.getMessage() == null ? "" : rt_ex.getMessage();
+                MONITOR_LOGGER.log(Level.TRACE, msg);
+                MONITOR_LOGGER.log(Level.TRACE, rt_ex::toString);
             }
         }
 
@@ -1490,7 +1520,7 @@ public abstract class Monitor
                             maximumPoolSize,
                             60L,
                             TimeUnit.SECONDS,
-                            new LinkedBlockingQueue<>(),
+                            new LinkedBlockingQueue<Runnable>(),
                             new DaemonThreadFactory("ThreadGroup<" +
                             group.getName() + "> Executor", group));
                     executor.allowCoreThreadTimeOut(true);
@@ -1517,7 +1547,7 @@ public abstract class Monitor
                 sf = Monitor.this.schedulerFuture;
                 ac = Monitor.this.acc;
             }
-            PrivilegedAction<Void> action = new PrivilegedAction<>() {
+            PrivilegedAction<Void> action = new PrivilegedAction<Void>() {
                 public Void run() {
                     if (Monitor.this.isActive()) {
                         final int an[] = alreadyNotifieds;

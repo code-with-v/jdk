@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -218,7 +218,7 @@ public final class OutputAnalyzer {
         String stderr = getStderr();
         if (!stdout.contains(expectedString) && !stderr.contains(expectedString)) {
             reportDiagnosticSummary();
-            throw new RuntimeException("'" + expectedString + "' missing from stdout/stderr");
+            throw new RuntimeException("'" + expectedString + "' missing from stdout/stderr \n");
         }
         return this;
     }
@@ -233,7 +233,7 @@ public final class OutputAnalyzer {
         String stdout = getStdout();
         if (!stdout.contains(expectedString)) {
             reportDiagnosticSummary();
-            throw new RuntimeException("'" + expectedString + "' missing from stdout");
+            throw new RuntimeException("'" + expectedString + "' missing from stdout \n");
         }
         return this;
     }
@@ -248,7 +248,7 @@ public final class OutputAnalyzer {
         String stderr = getStderr();
         if (!stderr.contains(expectedString)) {
             reportDiagnosticSummary();
-            throw new RuntimeException("'" + expectedString + "' missing from stderr");
+            throw new RuntimeException("'" + expectedString + "' missing from stderr \n");
         }
         return this;
     }
@@ -264,11 +264,11 @@ public final class OutputAnalyzer {
         String stderr = getStderr();
         if (stdout.contains(notExpectedString)) {
             reportDiagnosticSummary();
-            throw new RuntimeException("'" + notExpectedString + "' found in stdout");
+            throw new RuntimeException("'" + notExpectedString + "' found in stdout \n");
         }
         if (stderr.contains(notExpectedString)) {
             reportDiagnosticSummary();
-            throw new RuntimeException("'" + notExpectedString + "' found in stderr");
+            throw new RuntimeException("'" + notExpectedString + "' found in stderr \n");
         }
         return this;
     }
@@ -302,7 +302,7 @@ public final class OutputAnalyzer {
         String stdout = getStdout();
         if (stdout.contains(notExpectedString)) {
             reportDiagnosticSummary();
-            throw new RuntimeException("'" + notExpectedString + "' found in stdout");
+            throw new RuntimeException("'" + notExpectedString + "' found in stdout \n");
         }
         return this;
     }
@@ -317,7 +317,7 @@ public final class OutputAnalyzer {
         String stderr = getStderr();
         if (stderr.contains(notExpectedString)) {
             reportDiagnosticSummary();
-            throw new RuntimeException("'" + notExpectedString + "' found in stderr");
+            throw new RuntimeException("'" + notExpectedString + "' found in stderr \n");
         }
         return this;
     }
@@ -338,7 +338,7 @@ public final class OutputAnalyzer {
         if (!stdoutMatcher.find() && !stderrMatcher.find()) {
             reportDiagnosticSummary();
             throw new RuntimeException("'" + regexp
-                  + "' missing from stdout/stderr");
+                  + "' missing from stdout/stderr \n");
         }
         return this;
     }
@@ -356,7 +356,7 @@ public final class OutputAnalyzer {
         if (!matcher.find()) {
             reportDiagnosticSummary();
             throw new RuntimeException("'" + regexp
-                  + "' missing from stdout");
+                  + "' missing from stdout \n");
         }
         return this;
     }
@@ -374,7 +374,7 @@ public final class OutputAnalyzer {
         if (!matcher.find()) {
             reportDiagnosticSummary();
             throw new RuntimeException("'" + pattern
-                  + "' missing from stderr");
+                  + "' missing from stderr \n");
         }
         return this;
     }
@@ -393,7 +393,7 @@ public final class OutputAnalyzer {
         if (matcher.find()) {
             reportDiagnosticSummary();
             throw new RuntimeException("'" + regexp
-                    + "' found in stdout: '" + matcher.group() + "'");
+                    + "' found in stdout: '" + matcher.group() + "' \n");
         }
 
         String stderr = getStderr();
@@ -401,7 +401,7 @@ public final class OutputAnalyzer {
         if (matcher.find()) {
             reportDiagnosticSummary();
             throw new RuntimeException("'" + regexp
-                    + "' found in stderr: '" + matcher.group() + "'");
+                    + "' found in stderr: '" + matcher.group() + "' \n");
         }
 
         return this;
@@ -420,7 +420,7 @@ public final class OutputAnalyzer {
         if (matcher.find()) {
             reportDiagnosticSummary();
             throw new RuntimeException("'" + regexp
-                    + "' found in stdout");
+                    + "' found in stdout \n");
         }
         return this;
     }
@@ -438,7 +438,7 @@ public final class OutputAnalyzer {
         if (matcher.find()) {
             reportDiagnosticSummary();
             throw new RuntimeException("'" + regexp
-                    + "' found in stderr");
+                    + "' found in stderr \n");
         }
         return this;
     }
@@ -487,7 +487,7 @@ public final class OutputAnalyzer {
         if (getExitValue() != expectedExitValue) {
             reportDiagnosticSummary();
             throw new RuntimeException("Expected to get exit value of ["
-                    + expectedExitValue + "], exit value is: [" + getExitValue() + "]");
+                    + expectedExitValue + "]\n");
         }
         return this;
     }
@@ -502,7 +502,7 @@ public final class OutputAnalyzer {
         if (getExitValue() == notExpectedExitValue) {
             reportDiagnosticSummary();
             throw new RuntimeException("Unexpected to get exit value of ["
-                    + notExpectedExitValue + "]");
+                    + notExpectedExitValue + "]\n");
         }
         return this;
     }
@@ -637,7 +637,7 @@ public final class OutputAnalyzer {
         if (!matcher.find()) {
             reportDiagnosticSummary();
             throw new RuntimeException("'" + pattern
-                  + "' missing from stderr");
+                  + "' missing from stderr \n");
         }
         return this;
     }

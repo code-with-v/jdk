@@ -48,7 +48,7 @@ import static org.testng.Assert.assertTrue;
 public final class EncoderTest {
 
     //
-    // https://tools.ietf.org/html/rfc7541#appendix-C.2.1
+    // http://tools.ietf.org/html/rfc7541#appendix-C.2.1
     //
     @Test
     public void example1() {
@@ -69,7 +69,7 @@ public final class EncoderTest {
     }
 
     //
-    // https://tools.ietf.org/html/rfc7541#appendix-C.2.2
+    // http://tools.ietf.org/html/rfc7541#appendix-C.2.2
     //
     @Test
     public void example2() {
@@ -88,7 +88,7 @@ public final class EncoderTest {
     }
 
     //
-    // https://tools.ietf.org/html/rfc7541#appendix-C.2.3
+    // http://tools.ietf.org/html/rfc7541#appendix-C.2.3
     //
     @Test
     public void example3() {
@@ -108,7 +108,7 @@ public final class EncoderTest {
     }
 
     //
-    // https://tools.ietf.org/html/rfc7541#appendix-C.2.4
+    // http://tools.ietf.org/html/rfc7541#appendix-C.2.4
     //
     @Test
     public void example4() {
@@ -127,7 +127,7 @@ public final class EncoderTest {
     }
 
     //
-    // https://tools.ietf.org/html/rfc7541#appendix-C.3
+    // http://tools.ietf.org/html/rfc7541#appendix-C.3
     //
     @Test
     public void example5() {
@@ -261,7 +261,7 @@ public final class EncoderTest {
     }
 
     //
-    // https://tools.ietf.org/html/rfc7541#appendix-C.4
+    // http://tools.ietf.org/html/rfc7541#appendix-C.4
     //
     @Test
     public void example6() {
@@ -340,7 +340,7 @@ public final class EncoderTest {
     }
 
     //
-    // https://tools.ietf.org/html/rfc7541#appendix-C.5
+    // http://tools.ietf.org/html/rfc7541#appendix-C.5
     //
     @Test
     public void example7() {
@@ -432,7 +432,7 @@ public final class EncoderTest {
     }
 
     //
-    // https://tools.ietf.org/html/rfc7541#appendix-C.6
+    // http://tools.ietf.org/html/rfc7541#appendix-C.6
     //
     @Test
     public void example8() {

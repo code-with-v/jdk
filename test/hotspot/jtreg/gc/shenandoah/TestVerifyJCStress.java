@@ -23,7 +23,7 @@
  */
 
 /*
- * @test id=passive
+ * @test TestVerifyJCStress
  * @summary Tests that we pass at least one jcstress-like test with all verification turned on
  * @requires vm.gc.Shenandoah
  * @modules java.base/jdk.internal.misc
@@ -41,73 +41,25 @@
  */
 
 /*
- * @test id=default-debug
+ * @test TestVerifyJCStress
  * @summary Tests that we pass at least one jcstress-like test with all verification turned on
  * @requires vm.gc.Shenandoah
- * @requires vm.debug
  * @modules java.base/jdk.internal.misc
  *          java.management
  *
  * @run main/othervm -Xmx1g -Xms1g -XX:+UnlockExperimentalVMOptions -XX:+UnlockDiagnosticVMOptions
  *      -XX:+UseShenandoahGC -XX:ShenandoahGCHeuristics=adaptive
- *      -XX:+ShenandoahVerify -XX:+ShenandoahVerifyOptoBarriers
+ *      -XX:+ShenandoahVerify -XX:+IgnoreUnrecognizedVMOptions -XX:+ShenandoahVerifyOptoBarriers
  *      TestVerifyJCStress
  *
  * @run main/othervm -Xmx1g -Xms1g -XX:+UnlockExperimentalVMOptions -XX:+UnlockDiagnosticVMOptions
  *      -XX:+UseShenandoahGC -XX:ShenandoahGCHeuristics=compact
- *      -XX:+ShenandoahVerify -XX:+ShenandoahVerifyOptoBarriers
+ *      -XX:+ShenandoahVerify -XX:+IgnoreUnrecognizedVMOptions -XX:+ShenandoahVerifyOptoBarriers
  *      TestVerifyJCStress
  */
 
 /*
- * @test id=default
- * @summary Tests that we pass at least one jcstress-like test with all verification turned on
- * @requires vm.gc.Shenandoah
- * @requires !vm.debug
- * @modules java.base/jdk.internal.misc
- *          java.management
- *
- * @run main/othervm -Xmx1g -Xms1g -XX:+UnlockExperimentalVMOptions -XX:+UnlockDiagnosticVMOptions
- *      -XX:+UseShenandoahGC -XX:ShenandoahGCHeuristics=adaptive
- *      -XX:+ShenandoahVerify
- *      TestVerifyJCStress
- *
- * @run main/othervm -Xmx1g -Xms1g -XX:+UnlockExperimentalVMOptions -XX:+UnlockDiagnosticVMOptions
- *      -XX:+UseShenandoahGC -XX:ShenandoahGCHeuristics=compact
- *      -XX:+ShenandoahVerify
- *      TestVerifyJCStress
- */
-
-/*
- * @test id=iu-debug
- * @summary Tests that we pass at least one jcstress-like test with all verification turned on
- * @requires vm.gc.Shenandoah
- * @requires vm.debug
- * @modules java.base/jdk.internal.misc
- *          java.management
- *
- * @run main/othervm -Xmx1g -Xms1g -XX:+UnlockExperimentalVMOptions -XX:+UnlockDiagnosticVMOptions
- *      -XX:+UseShenandoahGC -XX:ShenandoahGCMode=iu
- *      -XX:+ShenandoahVerify -XX:+ShenandoahVerifyOptoBarriers
- *      TestVerifyJCStress
- */
-
-/*
- * @test id=iu
- * @summary Tests that we pass at least one jcstress-like test with all verification turned on
- * @requires vm.gc.Shenandoah
- * @requires !vm.debug
- * @modules java.base/jdk.internal.misc
- *          java.management
- *
- * @run main/othervm -Xmx1g -Xms1g -XX:+UnlockExperimentalVMOptions -XX:+UnlockDiagnosticVMOptions
- *      -XX:+UseShenandoahGC -XX:ShenandoahGCMode=iu
- *      -XX:+ShenandoahVerify
- *      TestVerifyJCStress
- */
-
-/*
- * @test id=iu-c1
+ * @test TestVerifyJCStress
  * @summary Tests that we pass at least one jcstress-like test with all verification turned on
  * @requires vm.gc.Shenandoah
  * @modules java.base/jdk.internal.misc
@@ -115,10 +67,14 @@
  *
  * @run main/othervm -Xmx1g -Xms1g -XX:+UnlockExperimentalVMOptions -XX:+UnlockDiagnosticVMOptions
  *      -XX:+UseShenandoahGC -XX:ShenandoahGCMode=iu
- *      -XX:+ShenandoahVerify -XX:TieredStopAtLevel=1
+ *      -XX:+ShenandoahVerify -XX:+IgnoreUnrecognizedVMOptions -XX:+ShenandoahVerifyOptoBarriers
+ *      TestVerifyJCStress
+ *
+ * @run main/othervm -Xmx1g -Xms1g -XX:+UnlockExperimentalVMOptions -XX:+UnlockDiagnosticVMOptions
+ *      -XX:+UseShenandoahGC -XX:ShenandoahGCMode=iu
+ *      -XX:+ShenandoahVerify -XX:+IgnoreUnrecognizedVMOptions -XX:TieredStopAtLevel=1
  *      TestVerifyJCStress
  */
-
 
 import java.util.*;
 import java.util.concurrent.*;

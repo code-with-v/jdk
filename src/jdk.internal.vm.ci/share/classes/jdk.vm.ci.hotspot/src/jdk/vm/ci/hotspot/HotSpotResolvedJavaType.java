@@ -22,6 +22,8 @@
  */
 package jdk.vm.ci.hotspot;
 
+import static jdk.vm.ci.hotspot.HotSpotJVMCIRuntime.runtime;
+
 import jdk.vm.ci.meta.JavaConstant;
 import jdk.vm.ci.meta.ResolvedJavaType;
 
@@ -43,12 +45,10 @@ public abstract class HotSpotResolvedJavaType extends HotSpotJavaType implements
 
     abstract JavaConstant getJavaMirror();
 
-    abstract HotSpotResolvedObjectTypeImpl getArrayType();
-
     @Override
-    public final HotSpotResolvedObjectType getArrayClass() {
+    public HotSpotResolvedObjectType getArrayClass() {
         if (arrayOfType == null) {
-            arrayOfType = getArrayType();
+            arrayOfType = runtime().compilerToVm.getArrayType(this);
         }
         return arrayOfType;
     }

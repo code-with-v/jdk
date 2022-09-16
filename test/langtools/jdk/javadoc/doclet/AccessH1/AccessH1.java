@@ -51,10 +51,9 @@ public class AccessH1 extends JavadocTester {
 
         // Test the style sheet
         checkOutput("stylesheet.css", true,
-                """
-                    h1 {
-                        font-size:1.428em;
-                    }""");
+                "h1 {\n"
+                + "    font-size:20px;\n"
+                + "}");
 
         // Test the doc title in the overview page
         checkOutput("index.html", true,

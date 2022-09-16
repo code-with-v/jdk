@@ -22,5 +22,5 @@
  */
 
 public class Bar {
-    record R() {}
+    Runnable r = () -> {};
 }

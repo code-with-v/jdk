@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -127,7 +127,7 @@ public final class PrivateCredentialPermission extends Permission {
     /**
      * @serial
      */
-    private final boolean testing = false;
+    private boolean testing = false;
 
     /**
      * Create a new {@code PrivateCredentialPermission}
@@ -145,7 +145,9 @@ public final class PrivateCredentialPermission extends Permission {
             } else {
                 this.credOwners = new CredOwner[principals.size()];
                 int index = 0;
-                for (Principal p : principals) {
+                Iterator<Principal> i = principals.iterator();
+                while (i.hasNext()) {
+                    Principal p = i.next();
                     this.credOwners[index++] = new CredOwner
                                                 (p.getClass().getName(),
                                                 p.getName());
@@ -241,8 +243,11 @@ public final class PrivateCredentialPermission extends Permission {
      * the specified {@code Permission}, false if not.
      */
     public boolean implies(Permission p) {
-        if (!(p instanceof PrivateCredentialPermission that))
+
+        if (p == null || !(p instanceof PrivateCredentialPermission))
             return false;
+
+        PrivateCredentialPermission that = (PrivateCredentialPermission)p;
 
         if (!impliesCredentialClass(credentialClass, that.credentialClass))
             return false;
@@ -269,8 +274,10 @@ public final class PrivateCredentialPermission extends Permission {
         if (obj == this)
             return true;
 
-        if (! (obj instanceof PrivateCredentialPermission that))
+        if (! (obj instanceof PrivateCredentialPermission))
             return false;
+
+        PrivateCredentialPermission that = (PrivateCredentialPermission)obj;
 
         return (this.implies(that) && that.implies(this));
     }
@@ -314,8 +321,8 @@ public final class PrivateCredentialPermission extends Permission {
 
         ArrayList<CredOwner> pList = new ArrayList<>();
         StringTokenizer tokenizer = new StringTokenizer(name, " ", true);
-        String principalClass;
-        String principalName;
+        String principalClass = null;
+        String principalName = null;
 
         if (testing)
             System.out.println("whole name = " + name);
@@ -325,7 +332,7 @@ public final class PrivateCredentialPermission extends Permission {
         if (testing)
             System.out.println("Credential Class = " + credentialClass);
 
-        if (!tokenizer.hasMoreTokens()) {
+        if (tokenizer.hasMoreTokens() == false) {
             MessageFormat form = new MessageFormat(ResourcesMgr.getString
                 ("permission.name.name.syntax.invalid."));
             Object[] source = {name};
@@ -344,7 +351,7 @@ public final class PrivateCredentialPermission extends Permission {
             if (testing)
                 System.out.println("    Principal Class = " + principalClass);
 
-            if (!tokenizer.hasMoreTokens()) {
+            if (tokenizer.hasMoreTokens() == false) {
                 MessageFormat form = new MessageFormat(ResourcesMgr.getString
                         ("permission.name.name.syntax.invalid."));
                 Object[] source = {name};
@@ -426,7 +433,7 @@ public final class PrivateCredentialPermission extends Permission {
         if (thisC.equals("*"))
             return true;
 
-        /*
+        /**
          * XXX let's not enable this for now --
          *      if people want it, we'll enable it later
          */
@@ -519,8 +526,10 @@ public final class PrivateCredentialPermission extends Permission {
         }
 
         public boolean implies(Object obj) {
-            if (!(obj instanceof CredOwner that))
+            if (obj == null || !(obj instanceof CredOwner))
                 return false;
+
+            CredOwner that = (CredOwner)obj;
 
             if (principalClass.equals("*") ||
                 principalClass.equals(that.principalClass)) {
@@ -531,7 +540,7 @@ public final class PrivateCredentialPermission extends Permission {
                 }
             }
 
-            /*
+            /**
              * XXX no code yet to support a.b.*
              */
 

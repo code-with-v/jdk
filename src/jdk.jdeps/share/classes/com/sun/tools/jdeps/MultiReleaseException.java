@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,7 +34,6 @@ package com.sun.tools.jdeps;
 class MultiReleaseException extends RuntimeException {
     private static final long serialVersionUID = 4474870142461654108L;
     private final String key;
-    @SuppressWarnings("serial") // Array component type is not Serializable
     private final Object[] params;
 
     /**
@@ -47,7 +46,7 @@ class MultiReleaseException extends RuntimeException {
      *        The detail message array
      */
     public MultiReleaseException(String key, Object... params) {
-        super(JdepsTask.getMessage(key, params));
+        super();
         this.key = key;
         this.params = params;
     }

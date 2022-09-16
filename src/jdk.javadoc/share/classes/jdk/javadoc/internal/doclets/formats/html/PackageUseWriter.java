@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -49,6 +49,11 @@ import jdk.javadoc.internal.doclets.toolkit.util.DocPaths;
 
 /**
  * Generate package usage information.
+ *
+ *  <p><b>This is NOT part of any supported API.
+ *  If you write code that depends on this, you do so at your own risk.
+ *  This code and its internal interfaces are subject to change or
+ *  deletion without notice.</b>
  */
 public class PackageUseWriter extends SubWriterHolderWriter {
 
@@ -111,7 +116,7 @@ public class PackageUseWriter extends SubWriterHolderWriter {
      * @throws DocFileIOException if there is a problem generating the package use page
      */
     protected void generatePackageUseFile() throws DocFileIOException {
-        HtmlTree body = getBody();
+        HtmlTree body = getPackageUseHeader();
         Content mainContent = new ContentBuilder();
         if (usingPackageToUsedClasses.isEmpty()) {
             mainContent.add(contents.getContent("doclet.ClassUse_No.usage.of.0", getLocalizedPackageName(packageElement)));
@@ -129,23 +134,23 @@ public class PackageUseWriter extends SubWriterHolderWriter {
     /**
      * Add the package use information.
      *
-     * @param content the content to which the package use information will be added
+     * @param contentTree the content tree to which the package use information will be added
      */
-    protected void addPackageUse(Content content) {
-        Content c = new ContentBuilder();
+    protected void addPackageUse(Content contentTree) {
+        Content content = new ContentBuilder();
         if (configuration.packages.size() > 1) {
-            addPackageList(c);
+            addPackageList(content);
         }
-        addClassList(c);
-        content.add(c);
+        addClassList(content);
+        contentTree.add(content);
     }
 
     /**
      * Add the list of packages that use the given package.
      *
-     * @param content the content to which the package list will be added
+     * @param contentTree the content tree to which the package list will be added
      */
-    protected void addPackageList(Content content) {
+    protected void addPackageList(Content contentTree) {
         Content caption = contents.getContent(
                 "doclet.ClassUse_Packages.that.use.0",
                 getPackageLink(packageElement, getLocalizedPackageName(packageElement)));
@@ -165,21 +170,22 @@ public class PackageUseWriter extends SubWriterHolderWriter {
             }
             table.addRow(packageLink, summary);
         }
-        content.add(table);
+        contentTree.add(table);
     }
 
     /**
      * Add the list of classes that use the given package.
      *
-     * @param content the content to which the class list will be added
+     * @param contentTree the content tree to which the class list will be added
      */
-    protected void addClassList(Content content) {
+    protected void addClassList(Content contentTree) {
         TableHeader classTableHeader = new TableHeader(
                 contents.classLabel, contents.descriptionLabel);
-        var ul = HtmlTree.UL(HtmlStyle.blockList);
+        HtmlTree ul = new HtmlTree(TagName.UL);
+        ul.setStyle(HtmlStyle.blockList);
         for (String packageName : usingPackageToUsedClasses.keySet()) {
             PackageElement usingPackage = utils.elementUtils.getPackageElement(packageName);
-            var section = HtmlTree.SECTION(HtmlStyle.detail)
+            HtmlTree section = HtmlTree.SECTION(HtmlStyle.detail)
                     .setId(htmlIds.forPackage(usingPackage));
             Content caption = contents.getContent(
                     "doclet.ClassUse_Classes.in.0.used.by.1",
@@ -203,28 +209,30 @@ public class PackageUseWriter extends SubWriterHolderWriter {
             section.add(table);
             ul.add(HtmlTree.LI(section));
         }
-        var li = HtmlTree.SECTION(HtmlStyle.packageUses, ul);
-        content.add(li);
+        Content li = HtmlTree.SECTION(HtmlStyle.packageUses, ul);
+        contentTree.add(li);
     }
 
     /**
-     * {@return the package use HTML BODY element}
+     * Get the header for the package use listing.
+     *
+     * @return a content tree representing the package use header
      */
-    private HtmlTree getBody() {
+    private HtmlTree getPackageUseHeader() {
         String packageText = resources.getText("doclet.Package");
         String name = packageElement.isUnnamed() ? "" : utils.getPackageName(packageElement);
         String title = resources.getText("doclet.Window_ClassUse_Header", packageText, name);
-        HtmlTree body = getBody(getWindowTitle(title));
+        HtmlTree bodyTree = getBody(getWindowTitle(title));
         ContentBuilder headingContent = new ContentBuilder();
         headingContent.add(contents.getContent("doclet.ClassUse_Title", packageText));
         headingContent.add(new HtmlTree(TagName.BR));
         headingContent.add(name);
-        var heading = HtmlTree.HEADING_TITLE(Headings.PAGE_TITLE_HEADING,
+        Content heading = HtmlTree.HEADING_TITLE(Headings.PAGE_TITLE_HEADING,
                 HtmlStyle.title, headingContent);
-        var div = HtmlTree.DIV(HtmlStyle.header, heading);
+        Content div = HtmlTree.DIV(HtmlStyle.header, heading);
         bodyContents.setHeader(getHeader(PageMode.USE, packageElement))
                 .addMainContent(div);
-        return body;
+        return bodyTree;
     }
 
     @Override

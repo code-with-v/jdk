@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2021 SAP SE. All rights reserved.
- * Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020 SAP SE. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,6 +23,7 @@
  *
  */
 
+import java.util.Random;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 
@@ -54,7 +55,9 @@ public class RandomAllocatorThread extends Thread {
         }
 
         while (!Thread.interrupted()) {
-            allocator.tick();
+            for (int i = 0; i < 1000; i++) {
+                allocator.tick();
+            }
         }
 
         // System.out.println("+ [" + id + "] " + allocator);

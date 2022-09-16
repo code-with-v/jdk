@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -53,6 +53,9 @@ import javax.tools.Diagnostic;
  * general {@link javax.annotation.processing.Processor Processor}
  * contract for that method is obeyed.
  *
+ * @author Joseph D. Darcy
+ * @author Scott Seligman
+ * @author Peter von der Ah&eacute;
  * @since 1.6
  */
 public abstract class AbstractProcessor implements Processor {
@@ -76,7 +79,6 @@ public abstract class AbstractProcessor implements Processor {
      * @return the options recognized by this processor, or an empty
      * set if none
      */
-    @Override
     public Set<String> getSupportedOptions() {
         SupportedOptions so = this.getClass().getAnnotation(SupportedOptions.class);
         return (so == null) ?
@@ -99,7 +101,6 @@ public abstract class AbstractProcessor implements Processor {
      * @return the names of the annotation interfaces supported by
      * this processor, or an empty set if none
      */
-    @Override
     public Set<String> getSupportedAnnotationTypes() {
             SupportedAnnotationTypes sat = this.getClass().getAnnotation(SupportedAnnotationTypes.class);
             boolean initialized = isInitialized();
@@ -115,7 +116,7 @@ public abstract class AbstractProcessor implements Processor {
                         initialized &&
                         processingEnv.getSourceVersion().compareTo(SourceVersion.RELEASE_8) <= 0;
                 return arrayToSet(sat.value(), stripModulePrefixes,
-                                  "annotation interface", "@SupportedAnnotationTypes");
+                                  "annotation type", "@SupportedAnnotationTypes");
             }
         }
 
@@ -127,7 +128,6 @@ public abstract class AbstractProcessor implements Processor {
      *
      * @return the latest source version supported by this processor
      */
-    @Override
     public SourceVersion getSupportedSourceVersion() {
         SupportedSourceVersion ssv = this.getClass().getAnnotation(SupportedSourceVersion.class);
         SourceVersion sv = null;
@@ -167,7 +167,6 @@ public abstract class AbstractProcessor implements Processor {
     /**
      * {@inheritDoc}
      */
-    @Override
     public abstract boolean process(Set<? extends TypeElement> annotations,
                                     RoundEnvironment roundEnv);
 
@@ -179,7 +178,6 @@ public abstract class AbstractProcessor implements Processor {
      * @param member {@inheritDoc}
      * @param userText {@inheritDoc}
      */
-    @Override
     public Iterable<? extends Completion> getCompletions(Element element,
                                                          AnnotationMirror annotation,
                                                          ExecutableElement member,

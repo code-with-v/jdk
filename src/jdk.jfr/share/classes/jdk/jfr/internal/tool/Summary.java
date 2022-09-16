@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,6 +32,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
@@ -100,7 +101,7 @@ final class Summary extends Command {
             }
             HashMap<Long, Statistics> stats = new HashMap<>();
             stats.put(0L, new Statistics(eventPrefix + "Metadata"));
-            stats.put(1L, new Statistics(eventPrefix + "Checkpoint"));
+            stats.put(1L, new Statistics(eventPrefix + "CheckPoint"));
             int minWidth = 0;
             while (true) {
                 long chunkEnd = ch.getEnd();
@@ -142,16 +143,24 @@ final class Summary extends Command {
             println(" Start: " + DATE_FORMAT.format(Instant.ofEpochSecond(epochSeconds, adjustNanos)) + " (UTC)");
             println(" Duration: " + (totalDuration + 500_000_000) / 1_000_000_000 + " s");
             List<Statistics> statsList = new ArrayList<>(stats.values());
-            statsList.sort((u, v) -> Long.compare(v.count, u.count));
+            Collections.sort(statsList, (u, v) -> Long.compare(v.count, u.count));
             println();
             String header = "      Count  Size (bytes) ";
             String typeHeader = " Event Type";
             minWidth = Math.max(minWidth, typeHeader.length());
-            println(typeHeader + " ".repeat(minWidth - typeHeader.length()) + header);
-            println("=".repeat(minWidth + header.length()));
+            println(typeHeader + pad(minWidth - typeHeader.length(), ' ') + header);
+            println(pad(minWidth + header.length(), '='));
             for (Statistics s : statsList) {
                 System.out.printf(" %-" + minWidth + "s%10d  %12d\n", s.name, s.count, s.size);
             }
         }
+    }
+
+    private String pad(int count, char c) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < count; i++) {
+            sb.append(c);
+        }
+        return sb.toString();
     }
 }

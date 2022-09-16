@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,7 @@
 package nsk.jdi.EventSet.resume;
 
 import nsk.share.*;
+import nsk.share.jpda.*;
 import nsk.share.jdi.*;
 
 /**
@@ -53,9 +54,9 @@ public class resume009a {
 
     //====================================================== test program
 
-    static Thread thread0 = null;
-    static Thread thread1 = null;
-    static Thread thread2 = null;
+    static Threadresume009a thread0 = null;
+    static Threadresume009a thread1 = null;
+    static Threadresume009a thread2 = null;
 
     //------------------------------------------------------ common section
 
@@ -98,12 +99,12 @@ public class resume009a {
     //------------------------------------------------------  section tested
 
                     case 0:
-                            thread0 = JDIThreadFactory.newThread(new Threadresume009a("thread0"));
+                            thread0 = new Threadresume009a("thread0");
                             methodForCommunication();
 
                             threadRun(thread0);
 
-                            thread1 = JDIThreadFactory.newThread(new Threadresume009a("thread1"));
+                            thread1 = new Threadresume009a("thread1");
                             // Wait for debugger to complete the first test case
                             // before advancing to the first breakpoint
                             waitForTestCase(0);
@@ -113,7 +114,7 @@ public class resume009a {
                     case 1:
                             threadRun(thread1);
 
-                            thread2 = JDIThreadFactory.newThread(new Threadresume009a("thread2"));
+                            thread2 = new Threadresume009a("thread2");
                             methodForCommunication();
                             break;
 
@@ -166,18 +167,21 @@ public class resume009a {
         }
     }
 
-    static class Threadresume009a extends NamedTask {
+    static class Threadresume009a extends Thread {
+
+        String tName = null;
 
         public Threadresume009a(String threadName) {
             super(threadName);
+            tName = threadName;
         }
 
         public void run() {
-            log1("  'run': enter  :: threadName == " + getName());
+            log1("  'run': enter  :: threadName == " + tName);
             synchronized (waitnotifyObj) {
                     waitnotifyObj.notify();
             }
-            log1("  'run': exit   :: threadName == " + getName());
+            log1("  'run': exit   :: threadName == " + tName);
             return;
         }
     }

@@ -23,6 +23,7 @@
  */
 
 #include "precompiled.hpp"
+#include "runtime/thread.hpp"
 #include "gc/epsilon/epsilonBarrierSet.hpp"
 #include "gc/epsilon/epsilonThreadLocalData.hpp"
 #include "gc/shared/barrierSet.hpp"
@@ -33,7 +34,6 @@
 #ifdef COMPILER2
 #include "gc/shared/c2/barrierSetC2.hpp"
 #endif
-#include "runtime/javaThread.hpp"
 
 EpsilonBarrierSet::EpsilonBarrierSet() : BarrierSet(
           make_barrier_set_assembler<BarrierSetAssembler>(),

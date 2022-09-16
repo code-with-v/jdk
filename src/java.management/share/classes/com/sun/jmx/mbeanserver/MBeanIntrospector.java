@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -40,6 +40,7 @@ import java.util.WeakHashMap;
 
 import javax.management.Descriptor;
 import javax.management.ImmutableDescriptor;
+import javax.management.IntrospectionException;
 import javax.management.InvalidAttributeValueException;
 import javax.management.MBeanAttributeInfo;
 import javax.management.MBeanConstructorInfo;
@@ -191,9 +192,9 @@ abstract class MBeanIntrospector<M> {
                     MBeanAnalyzer<M> analyzer = getAnalyzer(mbeanInterface);
                     MBeanInfo mbeanInfo =
                             makeInterfaceMBeanInfo(mbeanInterface, analyzer);
-                    pi = new PerInterface<>(mbeanInterface, this, analyzer,
+                    pi = new PerInterface<M>(mbeanInterface, this, analyzer,
                             mbeanInfo);
-                    wr = new WeakReference<>(pi);
+                    wr = new WeakReference<PerInterface<M>>(pi);
                     map.put(mbeanInterface, wr);
                 } catch (Exception x) {
                     throw Introspector.throwException(mbeanInterface,x);
@@ -416,7 +417,7 @@ abstract class MBeanIntrospector<M> {
         synchronized (map) {
             WeakHashMap<Class<?>, MBeanInfo> intfMap = map.get(resourceClass);
             if (intfMap == null) {
-                intfMap = new WeakHashMap<>();
+                intfMap = new WeakHashMap<Class<?>, MBeanInfo>();
                 map.put(resourceClass, intfMap);
             }
             Class<?> intfClass = perInterface.getMBeanInterface();

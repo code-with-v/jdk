@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -101,8 +101,8 @@ public class FloatBuffers {
 
     // ---------------- HELPER METHODS
 
-    private float innerLoopGetFloat(FloatBuffer buf) {
-        float r = 0;
+    private int innerLoopGetFloat(FloatBuffer buf) {
+        int r = 0;
         for (int i = 0; i < buf.capacity(); i++) {
             r += buf.get(i);
         }
@@ -135,7 +135,7 @@ public class FloatBuffers {
     }
 
     @Benchmark
-    public float testHeapLoopGetFloat() {
+    public int testHeapLoopGetFloat() {
         return innerLoopGetFloat(heapFloatBuffer);
     }
 
@@ -148,7 +148,7 @@ public class FloatBuffers {
     }
 
     @Benchmark
-    public float testHeapLoopGetFloatViewSwapRO() {
+    public int testHeapLoopGetFloatViewSwapRO() {
         return innerLoopGetFloat(heapByteBufferAsFloatBufferViewSwapRO);
     }
 
@@ -172,7 +172,7 @@ public class FloatBuffers {
     }
 
     @Benchmark
-    public float testHeapLoopGetFloatViewSwap() {
+    public int testHeapLoopGetFloatViewSwap() {
         return innerLoopGetFloat(heapByteBufferAsFloatBufferViewSwap);
     }
 
@@ -185,7 +185,7 @@ public class FloatBuffers {
     }
 
     @Benchmark
-    public float testHeapLoopGetFloatViewRO() {
+    public int testHeapLoopGetFloatViewRO() {
         return innerLoopGetFloat(heapByteBufferAsFloatBufferViewRO);
     }
 
@@ -209,7 +209,7 @@ public class FloatBuffers {
     }
 
     @Benchmark
-    public float testHeapLoopGetFloatView() {
+    public int testHeapLoopGetFloatView() {
         return innerLoopGetFloat(heapByteBufferAsFloatBufferView);
     }
 
@@ -222,7 +222,7 @@ public class FloatBuffers {
     }
 
     @Benchmark
-    public float testDirectLoopGetFloatViewSwapRO() {
+    public int testDirectLoopGetFloatViewSwapRO() {
         return innerLoopGetFloat(directByteBufferAsFloatBufferViewSwapRO);
     }
 
@@ -246,7 +246,7 @@ public class FloatBuffers {
     }
 
     @Benchmark
-    public float testDirectLoopGetFloatViewSwap() {
+    public int testDirectLoopGetFloatViewSwap() {
         return innerLoopGetFloat(directByteBufferAsFloatBufferViewSwap);
     }
 
@@ -259,7 +259,7 @@ public class FloatBuffers {
     }
 
     @Benchmark
-    public float testDirectLoopGetFloatViewRO() {
+    public int testDirectLoopGetFloatViewRO() {
         return innerLoopGetFloat(directByteBufferAsFloatBufferViewRO);
     }
 
@@ -283,7 +283,7 @@ public class FloatBuffers {
     }
 
     @Benchmark
-    public float testDirectLoopGetFloatView() {
+    public int testDirectLoopGetFloatView() {
         return innerLoopGetFloat(directByteBufferAsFloatBufferView);
     }
 }

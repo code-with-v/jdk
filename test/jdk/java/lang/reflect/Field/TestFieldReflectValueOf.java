@@ -87,25 +87,25 @@ public class TestFieldReflectValueOf {
     private volatile short shortVolatileField;
 
     public static void main(String[] args) {
-        testStaticFieldAccessors();
-        testStaticVolatileFieldAccessors();
-        testFieldAccessors();
-        testVolatileFieldAccessors();
+        testUnsafeStaticFieldAccessors();
+        testUnsafeQualifiedStaticFieldAccessors();
+        testUnsafeFieldAccessors();
+        testUnsafeQualifiedFieldAccessors();
     }
 
-    private static void testStaticFieldAccessors() {
+    private static void testUnsafeStaticFieldAccessors() {
         testFieldAccessors(true, false);
     }
 
-    private static void testStaticVolatileFieldAccessors() {
+    private static void testUnsafeQualifiedStaticFieldAccessors() {
         testFieldAccessors(true, true);
     }
 
-    private static void testFieldAccessors() {
+    private static void testUnsafeFieldAccessors() {
         testFieldAccessors(false, false);
     }
 
-    private static void testVolatileFieldAccessors() {
+    private static void testUnsafeQualifiedFieldAccessors() {
         testFieldAccessors(false, true);
     }
 

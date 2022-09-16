@@ -165,7 +165,6 @@ public class TestHelpOption extends JavadocTester {
                 "-keywords ",
                 "-stylesheetfile ",
                 "--add-stylesheet ",
-                "--add-script",
                 "-docencoding ",
                 "-html5 ",
                 "-top ",

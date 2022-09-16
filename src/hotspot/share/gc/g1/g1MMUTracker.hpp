@@ -100,17 +100,14 @@ private:
   }
 
   void remove_expired_entries(double current_time);
-  // Returns the amount of time spent in gc pauses in the time slice before the
-  // given timestamp.
-  double calculate_gc_time(double current_timestamp);
+  double calculate_gc_time(double current_time);
+
 public:
   G1MMUTracker(double time_slice, double max_gc_time);
 
   void add_pause(double start, double end);
 
-  // Minimum delay required from current_timestamp until a GC pause of duration
-  // pause_time may be scheduled without violating the MMU constraint.
-  double when_sec(double current_timestamp, double pause_time);
+  double when_sec(double current_time, double pause_time);
 
   double max_gc_time() const {
     return _max_gc_time;

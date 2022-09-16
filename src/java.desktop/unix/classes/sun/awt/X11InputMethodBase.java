@@ -172,7 +172,7 @@ public abstract class X11InputMethodBase extends InputMethodAdapter {
         }
     }
 
-    @SuppressWarnings("removal")
+    @SuppressWarnings("deprecation")
     protected void finalize() throws Throwable {
         dispose();
         super.finalize();

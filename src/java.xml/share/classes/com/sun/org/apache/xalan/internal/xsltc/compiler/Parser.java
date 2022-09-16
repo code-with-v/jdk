@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates. All rights reserved.
  */
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -22,6 +22,7 @@ package com.sun.org.apache.xalan.internal.xsltc.compiler;
 
 import com.sun.java_cup.internal.runtime.Symbol;
 import com.sun.org.apache.xalan.internal.utils.ObjectFactory;
+import com.sun.org.apache.xalan.internal.utils.XMLSecurityManager;
 import com.sun.org.apache.xalan.internal.xsltc.compiler.util.ErrorMsg;
 import com.sun.org.apache.xalan.internal.xsltc.compiler.util.MethodType;
 import com.sun.org.apache.xalan.internal.xsltc.compiler.util.Type;
@@ -45,7 +46,6 @@ import jdk.xml.internal.JdkConstants;
 import jdk.xml.internal.JdkXmlFeatures;
 import jdk.xml.internal.JdkXmlUtils;
 import jdk.xml.internal.SecuritySupport;
-import jdk.xml.internal.XMLSecurityManager;
 import org.xml.sax.Attributes;
 import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
@@ -62,7 +62,7 @@ import org.xml.sax.helpers.AttributesImpl;
  * @author G. Todd Miller
  * @author Morten Jorgensen
  * @author Erwin Bolwidt <ejb@klomp.org>
- * @LastModified: Jan 2022
+ * @LastModified: May 2021
  */
 public class Parser implements Constants, ContentHandler {
 
@@ -504,10 +504,8 @@ public class Parser implements Constants, ContentHandler {
                 XMLSecurityManager securityManager =
                         (XMLSecurityManager)_xsltc.getProperty(JdkConstants.SECURITY_MANAGER);
                 for (XMLSecurityManager.Limit limit : XMLSecurityManager.Limit.values()) {
-                    if (limit.isSupported(XMLSecurityManager.Processor.PARSER)) {
-                        lastProperty = limit.apiProperty();
-                        reader.setProperty(lastProperty, securityManager.getLimitValueAsString(limit));
-                    }
+                    lastProperty = limit.apiProperty();
+                    reader.setProperty(lastProperty, securityManager.getLimitValueAsString(limit));
                 }
                 if (securityManager.printEntityCountInfo()) {
                     lastProperty = JdkConstants.JDK_DEBUG_LIMIT;
@@ -1171,9 +1169,6 @@ public class Parser implements Constants, ContentHandler {
                                             expression, parent));
         }
         catch (Exception e) {
-            if (ErrorMsg.XPATH_LIMIT.equals(e.getMessage())) {
-                throw new RuntimeException(ErrorMsg.XPATH_LIMIT);
-            }
             if (_xsltc.debug()) e.printStackTrace();
             reportError(ERROR, new ErrorMsg(ErrorMsg.XPATH_PARSER_ERR,
                                             expression, parent));

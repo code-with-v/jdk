@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,7 @@
 package nsk.jdi.MethodExitRequest.addClassFilter_rt;
 
 import nsk.share.*;
+import nsk.share.jpda.*;
 import nsk.share.jdi.*;
 
 /**
@@ -53,7 +54,7 @@ public class filter_rt001a {
 
     //====================================================== test program
 
-    static Thread thread1 = null;
+    static filter_rt001aThread1 thread1 = null;
 //    static Thread2filter_rt001a thread2 = null;
 
     static filter_rt001aTestClass10 obj10 = new filter_rt001aTestClass10();
@@ -104,7 +105,8 @@ public class filter_rt001a {
     //------------------------------------------------------  section tested
 
                     case 0:
-                            thread1 = JDIThreadFactory.newThread(new filter_rt001aThread1("thread1"));
+                            thread1 = new filter_rt001aThread1("thread1");
+
                             log1("new filter_rt001a().run1(thread1);");
                             new filter_rt001a().run1(thread1);
 
@@ -158,17 +160,20 @@ class filter_rt001aTestClass11 extends filter_rt001aTestClass10{
     }
 }
 
-class filter_rt001aThread1 extends NamedTask {
+class filter_rt001aThread1 extends Thread {
+
+    String tName = null;
 
     public filter_rt001aThread1(String threadName) {
         super(threadName);
+        tName = threadName;
     }
 
     public void run() {
-        filter_rt001a.log1("  'run': enter  :: threadName == " + getName());
+        filter_rt001a.log1("  'run': enter  :: threadName == " + tName);
         filter_rt001aTestClass21.m21();
         filter_rt001aTestClass11.m11();
-        filter_rt001a.log1("  'run': exit   :: threadName == " + getName());
+        filter_rt001a.log1("  'run': exit   :: threadName == " + tName);
         return;
     }
 }

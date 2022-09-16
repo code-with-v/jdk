@@ -34,8 +34,6 @@
  * @run main SyntheticTestDriver ThisFieldTest
  */
 
-import java.util.Objects;
-
 /**
  * Synthetic members:
  * 1. fields this$0 for local and anonymous classes.
@@ -51,17 +49,9 @@ import java.util.Objects;
 public class ThisFieldTest {
     {
         class Local {
-            {
-                // access enclosing instance so this$0 field is generated
-                Objects.requireNonNull(ThisFieldTest.this);
-            }
         }
 
         new Local() {
-            {
-                // access enclosing instance so this$0 field is generated
-                Objects.requireNonNull(ThisFieldTest.this);
-            }
         };
     }
 }

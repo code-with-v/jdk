@@ -54,7 +54,7 @@ class G1BarrierSetAssembler: public ModRefBarrierSetAssembler {
                              Register tmp2);
 
   virtual void oop_store_at(MacroAssembler* masm, DecoratorSet decorators, BasicType type,
-                            Address dst, Register val, Register tmp1, Register tmp2, Register tmp3);
+                            Address dst, Register val, Register tmp1, Register tmp2);
 
  public:
   void gen_pre_barrier_stub(LIR_Assembler* ce, G1PreBarrierStub* stub);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2000, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -52,14 +52,14 @@ class PatternEntry {
     /**
      * Gets the current extension, quoted
      */
-    private void appendQuotedExtension(StringBuilder toAddTo) {
+    public void appendQuotedExtension(StringBuffer toAddTo) {
         appendQuoted(extension,toAddTo);
     }
 
     /**
      * Gets the current chars, quoted
      */
-    private void appendQuotedChars(StringBuilder toAddTo) {
+    public void appendQuotedChars(StringBuffer toAddTo) {
         appendQuoted(chars,toAddTo);
     }
 
@@ -83,7 +83,7 @@ class PatternEntry {
      * For debugging.
      */
     public String toString() {
-        StringBuilder result = new StringBuilder();
+        StringBuffer result = new StringBuffer();
         addToBuffer(result, true, false, null);
         return result.toString();
     }
@@ -111,7 +111,7 @@ class PatternEntry {
 
     // ===== privates =====
 
-    void addToBuffer(StringBuilder toAddTo,
+    void addToBuffer(StringBuffer toAddTo,
                      boolean showExtension,
                      boolean showWhiteSpace,
                      PatternEntry lastEntry)
@@ -151,7 +151,7 @@ class PatternEntry {
         }
     }
 
-    private static void appendQuoted(String chars, StringBuilder toAddTo) {
+    static void appendQuoted(String chars, StringBuffer toAddTo) {
         boolean inQuote = false;
         char ch = chars.charAt(0);
         if (Character.isSpaceChar(ch)) {

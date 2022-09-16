@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2015, 2021, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2015, Oracle and/or its affiliates. All rights reserved.
 # DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
 #
 # This code is free software; you can redistribute it and/or modify it
@@ -38,7 +38,7 @@ SOURCES := ${SRC_DIR}/jdk/test/failurehandler/*.java                   \
 
 CONF_DIR = src/share/conf
 
-JAVA_RELEASE = 15
+JAVA_RELEASE = 7
 
 TARGET_JAR = ${IMAGE_DIR}/lib/jtregFailureHandler.jar
 
@@ -53,9 +53,18 @@ SRC_DIR := $(shell cygpath -m "${SRC_DIR}")
 JAVA_HOME := $(shell cygpath -m "${JAVA_HOME}")
 JTREG_HOME := $(shell cygpath -m "${JTREG_HOME}")
 CLASSPATH := $(shell cygpath -pm "${CLASSPATH}")
+CC := "cl.exe"
 endif
 
 all: clean test
+
+native: require_env
+ifeq ("${OS_NAME}", "Cygwin")
+	"${CC}" src/windows/native/jdk/test/failurehandler/jtreg/*.c        \
+	-I"$(shell cygpath -w "${JAVA_HOME}/include")"                        \
+	-I"$(shell cygpath -w "${JAVA_HOME}/include/win32")"                  \
+	/link /DLL /OUT:timeoutHandler.dll
+endif
 
 check_defined = $(foreach 1,$1,$(__check_defined))
 __check_defined = $(if $(value $1),, $(error $1 is not set))
@@ -103,7 +112,8 @@ require_env:
 clean:
 	rm -rf "${BUILD_DIR}" "${RUN_DIR}"
 
-build: classes
+build: classes native
 
-.PHONY: all build classes test require_env clean
+.PHONY: all build classes native test require_env clean
 .DEFAULT: all
+

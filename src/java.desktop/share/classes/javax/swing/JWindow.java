@@ -387,10 +387,10 @@ public class JWindow extends Window implements Accessible,
      * @param comp the component to be enhanced
      * @param constraints the constraints to be respected
      * @param index the index
-     * @throws IllegalArgumentException if <code>index</code> is invalid
-     * @throws IllegalArgumentException if adding the container's parent
+     * @exception IllegalArgumentException if <code>index</code> is invalid
+     * @exception IllegalArgumentException if adding the container's parent
      *                  to itself
-     * @throws IllegalArgumentException if adding a window to a container
+     * @exception IllegalArgumentException if adding a window to a container
      *
      * @see #setRootPaneCheckingEnabled
      * @see javax.swing.RootPaneContainer
@@ -504,7 +504,7 @@ public class JWindow extends Window implements Accessible,
      *
      * @param contentPane the new <code>contentPane</code>
      *
-     * @throws IllegalComponentStateException (a runtime
+     * @exception IllegalComponentStateException (a runtime
      *            exception) if the content pane parameter is <code>null</code>
      * @see #getContentPane
      * @see RootPaneContainer#setContentPane
@@ -532,7 +532,7 @@ public class JWindow extends Window implements Accessible,
      *
      * @param layeredPane the new <code>layeredPane</code> object
      *
-     * @throws IllegalComponentStateException (a runtime
+     * @exception IllegalComponentStateException (a runtime
      *            exception) if the content pane parameter is <code>null</code>
      * @see #getLayeredPane
      * @see RootPaneContainer#setLayeredPane

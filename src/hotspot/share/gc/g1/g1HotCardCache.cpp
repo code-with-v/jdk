@@ -30,13 +30,15 @@
 #include "runtime/atomic.hpp"
 
 G1HotCardCache::G1HotCardCache(G1CollectedHeap *g1h):
-  _g1h(g1h), _card_counts(g1h),
+  _g1h(g1h), _use_cache(false), _card_counts(g1h),
   _hot_cache(NULL), _hot_cache_size(0), _hot_cache_par_chunk_size(0),
   _hot_cache_idx(0), _hot_cache_par_claimed_idx(0), _cache_wrapped_around(false)
 {}
 
 void G1HotCardCache::initialize(G1RegionToSpaceMapper* card_counts_storage) {
-  if (use_cache()) {
+  if (default_use_cache()) {
+    _use_cache = true;
+
     _hot_cache_size = (size_t)1 << G1ConcRSLogCacheSize;
     _hot_cache = ArrayAllocator<CardValue*>::allocate(_hot_cache_size, mtGC);
 
@@ -53,7 +55,7 @@ void G1HotCardCache::initialize(G1RegionToSpaceMapper* card_counts_storage) {
 }
 
 G1HotCardCache::~G1HotCardCache() {
-  if (use_cache()) {
+  if (default_use_cache()) {
     assert(_hot_cache != NULL, "Logic");
     ArrayAllocator<CardValue*>::free(_hot_cache, _hot_cache_size);
     _hot_cache = NULL;
@@ -90,9 +92,10 @@ CardTable::CardValue* G1HotCardCache::insert(CardValue* card_ptr) {
 }
 
 void G1HotCardCache::drain(G1CardTableEntryClosure* cl, uint worker_id) {
-  assert(use_cache(), "Drain only necessary if we use the hot card cache.");
+  assert(default_use_cache(), "Drain only necessary if we use the hot card cache.");
 
   assert(_hot_cache != NULL, "Logic");
+  assert(!use_cache(), "cache should be disabled");
 
   while (_hot_cache_par_claimed_idx < _hot_cache_size) {
     size_t end_idx = Atomic::add(&_hot_cache_par_claimed_idx,

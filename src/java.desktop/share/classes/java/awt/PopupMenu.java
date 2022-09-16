@@ -69,7 +69,7 @@ public class PopupMenu extends Menu {
 
     /**
      * Creates a new popup menu with an empty name.
-     * @throws HeadlessException if GraphicsEnvironment.isHeadless()
+     * @exception HeadlessException if GraphicsEnvironment.isHeadless()
      * returns true.
      * @see java.awt.GraphicsEnvironment#isHeadless
      */
@@ -82,7 +82,7 @@ public class PopupMenu extends Menu {
      *
      * @param label a non-{@code null} string specifying
      *                the popup menu's label
-     * @throws HeadlessException if GraphicsEnvironment.isHeadless()
+     * @exception HeadlessException if GraphicsEnvironment.isHeadless()
      * returns true.
      * @see java.awt.GraphicsEnvironment#isHeadless
      */
@@ -149,12 +149,12 @@ public class PopupMenu extends Menu {
      * @param origin the component which defines the coordinate space
      * @param x the x coordinate position to popup the menu
      * @param y the y coordinate position to popup the menu
-     * @throws NullPointerException  if the parent is {@code null}
-     * @throws IllegalArgumentException  if this {@code PopupMenu}
+     * @exception NullPointerException  if the parent is {@code null}
+     * @exception IllegalArgumentException  if this {@code PopupMenu}
      *                has a non-{@code Component} parent
-     * @throws IllegalArgumentException if the origin is not in the
+     * @exception IllegalArgumentException if the origin is not in the
      *                parent's hierarchy
-     * @throws RuntimeException if the parent is not showing on screen
+     * @exception RuntimeException if the parent is not showing on screen
      */
     @SuppressWarnings("deprecation")
     public void show(Component origin, int x, int y) {

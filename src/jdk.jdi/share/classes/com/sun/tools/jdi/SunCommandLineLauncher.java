@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2017, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -40,14 +40,12 @@ import com.sun.jdi.connect.spi.TransportService;
 
 public class SunCommandLineLauncher extends AbstractLauncher {
 
-    private static final String ARG_HOME = "home";
-    private static final String ARG_OPTIONS = "options";
-    private static final String ARG_MAIN = "main";
-    private static final String ARG_INIT_SUSPEND = "suspend";
-    private static final String ARG_QUOTE = "quote";
-    private static final String ARG_VM_EXEC = "vmexec";
-
-    static private final String ARG_VM_INCLUDE_VTHREADS = "includevirtualthreads";
+    static private final String ARG_HOME = "home";
+    static private final String ARG_OPTIONS = "options";
+    static private final String ARG_MAIN = "main";
+    static private final String ARG_INIT_SUSPEND = "suspend";
+    static private final String ARG_QUOTE = "quote";
+    static private final String ARG_VM_EXEC = "vmexec";
 
     TransportService transportService;
     Transport transport;
@@ -132,12 +130,6 @@ public class SunCommandLineLauncher extends AbstractLauncher {
                 getString("sun.vm_exec"),
                 "java",
                 true);
-        addStringArgument(
-                ARG_VM_INCLUDE_VTHREADS,
-                getString("sun.include_virtualthreads.label"),
-                getString("sun.include_virtualthreads"),
-                "n",
-                false);
     }
 
     static boolean hasWhitespace(String string) {
@@ -164,7 +156,6 @@ public class SunCommandLineLauncher extends AbstractLauncher {
                                                   arguments)).booleanValue();
         String quote = argument(ARG_QUOTE, arguments).value();
         String exe = argument(ARG_VM_EXEC, arguments).value();
-        String includeVThreads = argument(ARG_VM_INCLUDE_VTHREADS, arguments).value();
         String exePath = null;
 
         if (quote.length() > 1) {
@@ -222,8 +213,7 @@ public class SunCommandLineLauncher extends AbstractLauncher {
 
             String xrun = "transport=" + transport().name() +
                           ",address=" + address +
-                          ",suspend=" + (wait? 'y' : 'n') +
-                          ",includevirtualthreads=" + includeVThreads;
+                          ",suspend=" + (wait? 'y' : 'n');
             // Quote only if necessary in case the quote arg value is bogus
             if (hasWhitespace(xrun)) {
                 xrun = quote + xrun + quote;

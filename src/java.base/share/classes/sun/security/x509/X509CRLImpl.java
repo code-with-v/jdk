@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -54,7 +54,7 @@ import sun.security.util.*;
  *     signature            BIT STRING  }
  * </pre>
  * More information can be found in
- * <a href="https://tools.ietf.org/html/rfc5280">RFC 5280: Internet X.509
+ * <a href="http://tools.ietf.org/html/rfc5280">RFC 5280: Internet X.509
  * Public Key Infrastructure Certificate and CRL Profile</a>.
  * <p>
  * The ASN.1 definition of <code>tbsCertList</code> is:
@@ -95,9 +95,8 @@ public class X509CRLImpl extends X509CRL implements DerEncoder {
     private X500Principal    issuerPrincipal = null;
     private Date             thisUpdate = null;
     private Date             nextUpdate = null;
-    private final Map<X509IssuerSerial,X509CRLEntry> revokedMap =
-            new TreeMap<>();
-    private final List<X509CRLEntry> revokedList = new LinkedList<>();
+    private Map<X509IssuerSerial,X509CRLEntry> revokedMap = new TreeMap<>();
+    private List<X509CRLEntry> revokedList = new LinkedList<>();
     private CRLExtensions    extensions = null;
     private static final boolean isExplicit = true;
 
@@ -369,7 +368,7 @@ public class X509CRLImpl extends X509CRL implements DerEncoder {
         if (signedCRL == null) {
             throw new CRLException("Uninitialized CRL");
         }
-        Signature   sigVerf;
+        Signature   sigVerf = null;
         String sigName = sigAlgId.getName();
         if (sigProvider.isEmpty()) {
             sigVerf = Signature.getInstance(sigName);
@@ -422,7 +421,7 @@ public class X509CRLImpl extends X509CRL implements DerEncoder {
         if (signedCRL == null) {
             throw new CRLException("Uninitialized CRL");
         }
-        Signature sigVerf;
+        Signature sigVerf = null;
         String sigName = sigAlgId.getName();
         if (sigProvider == null) {
             sigVerf = Signature.getInstance(sigName);
@@ -613,10 +612,10 @@ public class X509CRLImpl extends X509CRL implements DerEncoder {
      * false otherwise.
      */
     public boolean isRevoked(Certificate cert) {
-        if (revokedMap.isEmpty() ||
-                (!(cert instanceof X509Certificate xcert))) {
+        if (revokedMap.isEmpty() || (!(cert instanceof X509Certificate))) {
             return false;
         }
+        X509Certificate xcert = (X509Certificate) cert;
         X509IssuerSerial issuerSerial = new X509IssuerSerial(xcert);
         return revokedMap.containsKey(issuerSerial);
     }
@@ -741,7 +740,7 @@ public class X509CRLImpl extends X509CRL implements DerEncoder {
         if (revokedList.isEmpty()) {
             return null;
         } else {
-            return new TreeSet<>(revokedList);
+            return new TreeSet<X509CRLEntry>(revokedList);
         }
     }
 
@@ -821,7 +820,13 @@ public class X509CRLImpl extends X509CRL implements DerEncoder {
      *         null if no parameters are present.
      */
     public byte[] getSigAlgParams() {
-        return sigAlgId == null ? null : sigAlgId.getEncodedParams();
+        if (sigAlgId == null)
+            return null;
+        try {
+            return sigAlgId.getEncodedParams();
+        } catch (IOException e) {
+            return null;
+        }
     }
 
     /**
@@ -843,8 +848,9 @@ public class X509CRLImpl extends X509CRL implements DerEncoder {
     public KeyIdentifier getAuthKeyId() throws IOException {
         AuthorityKeyIdentifierExtension aki = getAuthKeyIdExtension();
         if (aki != null) {
-            return (KeyIdentifier)aki.get(
+            KeyIdentifier keyId = (KeyIdentifier)aki.get(
                     AuthorityKeyIdentifierExtension.KEY_ID);
+            return keyId;
         } else {
             return null;
         }
@@ -882,7 +888,8 @@ public class X509CRLImpl extends X509CRL implements DerEncoder {
     public BigInteger getCRLNumber() throws IOException {
         CRLNumberExtension numExt = getCRLNumberExtension();
         if (numExt != null) {
-            return numExt.get(CRLNumberExtension.NUMBER);
+            BigInteger num = numExt.get(CRLNumberExtension.NUMBER);
+            return num;
         } else {
             return null;
         }
@@ -910,7 +917,8 @@ public class X509CRLImpl extends X509CRL implements DerEncoder {
     public BigInteger getBaseCRLNumber() throws IOException {
         DeltaCRLIndicatorExtension dciExt = getDeltaCRLIndicatorExtension();
         if (dciExt != null) {
-            return dciExt.get(DeltaCRLIndicatorExtension.NUMBER);
+            BigInteger num = dciExt.get(DeltaCRLIndicatorExtension.NUMBER);
+            return num;
         } else {
             return null;
         }
@@ -1014,7 +1022,7 @@ public class X509CRLImpl extends X509CRL implements DerEncoder {
 
             if (extAlias == null) { // may be unknown
                 ObjectIdentifier findOID = ObjectIdentifier.of(oid);
-                Extension ex;
+                Extension ex = null;
                 ObjectIdentifier inCertOID;
                 for (Enumeration<Extension> e = extensions.getElements();
                                                  e.hasMoreElements();) {
@@ -1045,6 +1053,7 @@ public class X509CRLImpl extends X509CRL implements DerEncoder {
      *
      * @param oid ObjectIdentifier of extension desired
      * @return Object of type {@code <extension>} or null, if not found
+     * @throws IOException on error
      */
     public Object getExtension(ObjectIdentifier oid) {
         if (extensions == null)
@@ -1058,7 +1067,7 @@ public class X509CRLImpl extends X509CRL implements DerEncoder {
      * Parses an X.509 CRL, should be used only by constructors.
      */
     private void parse(DerValue val) throws CRLException, IOException {
-        // check if we can overwrite the certificate
+        // check if can over write the certificate
         if (readOnly)
             throw new CRLException("cannot over-write existing CRL");
 
@@ -1320,12 +1329,16 @@ public class X509CRLImpl extends X509CRL implements DerEncoder {
                 return true;
             }
 
-            if (!(o instanceof X509IssuerSerial other)) {
+            if (!(o instanceof X509IssuerSerial)) {
                 return false;
             }
 
-            return serial.equals(other.getSerial()) &&
-                    issuer.equals(other.getIssuer());
+            X509IssuerSerial other = (X509IssuerSerial) o;
+            if (serial.equals(other.getSerial()) &&
+                issuer.equals(other.getIssuer())) {
+                return true;
+            }
+            return false;
         }
 
         /**

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,8 +32,9 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.net.StandardSocketOptions;
 import java.net.UnixDomainSocketAddress;
+import java.net.StandardProtocolFamily;
+import java.net.StandardSocketOptions;
 import java.nio.*;
 import java.nio.channels.*;
 import java.nio.file.Files;
@@ -45,7 +46,6 @@ import java.security.PrivilegedActionException;
 import java.security.SecureRandom;
 import java.util.Random;
 
-import static java.net.StandardProtocolFamily.UNIX;
 
 /**
  * A simple Pipe implementation based on a socket connection.
@@ -69,14 +69,12 @@ class PipeImpl
     {
 
         private final SelectorProvider sp;
-        private final boolean preferUnixDomain;
         private IOException ioe;
         SourceChannelImpl source;
         SinkChannelImpl sink;
 
-        private Initializer(SelectorProvider sp, boolean preferUnixDomain) {
+        private Initializer(SelectorProvider sp) {
             this.sp = sp;
-            this.preferUnixDomain = preferUnixDomain;
         }
 
         @Override
@@ -124,19 +122,13 @@ class PipeImpl
                         // Bind ServerSocketChannel to a port on the loopback
                         // address
                         if (ssc == null || !ssc.isOpen()) {
-                            ssc = createListener(preferUnixDomain);
+                            ssc = createListener();
                             sa = ssc.getLocalAddress();
                         }
 
-                        // Establish connection (assume connection is eagerly accepted)
-                        if (sa instanceof InetSocketAddress
-                                && Thread.currentThread().isVirtual()) {
-                            // workaround "lost event" issue on older releases of Windows
-                            sc1 = SocketChannel.open();
-                            sc1.socket().connect(sa, 10_000);
-                        } else {
-                            sc1 = SocketChannel.open(sa);
-                        }
+                        // Establish connection (assume connections are eagerly
+                        // accepted)
+                        sc1 = SocketChannel.open(sa);
                         RANDOM_NUMBER_GENERATOR.nextBytes(secret.array());
                         do {
                             sc1.write(secret);
@@ -172,8 +164,9 @@ class PipeImpl
                     try {
                         if (ssc != null)
                             ssc.close();
-                        if (sa instanceof UnixDomainSocketAddress uaddr) {
-                            Files.deleteIfExists(uaddr.getPath());
+                        if (sa instanceof UnixDomainSocketAddress) {
+                            Path path = ((UnixDomainSocketAddress) sa).getPath();
+                            Files.deleteIfExists(path);
                         }
                     } catch (IOException e2) {}
                 }
@@ -182,24 +175,22 @@ class PipeImpl
     }
 
     /**
-     * Creates a (TCP) Pipe implementation that supports buffering.
+     * Creates a Pipe implementation that supports buffering.
      */
     PipeImpl(SelectorProvider sp) throws IOException {
-        this(sp, false, true);
+        this(sp, true);
     }
 
     /**
-     * Creates Pipe implementation that supports optionally buffering
-     * and is TCP by default, but if Unix domain is supported and
-     * preferAfUnix is true, then Unix domain sockets are used.
+     * Creates Pipe implementation that supports optionally buffering.
      *
-     * @param preferAfUnix use Unix domain sockets if supported
-     *
-     * @param buffering if false set TCP_NODELAY on TCP sockets
+     * @implNote The pipe uses Unix domain sockets where possible. It uses a
+     * loopback connection on older editions of Windows. When buffering is
+     * disabled then it sets TCP_NODELAY on the sink channel.
      */
     @SuppressWarnings("removal")
-    PipeImpl(SelectorProvider sp, boolean preferAfUnix, boolean buffering) throws IOException {
-        Initializer initializer = new Initializer(sp, preferAfUnix);
+    PipeImpl(SelectorProvider sp, boolean buffering) throws IOException {
+        Initializer initializer = new Initializer(sp);
         try {
             AccessController.doPrivileged(initializer);
             SinkChannelImpl sink = initializer.sink;
@@ -221,14 +212,18 @@ class PipeImpl
         return sink;
     }
 
-    private static ServerSocketChannel createListener(boolean preferUnixDomain) throws IOException {
+    private static volatile boolean noUnixDomainSockets;
+
+    private static ServerSocketChannel createListener() throws IOException {
         ServerSocketChannel listener = null;
-        if (preferUnixDomain && UnixDomainSockets.isSupported()) {
+        if (!noUnixDomainSockets) {
             try {
-                listener = ServerSocketChannel.open(UNIX);
-                listener.bind(null);
-                return listener;
-            } catch (IOException | UnsupportedOperationException e) {
+                listener = ServerSocketChannel.open(StandardProtocolFamily.UNIX);
+                return listener.bind(null);
+            } catch (UnsupportedOperationException | IOException e) {
+                // IOException is most likely to be caused by the temporary directory
+                // name being too long. Possibly should log this.
+                noUnixDomainSockets = true;
                 if (listener != null)
                     listener.close();
             }

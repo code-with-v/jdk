@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2013, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -50,6 +50,11 @@ import jdk.javadoc.internal.doclint.Env.AccessKind;
  * Options are used to filter out messages based on group and access level.
  * Support can be enabled for accumulating statistics of different kinds of
  * messages.
+ *
+ * <p><b>This is NOT part of any supported API.
+ * If you write code that depends on this, you do so at your own
+ * risk.  This code and its internal interfaces are subject to change
+ * or deletion without notice.</b></p>
  */
 public class Messages {
     /**
@@ -104,19 +109,12 @@ public class Messages {
         stats.setEnabled(b);
     }
 
-    boolean isEnabled(Group group, Env.AccessKind ak) {
-        return options.isEnabled(group, ak);
-    }
-
     void reportStats(PrintWriter out) {
         stats.report(out);
     }
 
     protected void report(Group group, Diagnostic.Kind dkind, DocTree tree, String code, Object... args) {
         if (options.isEnabled(group, env.currAccess)) {
-            if (dkind == Diagnostic.Kind.WARNING && env.suppressWarnings(group)) {
-                return;
-            }
             String msg = (code == null) ? (String) args[0] : localize(code, args);
             env.trees.printMessage(dkind, msg, tree,
                     env.currDocComment, env.currPath.getCompilationUnit());
@@ -127,9 +125,6 @@ public class Messages {
 
     protected void report(Group group, Diagnostic.Kind dkind, Tree tree, String code, Object... args) {
         if (options.isEnabled(group, env.currAccess)) {
-            if (dkind == Diagnostic.Kind.WARNING && env.suppressWarnings(group)) {
-                return;
-            }
             String msg = localize(code, args);
             env.trees.printMessage(dkind, msg, tree, env.currPath.getCompilationUnit());
 
@@ -320,14 +315,18 @@ public class Messages {
          */
         private static class Table {
 
-            private static final Comparator<Integer> DECREASING = Comparator.reverseOrder();
+            private static final Comparator<Integer> DECREASING = (o1, o2) -> o2.compareTo(o1);
             private final TreeMap<Integer, Set<String>> map = new TreeMap<>(DECREASING);
 
             void put(String label, int n) {
                 if (n == 0) {
                     return;
                 }
-                map.computeIfAbsent(n, k -> new TreeSet<>()).add(label);
+                Set<String> labels = map.get(n);
+                if (labels == null) {
+                    map.put(n, labels = new TreeSet<>());
+                }
+                labels.add(label);
             }
 
             void print(PrintWriter out) {

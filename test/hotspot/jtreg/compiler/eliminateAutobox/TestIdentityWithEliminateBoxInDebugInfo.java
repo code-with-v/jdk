@@ -25,13 +25,12 @@
  * @test
  * @bug 8261137
  * @requires vm.flavor == "server"
- * @summary Verify that box object identity matches after deoptimization when it is eliminated.
+ * @summary Verify that box object identity matches after deoptimization When it is eliminated.
  * @library /test/lib
  *
- * @run main/othervm -Xbatch compiler.eliminateAutobox.TestIdentityWithEliminateBoxInDebugInfo
+ * @run main/othervm -Xbatch compiler.c2.TestIdentityWithEliminateBoxInDebugInfo
  */
-
-package compiler.eliminateAutobox;
+package compiler.c2;
 
 import jdk.test.lib.Asserts;
 
@@ -41,12 +40,12 @@ public class TestIdentityWithEliminateBoxInDebugInfo {
     }
 
     public static void helper(TestF f) {
-        // warmup
-        for (int i = 0; i < 100000; i++) {
-            f.apply(true);
-        }
-        // deoptimize
-        f.apply(false);
+      // warmup
+      for(int i = 0; i < 100000; i++) {
+        f.apply(true);
+      }
+      // deoptimize
+      f.apply(false);
     }
 
     public static void runTest() throws Exception {

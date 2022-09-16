@@ -168,7 +168,7 @@ public abstract class PrinterJob {
      * cannot support the {@code Pageable} and
      * {@code Printable} interfaces necessary to support 2D printing.
      * @param service a print service that supports 2D printing
-     * @throws PrinterException if the specified service does not support
+     * @exception PrinterException if the specified service does not support
      * 2D printing, or this PrinterJob class does not support
      * setting a 2D print service, or the specified service is
      * otherwise not a valid print service.
@@ -212,7 +212,7 @@ public abstract class PrinterJob {
      * {@code document}.
      * @param document the pages to be printed. It can not be
      * {@code null}.
-     * @throws NullPointerException the {@code Pageable} passed in
+     * @exception NullPointerException the {@code Pageable} passed in
      * was {@code null}.
      * @see PageFormat
      * @see Printable
@@ -235,7 +235,7 @@ public abstract class PrinterJob {
      * selected by the user.
      * @return {@code true} if the user does not cancel the dialog;
      * {@code false} otherwise.
-     * @throws HeadlessException if GraphicsEnvironment.isHeadless()
+     * @exception HeadlessException if GraphicsEnvironment.isHeadless()
      * returns true.
      * @see java.awt.GraphicsEnvironment#isHeadless
      */
@@ -279,9 +279,9 @@ public abstract class PrinterJob {
      * This parameter may not be null.
      * @return {@code true} if the user does not cancel the dialog;
      * {@code false} otherwise.
-     * @throws HeadlessException if GraphicsEnvironment.isHeadless()
+     * @exception HeadlessException if GraphicsEnvironment.isHeadless()
      * returns true.
-     * @throws NullPointerException if {@code attributes} parameter
+     * @exception NullPointerException if {@code attributes} parameter
      * is null.
      * @see java.awt.GraphicsEnvironment#isHeadless
      * @since     1.4
@@ -313,7 +313,7 @@ public abstract class PrinterJob {
      *            is cancelled; a new {@code PageFormat} object
      *            containing the format indicated by the user if the
      *            dialog is acknowledged.
-     * @throws HeadlessException if GraphicsEnvironment.isHeadless()
+     * @exception HeadlessException if GraphicsEnvironment.isHeadless()
      * returns true.
      * @see java.awt.GraphicsEnvironment#isHeadless
      * @since     1.2
@@ -342,9 +342,9 @@ public abstract class PrinterJob {
      * This parameter may not be null.
      * @return a page format if the user does not cancel the dialog;
      * {@code null} otherwise.
-     * @throws HeadlessException if GraphicsEnvironment.isHeadless()
+     * @exception HeadlessException if GraphicsEnvironment.isHeadless()
      * returns true.
-     * @throws NullPointerException if {@code attributes} parameter
+     * @exception NullPointerException if {@code attributes} parameter
      * is null.
      * @see java.awt.GraphicsEnvironment#isHeadless
      * @since     1.4
@@ -495,7 +495,7 @@ public abstract class PrinterJob {
 
     /**
      * Prints a set of pages.
-     * @throws PrinterException an error in the print system
+     * @exception PrinterException an error in the print system
      *            caused the job to be aborted.
      * @see Book
      * @see Pageable
@@ -533,7 +533,7 @@ public abstract class PrinterJob {
      * this print() method.
      *
      * @param attributes a set of attributes for the job
-     * @throws PrinterException an error in the print system
+     * @exception PrinterException an error in the print system
      *            caused the job to be aborted.
      * @see Book
      * @see Pageable

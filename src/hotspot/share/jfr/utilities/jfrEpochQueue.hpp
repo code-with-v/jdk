@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,8 +27,6 @@
 
 #include "jfr/recorder/storage/jfrEpochStorage.hpp"
 
-class Thread;
-
 /*
  * An ElmentPolicy template template argument provides the implementation for how elements
  * associated with the queue is encoded and managed by exposing the following members:
@@ -45,7 +43,7 @@ class Thread;
  *  size_t operator()(const u1* next_element, Callback& callback, bool previous_epoch = false);
  */
 template <template <typename> class ElementPolicy>
-class JfrEpochQueue : public ElementPolicy<typename JfrEpochStorage::Buffer> {
+class JfrEpochQueue : public JfrCHeapObj {
  public:
   typedef JfrEpochStorage::Buffer Buffer;
   typedef JfrEpochStorage::BufferPtr BufferPtr;
@@ -55,20 +53,22 @@ class JfrEpochQueue : public ElementPolicy<typename JfrEpochStorage::Buffer> {
   ~JfrEpochQueue();
   bool initialize(size_t min_buffer_size, size_t free_list_cache_count_limit, size_t cache_prealloc_count);
   void enqueue(TypePtr t);
-  BufferPtr renew(size_t size, Thread* thread);
   template <typename Callback>
   void iterate(Callback& callback, bool previous_epoch = false);
  private:
+  typedef ElementPolicy<Buffer> Policy;
+  Policy _policy;
   JfrEpochStorage* _storage;
   BufferPtr storage_for_element(TypePtr t, size_t element_size);
+
   template <typename Callback>
   class ElementDispatch {
    private:
     Callback& _callback;
-    JfrEpochQueue& _queue;
+    Policy& _policy;
    public:
     typedef Buffer Type;
-    ElementDispatch(Callback& callback, JfrEpochQueue& queue);
+    ElementDispatch(Callback& callback, Policy& policy);
     size_t operator()(const u1* element, bool previous_epoch);
   };
 };

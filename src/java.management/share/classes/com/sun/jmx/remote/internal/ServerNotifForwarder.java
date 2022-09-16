@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -96,7 +96,7 @@ public class ServerNotifForwarder {
             @SuppressWarnings("removal")
             boolean instanceOf =
             AccessController.doPrivileged(
-                    new PrivilegedExceptionAction<>() {
+                    new PrivilegedExceptionAction<Boolean>() {
                         public Boolean run() throws InstanceNotFoundException {
                             return mbeanServer.isInstanceOf(name, broadcasterClass);
                         }
@@ -121,7 +121,9 @@ public class ServerNotifForwarder {
                                             name.getKeyPropertyList());
             } catch (MalformedObjectNameException mfoe) {
                 // impossible, but...
-                throw new IOException(mfoe.getMessage(), mfoe);
+                IOException ioe = new IOException(mfoe.getMessage());
+                ioe.initCause(mfoe);
+                throw ioe;
             }
         }
 
@@ -134,7 +136,7 @@ public class ServerNotifForwarder {
                 set = Collections.singleton(idaf);
             else {
                 if (set.size() == 1)
-                    set = new HashSet<>(set);
+                    set = new HashSet<IdAndFilter>(set);
                 set.add(idaf);
             }
             listenerMap.put(nn, set);
@@ -384,7 +386,7 @@ public class ServerNotifForwarder {
             ObjectInstance oi;
             try {
                 oi = AccessController.doPrivileged(
-                    new PrivilegedExceptionAction<>() {
+                    new PrivilegedExceptionAction<ObjectInstance>() {
                         public ObjectInstance run()
                         throws InstanceNotFoundException {
                             return mbs.getObjectInstance(name);
@@ -490,7 +492,7 @@ public class ServerNotifForwarder {
 
     private NotificationBuffer notifBuffer;
     private final Map<ObjectName, Set<IdAndFilter>> listenerMap =
-            new HashMap<>();
+            new HashMap<ObjectName, Set<IdAndFilter>>();
 
     private boolean terminated = false;
     private final int[] terminationLock = new int[0];

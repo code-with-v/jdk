@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -44,7 +44,9 @@ import javax.management.Notification;
 import javax.management.NotificationFilterSupport;
 import javax.management.ObjectName;
 
+import java.util.List;
 import java.lang.System.Logger.Level;
+import java.util.Vector;
 
 /**
  * Filter for {@link MBeanServerNotification}.
@@ -136,7 +138,7 @@ public class MBeanServerNotificationFilter extends NotificationFilterSupport {
      *         <li>Empty vector means that no {@link ObjectName} is explicitly selected</li>
      *         </ul>
      */
-    private List<ObjectName> selectedNames = new Vector<>();
+    private List<ObjectName> selectedNames = new Vector<ObjectName>();
 
     /**
      * @serial List of {@link ObjectName}s with no interest
@@ -180,7 +182,7 @@ public class MBeanServerNotificationFilter extends NotificationFilterSupport {
 
         RELATION_LOGGER.log(Level.TRACE, "ENTRY");
 
-        selectedNames = new Vector<>();
+        selectedNames = new Vector<ObjectName>();
         deselectedNames = null;
 
         RELATION_LOGGER.log(Level.TRACE, "RETURN");
@@ -232,7 +234,7 @@ public class MBeanServerNotificationFilter extends NotificationFilterSupport {
         RELATION_LOGGER.log(Level.TRACE, "ENTRY");
 
         selectedNames = null;
-        deselectedNames = new Vector<>();
+        deselectedNames = new Vector<ObjectName>();
 
         RELATION_LOGGER.log(Level.TRACE, "RETURN");
         return;
@@ -286,7 +288,7 @@ public class MBeanServerNotificationFilter extends NotificationFilterSupport {
      */
     public synchronized Vector<ObjectName> getEnabledObjectNames() {
         if (selectedNames != null) {
-            return new Vector<>(selectedNames);
+            return new Vector<ObjectName>(selectedNames);
         } else {
             return null;
         }
@@ -303,7 +305,7 @@ public class MBeanServerNotificationFilter extends NotificationFilterSupport {
      */
     public synchronized Vector<ObjectName> getDisabledObjectNames() {
         if (deselectedNames != null) {
-            return new Vector<>(deselectedNames);
+            return new Vector<ObjectName>(deselectedNames);
         } else {
             return null;
         }

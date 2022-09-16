@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -63,7 +63,7 @@ class RevocationChecker extends PKIXRevocationChecker {
     private Map<X509Certificate, byte[]> ocspResponses;
     private List<Extension> ocspExtensions;
     private final boolean legacy;
-    private final LinkedList<CertPathValidatorException> softFailExceptions =
+    private LinkedList<CertPathValidatorException> softFailExceptions =
         new LinkedList<>();
 
     // state variables
@@ -72,8 +72,7 @@ class RevocationChecker extends PKIXRevocationChecker {
     private boolean crlSignFlag;
     private int certIndex;
 
-    private enum Mode { PREFER_OCSP, PREFER_CRLS, ONLY_CRLS, ONLY_OCSP }
-
+    private enum Mode { PREFER_OCSP, PREFER_CRLS, ONLY_CRLS, ONLY_OCSP };
     private Mode mode = Mode.PREFER_OCSP;
 
     private static class RevocationProperties {
@@ -294,6 +293,7 @@ class RevocationChecker extends PKIXRevocationChecker {
                 if (debug != null) {
                     debug.println("CertStore exception:" + e);
                 }
+                continue;
             }
         }
         throw new CertPathValidatorException(
@@ -388,6 +388,7 @@ class RevocationChecker extends PKIXRevocationChecker {
                     throw e;
                 }
             }
+            CertPathValidatorException cause = e;
             // Otherwise, failover
             if (debug != null) {
                 debug.println("RevocationChecker.check() " + e.getMessage());
@@ -412,12 +413,12 @@ class RevocationChecker extends PKIXRevocationChecker {
                     throw x;
                 }
                 if (!isSoftFailException(x)) {
-                    e.addSuppressed(x);
-                    throw e;
+                    cause.addSuppressed(x);
+                    throw cause;
                 } else {
                     // only pass if both exceptions were soft failures
                     if (!eSoftFail) {
-                        throw e;
+                        throw cause;
                     }
                 }
             }
@@ -487,8 +488,10 @@ class RevocationChecker extends PKIXRevocationChecker {
                 }
                 break;
             case "SSLServer":
+                result = (t != null && t instanceof IOException);
+                break;
             case "URI":
-                result = (t instanceof IOException);
+                result = (t != null && t instanceof IOException);
                 break;
             default:
                 // we don't know about any other remote CertStore types
@@ -587,7 +590,8 @@ class RevocationChecker extends PKIXRevocationChecker {
                                         params.variant(), anchor));
                 }
             } catch (CertStoreException e) {
-                if (e instanceof CertStoreTypeException cste) {
+                if (e instanceof CertStoreTypeException) {
+                    CertStoreTypeException cste = (CertStoreTypeException)e;
                     if (isCausedByNetworkIssue(cste.getType(), e)) {
                         throw new CertPathValidatorException(
                             "Unable to determine revocation status due to " +
@@ -606,6 +610,7 @@ class RevocationChecker extends PKIXRevocationChecker {
                     try {
                         verifyWithSeparateSigningKey(cert, prevKey, signFlag,
                                                      stackedCerts);
+                        return;
                     } catch (CertPathValidatorException cpve) {
                         if (networkFailureException != null) {
                             // if a network issue previously prevented us from
@@ -646,7 +651,7 @@ class RevocationChecker extends PKIXRevocationChecker {
         }
 
         CRLReason reasonCode = CRLReason.UNSPECIFIED;
-        X509CRLEntryImpl entry;
+        X509CRLEntryImpl entry = null;
         for (X509CRL crl : approvedCRLs) {
             X509CRLEntry e = crl.getRevokedCertificate(cert);
             if (e != null) {
@@ -697,7 +702,7 @@ class RevocationChecker extends PKIXRevocationChecker {
                            Collection<String> unresolvedCritExts)
         throws CertPathValidatorException
     {
-        X509CertImpl currCert;
+        X509CertImpl currCert = null;
         try {
             currCert = X509CertImpl.toImpl(cert);
         } catch (CertificateException ce) {
@@ -708,8 +713,8 @@ class RevocationChecker extends PKIXRevocationChecker {
         // does not need to be checked in this code. The constraints will be
         // checked when the responder's certificate is validated.
 
-        OCSPResponse response;
-        CertId certId;
+        OCSPResponse response = null;
+        CertId certId = null;
         try {
             certId = new CertId(issuerInfo.getName(), issuerInfo.getPublicKey(),
                     currCert.getSerialNumberObject());
@@ -751,7 +756,7 @@ class RevocationChecker extends PKIXRevocationChecker {
                             Extension nonceExt = new OCSPNonceExtension(DEFAULT_NONCE_BYTES);
 
                             if (ocspExtensions.size() > 0) {
-                                tmpExtensions = new ArrayList<>(ocspExtensions);
+                                tmpExtensions = new ArrayList<Extension>(ocspExtensions);
                                 tmpExtensions.add(nonceExt);
                             } else {
                                 tmpExtensions = List.of(nonceExt);
@@ -787,7 +792,8 @@ class RevocationChecker extends PKIXRevocationChecker {
                 e, null, -1, BasicReason.UNDETERMINED_REVOCATION_STATUS);
         }
 
-        RevocationStatus rs = response.getSingleResponse(certId);
+        RevocationStatus rs =
+            (RevocationStatus)response.getSingleResponse(certId);
         RevocationStatus.CertStatus certStatus = rs.getCertStatus();
         if (certStatus == RevocationStatus.CertStatus.REVOKED) {
             Date revocationTime = rs.getRevocationTime();
@@ -858,7 +864,9 @@ class RevocationChecker extends PKIXRevocationChecker {
                                                    PublicKey prevKey,
                                                    boolean signFlag,
                                                    boolean[] reasonsMask,
-                                                   Set<TrustAnchor> anchors) {
+                                                   Set<TrustAnchor> anchors)
+        throws CertPathValidatorException
+    {
         try {
             X509CertImpl certImpl = X509CertImpl.toImpl(cert);
             if (debug != null) {
@@ -868,7 +876,7 @@ class RevocationChecker extends PKIXRevocationChecker {
             }
             CRLDistributionPointsExtension ext =
                 certImpl.getCRLDistributionPointsExtension();
-            List<DistributionPoint> points;
+            List<DistributionPoint> points = null;
             if (ext == null) {
                 // assume a DP with reasons and CRLIssuer fields omitted
                 // and a DP name of the cert issuer.
@@ -1029,7 +1037,7 @@ class RevocationChecker extends PKIXRevocationChecker {
         builderParams.setRevocationEnabled(false);
 
         // check for AuthorityInformationAccess extension
-        if (Builder.USE_AIA) {
+        if (Builder.USE_AIA == true) {
             X509CertImpl currCertImpl = null;
             try {
                 currCertImpl = X509CertImpl.toImpl(currCert);
@@ -1060,7 +1068,7 @@ class RevocationChecker extends PKIXRevocationChecker {
             }
         }
 
-        CertPathBuilder builder;
+        CertPathBuilder builder = null;
         try {
             builder = CertPathBuilder.getInstance("PKIX");
         } catch (NoSuchAlgorithmException nsae) {
@@ -1082,7 +1090,7 @@ class RevocationChecker extends PKIXRevocationChecker {
                 // Now check revocation of all certs in path, assuming that
                 // the stackedCerts are revoked.
                 if (stackedCerts == null) {
-                    stackedCerts = new HashSet<>();
+                    stackedCerts = new HashSet<X509Certificate>();
                 }
                 stackedCerts.add(currCert);
                 TrustAnchor ta = cpbr.getTrustAnchor();
@@ -1200,10 +1208,12 @@ class RevocationChecker extends PKIXRevocationChecker {
          */
         @Override
         public String toString() {
-            return "RejectKeySelector: [\n" +
-                    super.toString() +
-                    badKeySet +
-                    "]";
+            StringBuilder sb = new StringBuilder();
+            sb.append("RejectKeySelector: [\n");
+            sb.append(super.toString());
+            sb.append(badKeySet);
+            sb.append("]");
+            return sb.toString();
         }
     }
 }

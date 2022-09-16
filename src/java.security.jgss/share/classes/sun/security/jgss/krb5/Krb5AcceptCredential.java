@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,6 +25,7 @@
 
 package sun.security.jgss.krb5;
 
+import java.io.IOException;
 import org.ietf.jgss.*;
 import sun.security.jgss.GSSCaller;
 import sun.security.jgss.spi.*;
@@ -32,6 +33,7 @@ import sun.security.krb5.*;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.security.AccessController;
+import java.security.AccessControlContext;
 import javax.security.auth.DestroyFailedException;
 
 /**
@@ -63,15 +65,16 @@ public class Krb5AcceptCredential
 
         final String serverPrinc = (name == null? null:
             name.getKrb5PrincipalName().getName());
+        final AccessControlContext acc = AccessController.getContext();
 
-        ServiceCreds creds;
+        ServiceCreds creds = null;
         try {
-            creds = AccessController.doPrivilegedWithCombiner(
+            creds = AccessController.doPrivileged(
                         new PrivilegedExceptionAction<ServiceCreds>() {
                 public ServiceCreds run() throws Exception {
                     return Krb5Util.getServiceCreds(
                         caller == GSSCaller.CALLER_UNKNOWN ? GSSCaller.CALLER_ACCEPT: caller,
-                        serverPrinc);
+                        serverPrinc, acc);
                 }});
         } catch (PrivilegedActionException e) {
             GSSException ge =
@@ -178,7 +181,7 @@ public class Krb5AcceptCredential
 
     /**
      * Impersonation is only available on the initiator side. The
-     * service must start as an initiator to get an initial TGT to complete
+     * service must starts as an initiator to get an initial TGT to complete
      * the S4U2self protocol.
      */
     @Override

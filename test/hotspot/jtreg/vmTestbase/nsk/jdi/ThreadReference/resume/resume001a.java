@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,6 +23,7 @@
 
 package nsk.jdi.ThreadReference.resume;
 
+import nsk.share.*;
 import nsk.share.jpda.*;
 import nsk.share.jdi.*;
 
@@ -93,8 +94,8 @@ public class resume001a {
     //------------------------------------------------------  section tested
 
                 case 0:
-                         Thread test_thread =
-                                 JDIThreadFactory.newThread(new Threadresume001a("testedThread"));
+                         Threadresume001a test_thread =
+                             new Threadresume001a("testedThread");
                          log1("       thread2 is created");
 
                          label:
@@ -145,7 +146,7 @@ public class resume001a {
 }
 
 
-class Threadresume001a extends NamedTask {
+class Threadresume001a extends Thread {
 
     public Threadresume001a(String threadName) {
         super(threadName);

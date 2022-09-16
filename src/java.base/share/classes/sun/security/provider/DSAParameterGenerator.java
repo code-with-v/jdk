@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2017, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -105,9 +105,10 @@ public class DSAParameterGenerator extends AlgorithmParameterGeneratorSpi {
     @Override
     protected void engineInit(AlgorithmParameterSpec genParamSpec,
             SecureRandom random) throws InvalidAlgorithmParameterException {
-        if (!(genParamSpec instanceof DSAGenParameterSpec dsaGenParams)) {
+        if (!(genParamSpec instanceof DSAGenParameterSpec)) {
             throw new InvalidAlgorithmParameterException("Invalid parameter");
         }
+        DSAGenParameterSpec dsaGenParams = (DSAGenParameterSpec)genParamSpec;
 
         // directly initialize using the already validated values
         this.valueL = dsaGenParams.getPrimePLength();
@@ -123,7 +124,7 @@ public class DSAParameterGenerator extends AlgorithmParameterGeneratorSpi {
      */
     @Override
     protected AlgorithmParameters engineGenerateParameters() {
-        AlgorithmParameters algParams;
+        AlgorithmParameters algParams = null;
         try {
             if (this.random == null) {
                 this.random = new SecureRandom();
@@ -141,12 +142,16 @@ public class DSAParameterGenerator extends AlgorithmParameterGeneratorSpi {
                 new DSAParameterSpec(paramP, paramQ, paramG);
             algParams = AlgorithmParameters.getInstance("DSA", "SUN");
             algParams.init(dsaParamSpec);
-        } catch (InvalidParameterSpecException | NoSuchAlgorithmException |
-                NoSuchProviderException e) {
+        } catch (InvalidParameterSpecException e) {
             // this should never happen
             throw new RuntimeException(e.getMessage());
+        } catch (NoSuchAlgorithmException e) {
+            // this should never happen, because we provide it
+            throw new RuntimeException(e.getMessage());
+        } catch (NoSuchProviderException e) {
+            // this should never happen, because we provide it
+            throw new RuntimeException(e.getMessage());
         }
-
 
         return algParams;
     }
@@ -182,6 +187,7 @@ public class DSAParameterGenerator extends AlgorithmParameterGeneratorSpi {
             hashObj = MessageDigest.getInstance(hashAlg);
         } catch (NoSuchAlgorithmException nsae) {
             // should never happen
+            nsae.printStackTrace();
         }
 
         /* Step 3, 4: Useful variables */
@@ -201,7 +207,7 @@ public class DSAParameterGenerator extends AlgorithmParameterGeneratorSpi {
         if (primeCertainty < 0) {
             throw new ProviderException("Invalid valueL: " + valueL);
         }
-        BigInteger resultP, resultQ, seed;
+        BigInteger resultP, resultQ, seed = null;
         int counter;
         while (true) {
             do {
@@ -249,8 +255,9 @@ public class DSAParameterGenerator extends AlgorithmParameterGeneratorSpi {
                 if (resultP.compareTo(twoLm1) > -1
                     && resultP.isProbablePrime(primeCertainty)) {
                     /* Step 11.8 */
-                    return new BigInteger[]{resultP, resultQ, seed,
+                    BigInteger[] result = {resultP, resultQ, seed,
                                            BigInteger.valueOf(counter)};
+                    return result;
                 }
                 /* Step 11.9 */
                 offset = offset.add(BigInteger.valueOf(n)).add(BigInteger.ONE);

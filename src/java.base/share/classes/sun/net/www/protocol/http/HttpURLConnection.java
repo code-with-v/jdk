@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1995, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1995, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -278,7 +278,7 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
         allowRestrictedHeaders = Boolean.parseBoolean(
                 props.getProperty("sun.net.http.allowRestrictedHeaders"));
         if (!allowRestrictedHeaders) {
-            restrictedHeaderSet = HashSet.newHashSet(restrictedHeaders.length);
+            restrictedHeaderSet = new HashSet<>(restrictedHeaders.length);
             for (int i=0; i < restrictedHeaders.length; i++) {
                 restrictedHeaderSet.add(restrictedHeaders[i].toLowerCase());
             }
@@ -288,7 +288,8 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
     }
 
     static final String httpVersion = "HTTP/1.1";
-    static final String acceptString = "*/*";
+    static final String acceptString =
+        "text/html, image/gif, image/jpeg, *; q=.2, */*; q=.2";
 
     // the following http request headers should NOT have their values
     // returned for security reasons.
@@ -600,7 +601,7 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
         }
     }
 
-    /* adds the standard key/val pairs to requests if necessary & write to
+    /* adds the standard key/val pairs to reqests if necessary & write to
      * given PrintStream
      */
     private void writeRequests() throws IOException {
@@ -626,13 +627,10 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
              * to last and last, respectively, in the case of a POST
              * request.
              */
-            final String requestLine = method + " " + getRequestURI()+ " " + httpVersion;
-            final int requestLineIndex = requests.getKey(requestLine);
-            if (requestLineIndex != 0) {
-                // we expect the request line to be at index 0. we set it here
-                // if we don't find the request line at that index.
+            if (!failedOnce) {
                 checkURLFile();
-                requests.prepend(requestLine, null);
+                requests.prepend(method + " " + getRequestURI()+" "  +
+                                 httpVersion, null);
             }
             if (!getUseCaches()) {
                 requests.setIfNotSet ("Cache-Control", "no-cache");
@@ -659,7 +657,8 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
              * or if keep alive is disabled via a system property
              */
 
-            if (http.getHttpKeepAliveSet()) {
+            // Try keep-alive only on first attempt
+            if (!failedOnce && http.getHttpKeepAliveSet()) {
                 if (http.usingProxy && tunnelState() != TunnelState.TUNNELING) {
                     requests.setIfNotSet("Proxy-Connection", "keep-alive");
                 } else {
@@ -1467,6 +1466,9 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
                 }
                 return poster;
             }
+        } catch (RuntimeException e) {
+            disconnectInternal();
+            throw e;
         } catch (ProtocolException e) {
             // Save the response code which may have been set while enforcing
             // the 100-continue. disconnectInternal() forces it to -1
@@ -1474,7 +1476,7 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
             disconnectInternal();
             responseCode = i;
             throw e;
-        } catch (RuntimeException | IOException e) {
+        } catch (IOException e) {
             disconnectInternal();
             throw e;
         }
@@ -1536,7 +1538,11 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
                         }
                         List<String> l = entry.getValue();
                         if (l != null && !l.isEmpty()) {
-                            requests.add(key, String.join("; ", l));
+                            StringJoiner cookieValue = new StringJoiner("; ");
+                            for (String value : l) {
+                                cookieValue.add(value);
+                            }
+                            requests.add(key, cookieValue.toString());
                         }
                     }
                 }
@@ -1734,7 +1740,7 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
                     AuthenticationHeader authhdr = new AuthenticationHeader (
                             "Proxy-Authenticate",
                             responses,
-                            getHttpCallerInfo(url,
+                            new HttpCallerInfo(url,
                                                http.getProxyHostUsed(),
                                                http.getProxyPortUsed(),
                                                authenticator),
@@ -1809,7 +1815,7 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
 
                     srvHdr = new AuthenticationHeader (
                             "WWW-Authenticate", responses,
-                            getHttpCallerInfo(url, authenticator),
+                            new HttpCallerInfo(url, authenticator),
                             dontUseNegotiate
                     );
 
@@ -1897,7 +1903,7 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
 
                 // some flags should be reset to its initialized form so that
                 // even after a redirect the necessary checks can still be
-                // performed.
+                // preformed.
                 inNegotiate = false;
                 inNegotiateProxy = false;
 
@@ -2205,7 +2211,7 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
                     AuthenticationHeader authhdr = new AuthenticationHeader(
                             "Proxy-Authenticate",
                             responses,
-                            getHttpCallerInfo(url,
+                            new HttpCallerInfo(url,
                                                http.getProxyHostUsed(),
                                                http.getProxyPortUsed(),
                                                authenticator),
@@ -2272,21 +2278,6 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
 
         // reset responses
         responses.reset();
-    }
-
-    /**
-     * Overridden in https to also include the server certificate
-     */
-    protected HttpCallerInfo getHttpCallerInfo(URL url, String proxy, int port,
-                                               Authenticator authenticator) {
-        return new HttpCallerInfo(url, proxy, port, authenticator);
-    }
-
-    /**
-     * Overridden in https to also include the server certificate
-     */
-    protected HttpCallerInfo getHttpCallerInfo(URL url, Authenticator authenticator) {
-        return new HttpCallerInfo(url, authenticator);
     }
 
     static String connectRequestURI(URL url) {
@@ -2970,7 +2961,7 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
         /* must save before calling close */
         reuseClient = http;
         InputStream is = http.getInputStream();
-        if (!method.equals("HEAD") || tunnelState == TunnelState.SETUP) {
+        if (!method.equals("HEAD")) {
             try {
                 /* we want to read the rest of the response without using the
                  * hurry mechanism, because that would close the connection
@@ -3082,7 +3073,7 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
              * can be considered an approximation in that we may close a
              * different idle connection to that used by the request.
              * Additionally it's possible that we close two connections
-             * - the first because it wasn't an EOF (and couldn't be
+             * - the first becuase it wasn't an EOF (and couldn't be
              * hurried) - the second, another idle connection to the
              * same server. The is okay because "disconnect" is an
              * indication that the application doesn't intend to access
@@ -3110,7 +3101,7 @@ public class HttpURLConnection extends java.net.HttpURLConnection {
 
 
             } else {
-                // We are deliberately being disconnected so HttpClient
+                // We are deliberatly being disconnected so HttpClient
                 // should not try to resend the request no matter what stage
                 // of the connection we are in.
                 http.setDoNotRetry(true);

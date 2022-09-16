@@ -41,7 +41,6 @@ import java.util.HashSet;
 import sun.awt.util.ThreadGroupUtils;
 import sun.java2d.SunGraphicsEnvironment;
 import sun.java2d.loops.SurfaceType;
-import sun.awt.X11.XToolkit;
 import sun.java2d.opengl.GLXGraphicsConfig;
 import sun.java2d.pipe.Region;
 import sun.java2d.xr.XRGraphicsConfig;
@@ -64,6 +63,7 @@ public final class X11GraphicsDevice extends GraphicsDevice
 
     private static AWTPermission fullScreenExclusivePermission;
     private static Boolean xrandrExtSupported;
+    private final Object configLock = new Object();
     private SunDisplayChanger topLevels = new SunDisplayChanger();
     private DisplayMode origDisplayMode;
     private boolean shutdownHookRegistered;
@@ -150,11 +150,8 @@ public final class X11GraphicsDevice extends GraphicsDevice
     @Override
     public GraphicsConfiguration[] getConfigurations() {
         if (configs == null) {
-            XToolkit.awtLock();
-            try {
+            synchronized (configLock) {
                 makeConfigurations();
-            } finally {
-                XToolkit.awtUnlock();
             }
         }
         return configs.clone();
@@ -241,11 +238,8 @@ public final class X11GraphicsDevice extends GraphicsDevice
     @Override
     public GraphicsConfiguration getDefaultConfiguration() {
         if (defaultConfig == null) {
-            XToolkit.awtLock();
-            try {
+            synchronized (configLock) {
                 makeDefaultConfiguration();
-            } finally {
-                XToolkit.awtUnlock();
             }
         }
         return defaultConfig;
@@ -577,8 +571,6 @@ public final class X11GraphicsDevice extends GraphicsDevice
     }
 
     public void invalidate(X11GraphicsDevice device) {
-        assert XToolkit.isAWTLockHeldByCurrentThread();
-
         screen = device.screen;
     }
 }

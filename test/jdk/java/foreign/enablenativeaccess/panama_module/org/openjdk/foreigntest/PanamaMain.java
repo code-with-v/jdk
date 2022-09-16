@@ -23,12 +23,12 @@
 
 package org.openjdk.foreigntest;
 
-import java.lang.foreign.*;
+import jdk.incubator.foreign.*;
 
 public class PanamaMain {
    public static void main(String[] args) {
-       System.out.println("Trying to get Linker");
-       Linker.nativeLinker();
-       System.out.println("Got Linker");
+       System.out.println("Trying to get CLinker");
+       CLinker.getInstance();
+       System.out.println("Got CLinker");
    }
 }

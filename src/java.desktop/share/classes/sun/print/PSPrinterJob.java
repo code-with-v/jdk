@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -63,6 +63,7 @@ import javax.print.attribute.standard.DialogTypeSelection;
 import javax.print.attribute.standard.JobName;
 import javax.print.attribute.standard.Sides;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
@@ -392,10 +393,11 @@ public class PSPrinterJob extends RasterPrinterJob {
                 }
 
                 // Load property file
+                InputStream in =
+                    new BufferedInputStream(new FileInputStream(f.getPath()));
                 Properties props = new Properties();
-                try (FileInputStream in = new FileInputStream(f.getPath())) {
-                    props.load(in);
-                }
+                props.load(in);
+                in.close();
                 return props;
             } catch (Exception e){
                 return (Properties)null;
@@ -417,7 +419,7 @@ public class PSPrinterJob extends RasterPrinterJob {
      * print job interactively.
      * @return false if the user cancels the dialog and
      *         true otherwise.
-     * @throws HeadlessException if GraphicsEnvironment.isHeadless()
+     * @exception HeadlessException if GraphicsEnvironment.isHeadless()
      * returns true.
      * @see java.awt.GraphicsEnvironment#isHeadless
      */
@@ -611,7 +613,7 @@ public class PSPrinterJob extends RasterPrinterJob {
             int cnt = Integer.parseInt(mFontProps.getProperty("font.num", "9"));
             for (int i = 0; i < cnt; i++){
                 mPSStream.println("    /" + mFontProps.getProperty
-                           ("font." + i, "Courier ISOF"));
+                           ("font." + String.valueOf(i), "Courier ISOF"));
             }
         }
         mPSStream.println("] D");
@@ -1308,7 +1310,9 @@ public class PSPrinterJob extends RasterPrinterJob {
                                       bb, true);
                         bb.flip();
                         len = bb.limit();
-                    } catch (IllegalStateException | CoderMalfunctionError xx){
+                    } catch(IllegalStateException xx){
+                        continue;
+                    } catch(CoderMalfunctionError xx){
                         continue;
                     }
                     /* The width to fit to may either be specified,

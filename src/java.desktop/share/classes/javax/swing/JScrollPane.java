@@ -418,7 +418,7 @@ public class JScrollPane extends JComponent implements ScrollPaneConstants, Acce
      * will invoke <code>syncWithScrollPane</code> on it.
      *
      * @param layout the specified layout manager
-     * @throws ClassCastException if layout is not a
+     * @exception ClassCastException if layout is not a
      *                  <code>ScrollPaneLayout</code>
      * @see java.awt.Container#getLayout
      * @see java.awt.Container#setLayout
@@ -476,7 +476,7 @@ public class JScrollPane extends JComponent implements ScrollPaneConstants, Acce
      * </ul>
      *
      * @param policy one of the three values listed above
-     * @throws IllegalArgumentException if <code>policy</code>
+     * @exception IllegalArgumentException if <code>policy</code>
      *                          is not one of the legal values shown above
      * @see #getVerticalScrollBarPolicy
      */
@@ -521,7 +521,7 @@ public class JScrollPane extends JComponent implements ScrollPaneConstants, Acce
      * </ul>
      *
      * @param policy one of the three values listed above
-     * @throws IllegalArgumentException if <code>policy</code>
+     * @exception IllegalArgumentException if <code>policy</code>
      *                          is not one of the legal values shown above
      * @see #getHorizontalScrollBarPolicy
      */
@@ -1195,7 +1195,7 @@ public class JScrollPane extends JComponent implements ScrollPaneConstants, Acce
      * <li>upperLeft
      * <li>upperRight
      * </ul>
-     * @throws IllegalArgumentException if corner key is invalid
+     * @exception IllegalArgumentException if corner key is invalid
      */
     public void setCorner(String key, Component corner)
     {

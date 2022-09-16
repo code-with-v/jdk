@@ -47,8 +47,6 @@ static jlong nanos_now() {
   const jlong now = seconds * 1000000000 + nanos;
   if (now > last) {
     last = now;
-  } else {
-    ++last;
   }
   return last;
 }

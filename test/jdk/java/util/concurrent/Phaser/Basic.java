@@ -440,7 +440,7 @@ public class Basic {
             if ("Finalizer".equals(name)
                 && info.getLockName().startsWith("java.lang.ref.ReferenceQueue$Lock"))
                 continue;
-            if (name.startsWith("process reaper"))
+            if ("process reaper".equals(name))
                 continue;
             if (name != null && name.startsWith("ForkJoinPool.commonPool-worker"))
                 continue;

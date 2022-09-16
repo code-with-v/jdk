@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010, 2015, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -125,11 +125,10 @@ public class Warn5 extends ComboInstance<Warn5> {
         }
     }
 
-    // Handling of varargs warnings changed in JDK 9 compared to JDK 8
-    // and then remained consistent; test 8 and then current release.
     enum SourceLevel {
-        JDK_8("8"),
-        LATEST(Integer.toString(javax.lang.model.SourceVersion.latest().runtimeVersion().feature()));
+        JDK_6("6"),
+        JDK_7("7"),
+        JDK_9("9");
 
         String sourceKey;
 
@@ -160,15 +159,12 @@ public class Warn5 extends ComboInstance<Warn5> {
         }
     }
 
-    // javac does not currently perform analysis of the method body
-    // with respect to the validity of the @SafeVargs annotation. If
-    // that changes, the body tests should be expanded.
     enum BodyKind implements ComboParameter {
-        // ASSIGN("Object o = x;", true),
-        // CAST("Object o = (Object)x;", true),
+        ASSIGN("Object o = x;", true),
+        CAST("Object o = (Object)x;", true),
         METH("test(x);", true),
         PRINT("System.out.println(x.toString());", false),
-        // ARRAY_ASSIGN("Object[] o = x;", true),
+        ARRAY_ASSIGN("Object[] o = x;", true),
         ARRAY_CAST("Object[] o = (Object[])x;", true),
         ARRAY_METH("testArr(x);", true);
 
@@ -226,21 +222,19 @@ public class Warn5 extends ComboInstance<Warn5> {
         return (methKind != MethodKind.CONSTRUCTOR || modKind == ModifierKind.NONE);
     }
 
-    String template = """
-        import com.sun.tols.javac.api.*;
-        import java.util.List;
-        class Test {
-           static void test(Object o) {}
-           static void testArr(Object[] o) {}
-           #{TRUSTME} #{SUPPRESS} #{MOD} #{SIG} { #{BODY} }
-        }
-        """;
+    String template = "import com.sun.tools.javac.api.*;\n" +
+                      "import java.util.List;\n" +
+                      "class Test {\n" +
+                      "   static void test(Object o) {}\n" +
+                      "   static void testArr(Object[] o) {}\n" +
+                      "   #{TRUSTME} #{SUPPRESS} #{MOD} #{SIG} { #{BODY} }\n" +
+                      "}\n";
 
     @Override
     public void doWork() throws IOException {
         newCompilationTask()
                 .withOption(xlint.getXlintOption())
-                .withOption("--release")
+                .withOption("-source")
                 .withOption(sourceLevel.sourceKey)
                 .withSourceFromTemplate(template)
                 .analyze(this::check);
@@ -262,42 +256,46 @@ public class Warn5 extends ComboInstance<Warn5> {
         EnumSet<WarningKind> expectedWarnings =
                 EnumSet.noneOf(WarningKind.class);
 
-        if (trustMe == TrustMe.TRUST &&
-            suppressLevel != SuppressLevel.VARARGS &&
-            xlint != XlintOption.NONE &&
-            sig.isVarargs &&
-            !sig.isReifiableArg &&
-            body.hasAliasing &&
-            (methKind == MethodKind.CONSTRUCTOR ||
-             (methKind == MethodKind.METHOD &&
-              modKind == ModifierKind.FINAL || modKind == ModifierKind.STATIC ||
-              (modKind == ModifierKind.PRIVATE && sourceLevel.compareTo(SourceLevel.JDK_8) > 0)))) {
+        if (sourceLevel.compareTo(SourceLevel.JDK_7) >= 0 &&
+                trustMe == TrustMe.TRUST &&
+                suppressLevel != SuppressLevel.VARARGS &&
+                xlint != XlintOption.NONE &&
+                sig.isVarargs &&
+                !sig.isReifiableArg &&
+                body.hasAliasing &&
+                (methKind == MethodKind.CONSTRUCTOR ||
+                (methKind == MethodKind.METHOD &&
+                 modKind == ModifierKind.FINAL || modKind == ModifierKind.STATIC ||
+                 (modKind == ModifierKind.PRIVATE && sourceLevel.compareTo(SourceLevel.JDK_9) >= 0)))) {
             expectedWarnings.add(WarningKind.UNSAFE_BODY);
         }
 
-        if (trustMe == TrustMe.DONT_TRUST &&
-            sig.isVarargs &&
-            !sig.isReifiableArg &&
-            xlint == XlintOption.ALL) {
+        if (sourceLevel.compareTo(SourceLevel.JDK_7) >= 0 &&
+                trustMe == TrustMe.DONT_TRUST &&
+                sig.isVarargs &&
+                !sig.isReifiableArg &&
+                xlint == XlintOption.ALL) {
             expectedWarnings.add(WarningKind.UNSAFE_DECL);
         }
 
-        if (trustMe == TrustMe.TRUST &&
-            (!sig.isVarargs ||
-             ((modKind == ModifierKind.NONE ||
-               modKind == ModifierKind.PRIVATE && sourceLevel.compareTo(SourceLevel.JDK_8) <= 0 ) &&
-              methKind == MethodKind.METHOD))) {
+        if (sourceLevel.compareTo(SourceLevel.JDK_7) >= 0 &&
+                trustMe == TrustMe.TRUST &&
+                (!sig.isVarargs ||
+                 ((modKind == ModifierKind.NONE ||
+                 modKind == ModifierKind.PRIVATE && sourceLevel.compareTo(SourceLevel.JDK_9) < 0 ) &&
+                 methKind == MethodKind.METHOD))) {
             expectedWarnings.add(WarningKind.MALFORMED_SAFEVARARGS);
         }
 
-        if (trustMe == TrustMe.TRUST &&
-            xlint != XlintOption.NONE &&
-            suppressLevel != SuppressLevel.VARARGS &&
-            (modKind == ModifierKind.FINAL || modKind == ModifierKind.STATIC ||
-             (modKind == ModifierKind.PRIVATE && sourceLevel.compareTo(SourceLevel.JDK_8) > 0) ||
-             methKind == MethodKind.CONSTRUCTOR) &&
-            sig.isVarargs &&
-            sig.isReifiableArg) {
+        if (sourceLevel.compareTo(SourceLevel.JDK_7) >= 0 &&
+                trustMe == TrustMe.TRUST &&
+                xlint != XlintOption.NONE &&
+                suppressLevel != SuppressLevel.VARARGS &&
+                (modKind == ModifierKind.FINAL || modKind == ModifierKind.STATIC ||
+                 (modKind == ModifierKind.PRIVATE && sourceLevel.compareTo(SourceLevel.JDK_9) >= 0) ||
+                 methKind == MethodKind.CONSTRUCTOR) &&
+                sig.isVarargs &&
+                sig.isReifiableArg) {
             expectedWarnings.add(WarningKind.REDUNDANT_SAFEVARARGS);
         }
 

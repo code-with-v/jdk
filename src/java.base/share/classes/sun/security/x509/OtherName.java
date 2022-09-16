@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2015, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -48,17 +48,17 @@ import sun.security.util.*;
  */
 public class OtherName implements GeneralNameInterface {
 
-    private final ObjectIdentifier oid;
-    private final String name;
-    private final byte[] nameValue; // value inside [0]
-    private final GeneralNameInterface gni;
+    private String name;
+    private ObjectIdentifier oid;
+    private byte[] nameValue = null;
+    private GeneralNameInterface gni = null;
 
     private static final byte TAG_VALUE = 0;
 
     private int myhash = -1;
 
     /**
-     * Create the OtherName object from a passed ObjectIdentifier and
+     * Create the OtherName object from a passed ObjectIdentfier and
      * byte array name value
      *
      * @param oid ObjectIdentifier of this OtherName object
@@ -89,12 +89,8 @@ public class OtherName implements GeneralNameInterface {
         DerInputStream in = derValue.toDerInputStream();
 
         oid = in.getOID();
-        DerValue derValue1 = in.getDerValue();
-        if (derValue1.isContextSpecific((byte) 0) && derValue1.isConstructed()) {
-            nameValue = derValue1.data.toByteArray();
-        } else {
-            throw new IOException("value is not EXPLICTly tagged [0]");
-        }
+        DerValue val = in.getDerValue();
+        nameValue = val.toByteArray();
         gni = getGNI(oid, nameValue);
         if (gni != null) {
             name = gni.toString();
@@ -128,13 +124,13 @@ public class OtherName implements GeneralNameInterface {
             if (extClass == null) {   // Unsupported OtherName
                 return null;
             }
-            Constructor<?> cons;
-            try {
-                cons = extClass.getConstructor(Object.class);
-            } catch (NoSuchMethodException e) {
-                cons = extClass.getConstructor(byte[].class);
-            }
-            return (GeneralNameInterface)cons.newInstance(nameValue);
+            Class<?>[] params = { Object.class };
+            Constructor<?> cons = extClass.getConstructor(params);
+
+            Object[] passed = new Object[] { nameValue };
+            GeneralNameInterface gni =
+                       (GeneralNameInterface)cons.newInstance(passed);
+            return gni;
         } catch (Exception e) {
             throw new IOException("Instantiation error: " + e, e);
         }
@@ -157,6 +153,7 @@ public class OtherName implements GeneralNameInterface {
         if (gni != null) {
             // This OtherName has a supported class
             gni.encode(out);
+            return;
         } else {
             // This OtherName has no supporting class
             DerOutputStream tmp = new DerOutputStream();
@@ -175,13 +172,14 @@ public class OtherName implements GeneralNameInterface {
         if (this == other) {
             return true;
         }
-        if (!(other instanceof OtherName otherOther)) {
+        if (!(other instanceof OtherName)) {
             return false;
         }
+        OtherName otherOther = (OtherName)other;
         if (!(otherOther.oid.equals(oid))) {
             return false;
         }
-        GeneralNameInterface otherGNI;
+        GeneralNameInterface otherGNI = null;
         try {
             otherGNI = getGNI(otherOther.oid, otherOther.nameValue);
         } catch (IOException ioe) {

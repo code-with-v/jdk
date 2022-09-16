@@ -232,7 +232,7 @@ public class FileDialog extends Dialog {
      * @param     title   the title of the dialog
      * @param     mode   the mode of the dialog; either
      *            {@code FileDialog.LOAD} or {@code FileDialog.SAVE}
-     * @throws  IllegalArgumentException if an illegal file
+     * @exception  IllegalArgumentException if an illegal file
      *                 dialog mode is supplied
      * @see       java.awt.FileDialog#LOAD
      * @see       java.awt.FileDialog#SAVE
@@ -255,10 +255,10 @@ public class FileDialog extends Dialog {
      * displayed.
      *
      * @param     parent   the owner of the dialog
-     * @throws java.lang.IllegalArgumentException if the {@code parent}'s
+     * @exception java.lang.IllegalArgumentException if the {@code parent}'s
      *            {@code GraphicsConfiguration}
      *            is not from a screen device;
-     * @throws java.lang.IllegalArgumentException if {@code parent}
+     * @exception java.lang.IllegalArgumentException if {@code parent}
      *            is {@code null}; this exception is always thrown when
      *            {@code GraphicsEnvironment.isHeadless}
      *            returns {@code true}
@@ -285,10 +285,10 @@ public class FileDialog extends Dialog {
      * @param     title    the title of the dialog; a {@code null} value
      *                     will be accepted without causing a
      *                     {@code NullPointerException} to be thrown
-     * @throws java.lang.IllegalArgumentException if the {@code parent}'s
+     * @exception java.lang.IllegalArgumentException if the {@code parent}'s
      *            {@code GraphicsConfiguration}
      *            is not from a screen device;
-     * @throws java.lang.IllegalArgumentException if {@code parent}
+     * @exception java.lang.IllegalArgumentException if {@code parent}
      *            is {@code null}; this exception is always thrown when
      *            {@code GraphicsEnvironment.isHeadless}
      *            returns {@code true}
@@ -321,12 +321,12 @@ public class FileDialog extends Dialog {
      *                     {@code NullPointerException} to be thrown
      * @param     mode     the mode of the dialog; either
      *                     {@code FileDialog.LOAD} or {@code FileDialog.SAVE}
-     * @throws java.lang.IllegalArgumentException if an illegal
+     * @exception java.lang.IllegalArgumentException if an illegal
      *            file dialog mode is supplied;
-     * @throws java.lang.IllegalArgumentException if the {@code parent}'s
+     * @exception java.lang.IllegalArgumentException if the {@code parent}'s
      *            {@code GraphicsConfiguration}
      *            is not from a screen device;
-     * @throws java.lang.IllegalArgumentException if {@code parent}
+     * @exception java.lang.IllegalArgumentException if {@code parent}
      *            is {@code null}; this exception is always thrown when
      *            {@code GraphicsEnvironment.isHeadless}
      *            returns {@code true}
@@ -408,7 +408,7 @@ public class FileDialog extends Dialog {
      * @see        java.awt.FileDialog#LOAD
      * @see        java.awt.FileDialog#SAVE
      * @see        java.awt.FileDialog#getMode
-     * @throws  IllegalArgumentException if an illegal file
+     * @exception  IllegalArgumentException if an illegal file
      *                 dialog mode is supplied
      * @since      1.1
      */

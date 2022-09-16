@@ -24,14 +24,14 @@
 #ifndef SHARE_GC_Z_ZWORKERS_HPP
 #define SHARE_GC_Z_ZWORKERS_HPP
 
-#include "gc/shared/workerThread.hpp"
+#include "gc/shared/workgroup.hpp"
 
 class ThreadClosure;
 class ZTask;
 
 class ZWorkers {
 private:
-  WorkerThreads _workers;
+  WorkGang _workers;
 
 public:
   ZWorkers();

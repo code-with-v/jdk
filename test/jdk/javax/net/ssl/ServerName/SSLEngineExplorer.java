@@ -145,10 +145,10 @@ public class SSLEngineExplorer extends SSLEngineService {
         }
 
         // handshaking
-        ByteBuffer peerNetData = handshaking(ssle, sc, buffer);
+        handshaking(ssle, sc, buffer);
 
         // receive application data
-        receive(ssle, sc, peerNetData);
+        receive(ssle, sc);
 
         // send out application data
         deliver(ssle, sc);
@@ -195,13 +195,13 @@ public class SSLEngineExplorer extends SSLEngineService {
         ssle.setEnabledProtocols(supportedProtocols);
 
         // handshaking
-        ByteBuffer peerNetData = handshaking(ssle, sc, null);
+        handshaking(ssle, sc, null);
 
         // send out application data
         deliver(ssle, sc);
 
         // receive application data
-        receive(ssle, sc, peerNetData);
+        receive(ssle, sc);
 
         // close the socket channel.
         sc.close();

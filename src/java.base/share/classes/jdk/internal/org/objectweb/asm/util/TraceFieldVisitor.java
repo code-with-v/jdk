@@ -56,7 +56,6 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package jdk.internal.org.objectweb.asm.util;
 
 import jdk.internal.org.objectweb.asm.AnnotationVisitor;
@@ -92,7 +91,7 @@ public final class TraceFieldVisitor extends FieldVisitor {
       * @param printer the printer to convert the visited field into text.
       */
     public TraceFieldVisitor(final FieldVisitor fieldVisitor, final Printer printer) {
-        super(/* latest api = */ Opcodes.ASM9, fieldVisitor);
+        super(/* latest api = */ Opcodes.ASM8, fieldVisitor);
         this.p = printer;
     }
 
@@ -123,4 +122,3 @@ public final class TraceFieldVisitor extends FieldVisitor {
         super.visitEnd();
     }
 }
-

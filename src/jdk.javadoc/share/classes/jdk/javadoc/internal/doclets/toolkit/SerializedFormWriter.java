@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -31,65 +31,77 @@ import javax.lang.model.element.TypeElement;
 import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.TypeMirror;
 
-import com.sun.source.doctree.SerialFieldTree;
+import com.sun.source.doctree.DocTree;
 import jdk.javadoc.internal.doclets.toolkit.util.DocFileIOException;
 
 /**
  * The interface for writing serialized form output.
+ *
+ *  <p><b>This is NOT part of any supported API.
+ *  If you write code that depends on this, you do so at your own risk.
+ *  This code and its internal interfaces are subject to change or
+ *  deletion without notice.</b>
  */
+
 public interface SerializedFormWriter {
 
     /**
      * Get the header.
      *
      * @param header the header to write.
-     * @return the header content
+     * @return the header content tree
      */
     Content getHeader(String header);
 
     /**
      * Get the serialized form summaries header.
      *
-     * @return the serialized form summary header
+     * @return the serialized form summary header tree
      */
     Content getSerializedSummariesHeader();
 
     /**
      * Get the package serialized form header.
      *
-     * @return the package serialized form header
+     * @return the package serialized form header tree
      */
     Content getPackageSerializedHeader();
 
     /**
-     * Add the serialized package to the serialized summaries.
+     * Add the serialized tree per package to the serialized summaries tree.
      *
-     * @param serializedSummaries the serialized content to which the package serialized content will be added
-     * @param packageSerialized the serialized content per package that needs to be added
+     * @param serializedSummariesTree the serialized tree to which the package serialized tree will be added
+     * @param packageSerializedTree the serialized tree per package that needs to be added
      */
-    void addPackageSerialized(Content serializedSummaries, Content packageSerialized);
+    void addPackageSerializedTree(Content serializedSummariesTree, Content packageSerializedTree);
 
     /**
-     * {@return a header for the given package}
+     * Get the given package header.
      *
      * @param packageElement the package element to write
+     * @return a content tree for the package header
      */
     Content getPackageHeader(PackageElement packageElement);
 
     /**
-     * {@return the serialized class header}
+     * Get the serialized class header.
+     *
+     * @return a content tree for the serialized class header
      */
     Content getClassSerializedHeader();
 
     /**
-     * {@return the heading for the serializable class}
+     * Get the heading for the serializable class.
      *
      * @param typeElement the class being processed
+     * @return a content tree for the class heading
      */
     Content getClassHeader(TypeElement typeElement);
 
     /**
-     * {@return the serial UID info header}
+     * Get the serial UID info header.
+     *
+     * @return a content tree for the serial uid info header
      */
     Content getSerialUIDInfoHeader();
 
@@ -98,12 +110,14 @@ public interface SerializedFormWriter {
      *
      * @param header the header that will show up before the UID.
      * @param serialUID the serial UID to print.
-     * @param target the serial UID to which the content will be added.
+     * @param serialUidTree the serial UID tree to which the content will be added.
      */
-    void addSerialUIDInfo(String header, String serialUID, Content target);
+    void addSerialUIDInfo(String header, String serialUID, Content serialUidTree);
 
     /**
-     * {@return the serialized class header}
+     * Get the class serialize content header.
+     *
+     * @return a content tree for the class serialize content header
      */
     Content getClassContentHeader();
 
@@ -126,9 +140,9 @@ public interface SerializedFormWriter {
     /**
      * Add the serialized content to the body content.
      *
-     * @param source content for serialized data
+     * @param serializedTreeContent content for serialized data
      */
-    void addSerializedContent(Content source);
+    void addSerializedContent(Content serializedTreeContent);
 
     /**
      * Add the footer.
@@ -138,86 +152,89 @@ public interface SerializedFormWriter {
     /**
      * Print the serialized form document.
      *
-     * @param source the content that will be printed
+     * @param serializedTree the content tree that will be printed
      * @throws DocFileIOException if there is a problem while writing the document
      */
-    void printDocument(Content source) throws DocFileIOException;
+    void printDocument(Content serializedTree) throws DocFileIOException;
 
     /**
-     * Gets the member.
+     * Gets the member tree.
      *
-     * @param content the content used to generate the complete member
-     * @return the member
+     * @param contentTree the tree used to generate the complete member tree
+     * @return a content tree for the member
      */
-    Content getMember(Content content);
+    Content getMemberTree(Content contentTree);
 
     /**
-     * A writer for the serialized form for a given field.
+     * Write the serialized form for a given field.
      */
     interface SerialFieldWriter {
 
         /**
-         * {@return the serializable field header}
+         * Get the serializable field header.
+         *
+         * @return serialized fields header content tree
          */
         Content getSerializableFieldsHeader();
 
         /**
-         * {@return the field content header}
+         * Get the field content header.
          *
          * @param isLastContent true if this is the last content to be documented
+         * @return fields header content tree
          */
         Content getFieldsContentHeader(boolean isLastContent);
 
         /**
-         * {@return the fields}
+         * Get the fields content.
          *
          * @param heading the heading to write.
-         * @param content the content to be added
-         * @return serializable fields content
+         * @param contentTree content tree to which the heading will be added
+         * @return serializable fields content tree
          */
-        Content getSerializableFields(String heading, Content content);
+        Content getSerializableFields(String heading, Content contentTree);
 
         /**
          * Adds the deprecated information for this member.
          *
          * @param field the field to document.
-         * @param content the content to which the deprecated information will be added
+         * @param contentTree content tree to which the deprecated information will be added
          */
-        void addMemberDeprecatedInfo(VariableElement field, Content content);
+        void addMemberDeprecatedInfo(VariableElement field, Content contentTree);
 
         /**
          * Adds the description text for this member.
          *
          * @param field the field to document
-         * @param content the content to which the member description will be added
+         * @param contentTree content tree to which the member description will be added
          */
-        void addMemberDescription(VariableElement field, Content content);
+        void addMemberDescription(VariableElement field, Content contentTree);
 
         /**
          * Adds the description text for this member represented by the tag.
          *
          * @param field the field to document
          * @param serialFieldTag the field to document (represented by tag)
-         * @param content the content to which the member description will be added
+         * @param contentTree content tree to which the member description will be added
          */
-        void addMemberDescription(VariableElement field, SerialFieldTree serialFieldTag, Content content);
+        void addMemberDescription(VariableElement field, DocTree serialFieldTag, Content contentTree);
 
         /**
          * Adds the tag information for this member.
          *
          * @param field the field to document
-         * @param content the content to which the member tags will be added
+         * @param contentTree content tree to which the member tags will be added
          */
-        void addMemberTags(VariableElement field, Content content);
+        void addMemberTags(VariableElement field, Content contentTree);
 
         /**
          * Adds the member header.
          *
          * @param fieldType the type of the field
          * @param fieldName the name of the field
-         * @param content the content to which the member header will be added
+         * @param contentTree content tree to which the member header will be added
          */
-        void addMemberHeader(TypeMirror fieldType, String fieldName, Content content);
+        void addMemberHeader(TypeMirror fieldType, String fieldName, Content contentTree);
 
         /**
          * Check to see if overview details should be printed. If
@@ -237,31 +254,34 @@ public interface SerializedFormWriter {
     interface SerialMethodWriter {
 
         /**
-         * {@return the header for serializable methods section}
+         * Get the serializable method header.
+         *
+         * @return serializable methods content tree
          */
         Content getSerializableMethodsHeader();
 
         /**
-         * {@return the header for serializable methods content section}
+         * Get the method content header.
          *
-         * @param isLastContent true if the content being documented is the last content
+         * @param isLastContent true if this is the last content to be documented
+         * @return methods content tree
          */
         Content getMethodsContentHeader(boolean isLastContent);
 
         /**
-         * Gets the given heading.
+         * Write the given heading.
          *
          * @param heading the heading to write
-         * @param source the content which will be added
-         * @return a serializable methods content
+         * @param serializableMethodTree content tree which will be added
+         * @return serializable methods content tree
          */
-        Content getSerializableMethods(String heading, Content source);
+        Content getSerializableMethods(String heading, Content serializableMethodTree);
 
         /**
-         * Gets a warning that no serializable methods exist.
+         * Write a warning that no serializable methods exist.
          *
          * @param msg the warning to print
-         * @return a no customization message
+         * @return no customization message tree
          */
         Content getNoCustomizationMsg(String msg);
 
@@ -269,35 +289,35 @@ public interface SerializedFormWriter {
          * Adds the header.
          *
          * @param member the member to write the header for
-         * @param methodsContent the content to which the header will be added
+         * @param methodsContentTree content tree to which the header will be added
          */
-        void addMemberHeader(ExecutableElement member, Content methodsContent);
+        void addMemberHeader(ExecutableElement member, Content methodsContentTree);
 
         /**
          * Adds the deprecated information for this member.
          *
          * @param member the member to write the deprecated information for
-         * @param methodsContent the content to which the deprecated
+         * @param methodsContentTree content tree to which the deprecated
          * information will be added
          */
-        void addDeprecatedMemberInfo(ExecutableElement member, Content methodsContent);
+        void addDeprecatedMemberInfo(ExecutableElement member, Content methodsContentTree);
 
         /**
          * Adds the description for this member.
          *
          * @param member the member to write the information for
-         * @param methodsContent the content to which the member
+         * @param methodsContentTree content tree to which the member
          * information will be added
          */
-        void addMemberDescription(ExecutableElement member, Content methodsContent);
+        void addMemberDescription(ExecutableElement member, Content methodsContentTree);
 
         /**
          * Adds the tag information for this member.
          *
          * @param member the member to write the tags information for
-         * @param methodsContent the content to which the tags
+         * @param methodsContentTree content tree to which the tags
          * information will be added
          */
-        void addMemberTags(ExecutableElement member, Content methodsContent);
+        void addMemberTags(ExecutableElement member, Content methodsContentTree);
     }
 }

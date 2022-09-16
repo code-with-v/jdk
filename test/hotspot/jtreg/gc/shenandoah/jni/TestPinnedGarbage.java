@@ -22,7 +22,7 @@
  *
  */
 
-/* @test id=passive
+/* @test TestPinnedGarbage
  * @summary Test that garbage in the pinned region does not crash VM
  * @key randomness
  * @requires vm.gc.Shenandoah
@@ -39,7 +39,7 @@
  *      TestPinnedGarbage
  */
 
-/* @test id=aggressive
+/* @test TestPinnedGarbage
  * @summary Test that garbage in the pinned region does not crash VM
  * @key randomness
  * @requires vm.gc.Shenandoah
@@ -48,13 +48,7 @@
  * @run main/othervm/native -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions -Xmx128m
  *      -XX:+UseShenandoahGC -XX:ShenandoahGCHeuristics=aggressive
  *      TestPinnedGarbage
- */
-
-/* @test id=verify
- * @summary Test that garbage in the pinned region does not crash VM
- * @key randomness
- * @requires vm.gc.Shenandoah
- * @library /test/lib
+ *
  * @run main/othervm/native -XX:+UnlockDiagnosticVMOptions -XX:+UnlockExperimentalVMOptions -Xmx128m
  *      -XX:+UseShenandoahGC
  *      -XX:+ShenandoahVerify

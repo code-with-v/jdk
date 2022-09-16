@@ -24,7 +24,6 @@
 /*
  * @test
  * @summary Make sure --patch-module works with multiple directories.
- * @requires vm.flagless
  * @modules java.base/jdk.internal.misc
  * @library /test/lib
  * @compile PatchModule2DirsMain.java

@@ -83,9 +83,9 @@ public final class UTF_8 extends Unicode {
         dst.position(dp - dst.arrayOffset());
     }
 
-    private static final JavaLangAccess JLA = SharedSecrets.getJavaLangAccess();
-
     private static class Decoder extends CharsetDecoder {
+
+        private static final JavaLangAccess JLA = SharedSecrets.getJavaLangAccess();
 
         private Decoder(Charset cs) {
             super(cs, 1.0f, 1.0f);
@@ -443,7 +443,8 @@ public final class UTF_8 extends Unicode {
 
         private Surrogate.Parser sgp;
         private CoderResult encodeArrayLoop(CharBuffer src,
-                                            ByteBuffer dst) {
+                                            ByteBuffer dst)
+        {
             char[] sa = src.array();
             int sp = src.arrayOffset() + src.position();
             int sl = src.arrayOffset() + src.limit();
@@ -451,22 +452,11 @@ public final class UTF_8 extends Unicode {
             byte[] da = dst.array();
             int dp = dst.arrayOffset() + dst.position();
             int dl = dst.arrayOffset() + dst.limit();
+            int dlASCII = dp + Math.min(sl - sp, dl - dp);
 
-            // Handle ASCII-only prefix
-            int n = JLA.encodeASCII(sa, sp, da, dp, Math.min(sl - sp, dl - dp));
-            sp += n;
-            dp += n;
-
-            if (sp < sl) {
-                return encodeArrayLoopSlow(src, sa, sp, sl, dst, da, dp, dl);
-            } else {
-                updatePositions(src, sp, dst, dp);
-                return CoderResult.UNDERFLOW;
-            }
-        }
-
-        private CoderResult encodeArrayLoopSlow(CharBuffer src, char[] sa, int sp, int sl,
-                                                ByteBuffer dst, byte[] da, int dp, int dl) {
+            // ASCII only loop
+            while (dp < dlASCII && sa[sp] < '\u0080')
+                da[dp++] = (byte) sa[sp++];
             while (sp < sl) {
                 char c = sa[sp];
                 if (c < 0x80) {

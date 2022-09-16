@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 1999, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -47,10 +47,10 @@ import sun.security.util.DerOutputStream;
 public class EncryptedPrivateKeyInfo {
 
     // the "encryptionAlgorithm" field
-    private final AlgorithmId algid;
+    private AlgorithmId algid;
 
     // the "encryptedData" field
-    private final byte[] encryptedData;
+    private byte[] encryptedData;
 
     // the ASN.1 encoded contents of this class
     private byte[] encoded;

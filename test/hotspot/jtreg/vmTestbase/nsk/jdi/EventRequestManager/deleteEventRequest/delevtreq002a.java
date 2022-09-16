@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2001, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -24,6 +24,7 @@
 package nsk.jdi.EventRequestManager.deleteEventRequest;
 
 import nsk.share.*;
+import nsk.share.jpda.*;
 import nsk.share.jdi.*;
 
 /**
@@ -55,7 +56,7 @@ public class delevtreq002a {
 
     static int                  testField1 = 0;
     static NullPointerException testField2 = new NullPointerException("test");
-    static Thread testField3 = null;
+    static Thread1delevtreq002a testField3 = null;
 
     //------------------------------------------------------ common section
 
@@ -98,7 +99,7 @@ public class delevtreq002a {
 
                     case 0:
                             synchronized (lockObj1) {
-                                testField3 = JDIThreadFactory.newThread(new Thread1delevtreq002a("thread1"));
+                                testField3 = new Thread1delevtreq002a("thread1");
                                 threadStart(testField3);
                                 methodForCommunication();
                             }
@@ -135,19 +136,22 @@ public class delevtreq002a {
     }
 }
 
-class Thread1delevtreq002a extends NamedTask {
+class Thread1delevtreq002a extends Thread {
+
+    String tName = null;
 
     public Thread1delevtreq002a(String threadName) {
         super(threadName);
+        tName = threadName;
     }
 
     public void run() {
-        delevtreq002a.log1("  'run': enter  :: threadName == " + getName());
+        delevtreq002a.log1("  'run': enter  :: threadName == " + tName);
         synchronized(delevtreq002a.waitnotifyObj) {
             delevtreq002a.waitnotifyObj.notify();
         }
         synchronized(delevtreq002a.lockObj1) {
-            delevtreq002a.log1("  'run': exit   :: threadName == " + getName());
+            delevtreq002a.log1("  'run': exit   :: threadName == " + tName);
         }
         return;
     }

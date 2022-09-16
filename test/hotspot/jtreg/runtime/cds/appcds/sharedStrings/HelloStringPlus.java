@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +25,7 @@
 // A test class to be launched in AppCDS mode, has basic+
 // coverage of string operations
 
-import jdk.test.whitebox.WhiteBox;
+import sun.hotspot.WhiteBox;
 
 public class HelloStringPlus {
     public static void main(String args[]) {
@@ -34,7 +34,7 @@ public class HelloStringPlus {
         System.out.println("Hello String: " + testString1);
 
         WhiteBox wb = WhiteBox.getWhiteBox();
-        if (wb.areSharedStringsMapped() && !wb.isSharedInternedString(testString1)) {
+        if (!wb.isShared(testString1) && !wb.areSharedStringsIgnored()) {
             throw new RuntimeException("testString1 is not shared");
         }
 
@@ -66,7 +66,7 @@ public class HelloStringPlus {
         // Check intern() method for "" string
         String empty = "";
         String empty_interned = empty.intern();
-        if (wb.areSharedStringsMapped() && !wb.isSharedInternedString(empty)) {
+        if (!wb.isShared(empty)) {
            throw new RuntimeException("Empty string should be shared");
         }
         if (empty_interned != empty) {

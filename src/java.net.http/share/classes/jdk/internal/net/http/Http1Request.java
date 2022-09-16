@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -38,7 +38,7 @@ import java.util.concurrent.Flow;
 import java.util.function.BiPredicate;
 import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
-import jdk.internal.net.http.Http1Exchange.Http1RequestBodySubscriber;
+import jdk.internal.net.http.Http1Exchange.Http1BodySubscriber;
 import jdk.internal.net.http.common.HttpHeadersBuilder;
 import jdk.internal.net.http.common.Log;
 import jdk.internal.net.http.common.Logger;
@@ -109,22 +109,21 @@ class Http1Request {
         final HttpHeaders uh = userHeaders;
 
         // Filter any headers from systemHeaders that are set in userHeaders
-        final HttpHeaders sh = HttpHeaders.of(systemHeaders.map(),
-                (k,v) -> uh.firstValue(k).isEmpty());
+        systemHeaders = HttpHeaders.of(systemHeaders.map(), (k,v) -> uh.firstValue(k).isEmpty());
 
         // If we're sending this request through a tunnel,
         // then don't send any preemptive proxy-* headers that
         // the authentication filter may have saved in its
         // cache.
-        collectHeaders1(sb, sh, nocookies);
+        collectHeaders1(sb, systemHeaders, nocookies);
 
         // If we're sending this request through a tunnel,
         // don't send any user-supplied proxy-* headers
         // to the target server.
-        collectHeaders1(sb, uh, nocookies);
+        collectHeaders1(sb, userHeaders, nocookies);
 
-        // Gather all 'Cookie:' headers from the unfiltered system headers,
-        // and the user headers, and concatenate their values in a single line
+        // Gather all 'Cookie:' headers and concatenate their
+        // values in a single line.
         collectCookies(sb, systemHeaders, userHeaders);
 
         // terminate headers
@@ -237,7 +236,7 @@ class Http1Request {
         if (defaultPort) {
             return host;
         } else {
-            return host + ":" + port;
+            return host + ":" + Integer.toString(port);
         }
     }
 
@@ -291,19 +290,21 @@ class Http1Request {
         if (uri != null) {
             systemHeadersBuilder.setHeader("Host", hostString());
         }
-
-        // GET, HEAD and DELETE with no request body should not set the Content-Length header
-        if (requestPublisher != null) {
+        if (requestPublisher == null) {
+            // Not a user request, or maybe a method, e.g. GET, with no body.
+            contentLength = 0;
+        } else {
             contentLength = requestPublisher.contentLength();
-            if (contentLength == 0) {
-                systemHeadersBuilder.setHeader("Content-Length", "0");
-            } else if (contentLength > 0) {
-                systemHeadersBuilder.setHeader("Content-Length", Long.toString(contentLength));
-                streaming = false;
-            } else {
-                streaming = true;
-                systemHeadersBuilder.setHeader("Transfer-encoding", "chunked");
-            }
+        }
+
+        if (contentLength == 0) {
+            systemHeadersBuilder.setHeader("Content-Length", "0");
+        } else if (contentLength > 0) {
+            systemHeadersBuilder.setHeader("Content-Length", Long.toString(contentLength));
+            streaming = false;
+        } else {
+            streaming = true;
+            systemHeadersBuilder.setHeader("Transfer-encoding", "chunked");
         }
         collectHeaders0(sb);
         String hs = sb.toString();
@@ -312,8 +313,8 @@ class Http1Request {
         return List.of(b);
     }
 
-    Http1RequestBodySubscriber continueRequest()  {
-        Http1RequestBodySubscriber subscriber;
+    Http1BodySubscriber continueRequest()  {
+        Http1BodySubscriber subscriber;
         if (streaming) {
             subscriber = new StreamSubscriber();
             requestPublisher.subscribe(subscriber);
@@ -327,7 +328,7 @@ class Http1Request {
         return subscriber;
     }
 
-    final class StreamSubscriber extends Http1RequestBodySubscriber {
+    final class StreamSubscriber extends Http1BodySubscriber {
 
         StreamSubscriber() { super(debug); }
 
@@ -336,7 +337,6 @@ class Http1Request {
             if (isSubscribed()) {
                 Throwable t = new IllegalStateException("already subscribed");
                 http1Exchange.appendToOutgoing(t);
-                subscription.cancel();
             } else {
                 setSubscription(subscription);
             }
@@ -391,7 +391,7 @@ class Http1Request {
         }
     }
 
-    final class FixedContentSubscriber extends Http1RequestBodySubscriber {
+    final class FixedContentSubscriber extends Http1BodySubscriber {
 
         private volatile long contentWritten;
         FixedContentSubscriber() { super(debug); }
@@ -401,7 +401,6 @@ class Http1Request {
             if (isSubscribed()) {
                 Throwable t = new IllegalStateException("already subscribed");
                 http1Exchange.appendToOutgoing(t);
-                subscription.cancel();
             } else {
                 setSubscription(subscription);
             }

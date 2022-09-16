@@ -1131,7 +1131,7 @@ public class Font implements java.io.Serializable
                 if (tracker != null) {
                     tracker.set(tFile, outStream);
                 }
-                try (outStream) { /* don't close the input stream */
+                try {
                     byte[] buf = new byte[8192];
                     for (;;) {
                         int bytesRead = fontStream.read(buf);
@@ -1152,6 +1152,9 @@ public class Font implements java.io.Serializable
                         }
                         outStream.write(buf, 0, bytesRead);
                     }
+                    /* don't close the input stream */
+                } finally {
+                    outStream.close();
                 }
                 /* After all references to a Font2D are dropped, the file
                  * will be removed. To support long-lived AppContexts,
@@ -1718,7 +1721,8 @@ public class Font implements java.io.Serializable
 
         if (sizeIndex > 0 && sizeIndex+1 < strlen) {
             try {
-                fontSize = Integer.parseInt(str.substring(sizeIndex+1));
+                fontSize =
+                    Integer.valueOf(str.substring(sizeIndex+1)).intValue();
                 if (fontSize <= 0) {
                     fontSize = 12;
                 }
@@ -1941,7 +1945,7 @@ public class Font implements java.io.Serializable
      * @throws ClassNotFoundException if the class of a serialized object could
      *         not be found
      * @throws IOException if an I/O error occurs
-     *
+     * @serial
      * @see #writeObject(java.io.ObjectOutputStream)
      */
     @Serial

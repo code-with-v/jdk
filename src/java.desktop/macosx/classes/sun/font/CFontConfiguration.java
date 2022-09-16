@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,10 +27,9 @@ package sun.font;
 
 import java.nio.charset.Charset;
 import java.util.HashMap;
-
 import sun.awt.FontConfiguration;
-
-import static java.nio.charset.StandardCharsets.ISO_8859_1;
+import sun.font.CompositeFontDescriptor;
+import sun.font.SunFontManager;
 
 class CFontConfiguration extends FontConfiguration {
 
@@ -80,7 +79,7 @@ class CFontConfiguration extends FontConfiguration {
 
     @Override
     protected Charset getDefaultFontCharset(String fontName) {
-        return ISO_8859_1;
+        return Charset.forName("ISO8859_1");
     }
 
     @Override

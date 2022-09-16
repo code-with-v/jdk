@@ -39,6 +39,8 @@ class ObjectStartArray;
 
 class PSPromotionLAB : public CHeapObj<mtGC> {
  protected:
+  static size_t filler_header_size;
+
   enum LabState {
     needs_flush,
     flushed,
@@ -72,7 +74,7 @@ class PSPromotionLAB : public CHeapObj<mtGC> {
 
   bool is_flushed()                  { return _state == flushed; }
 
-  void unallocate_object(HeapWord* obj, size_t obj_size);
+  bool unallocate_object(HeapWord* obj, size_t obj_size);
 
   // Returns a subregion containing all objects in this space.
   MemRegion used_region()            { return MemRegion(bottom(), top()); }
@@ -104,6 +106,7 @@ class PSOldPromotionLAB : public PSPromotionLAB {
 
  public:
   PSOldPromotionLAB() : _start_array(NULL) { }
+  PSOldPromotionLAB(ObjectStartArray* start_array) : _start_array(start_array) { }
 
   void set_start_array(ObjectStartArray* start_array) { _start_array = start_array; }
 

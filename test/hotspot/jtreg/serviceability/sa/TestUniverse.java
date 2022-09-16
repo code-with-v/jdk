@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2017, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -21,7 +21,7 @@
  * questions.
  */
 
-import jdk.test.whitebox.code.Compiler;
+import sun.hotspot.code.Compiler;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.HashMap;
 import jdk.test.lib.apps.LingeredApp;
 import jtreg.SkippedException;
-import jdk.test.whitebox.gc.GC;
+import sun.hotspot.gc.GC;
 
 /**
  * @test
@@ -38,8 +38,8 @@ import jdk.test.whitebox.gc.GC;
  * @bug 8190307
  * @library /test/lib
  * @build jdk.test.lib.apps.*
- * @build jdk.test.whitebox.WhiteBox
- * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
+ * @build sun.hotspot.WhiteBox
+ * @run driver jdk.test.lib.helpers.ClassFileInstaller sun.hotspot.WhiteBox
  * @run main/othervm -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI -Xbootclasspath/a:. TestUniverse
  */
 

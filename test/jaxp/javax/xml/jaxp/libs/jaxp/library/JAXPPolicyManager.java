@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2016, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,9 +23,7 @@
 package jaxp.library;
 
 
-import java.net.URI;
 import java.net.URL;
-import java.nio.file.Path;
 import java.security.CodeSource;
 import java.security.Permission;
 import java.security.PermissionCollection;
@@ -163,7 +161,7 @@ public class JAXPPolicyManager {
  */
 class TestPolicy extends Policy {
     private final static Set<String> TEST_JARS =
-         Set.of("jtreg.*jar", "javatest.*jar", "testng.*jar", "jcommander.*jar");
+         Set.of("jtreg.jar", "javatest.jar", "testng.jar", "jcommander.jar");
     private final PermissionCollection permissions = new Permissions();
 
     private ThreadLocal<Map<Integer, Permission>> transientPermissions = new ThreadLocal<>();
@@ -215,10 +213,9 @@ class TestPolicy extends Policy {
     private boolean isTestMachineryDomain(ProtectionDomain domain) {
         CodeSource cs = (domain == null) ? null : domain.getCodeSource();
         URL loc = (cs == null) ? null : cs.getLocation();
-        URI uri = (loc == null) ? null : URI.create(loc.toString());
-        String name = (uri == null) ? null : Path.of(uri).getFileName().toString();
-        return name != null && TEST_JARS.stream()
-                                .filter(name::matches)
+        String path = (loc == null) ? null : loc.getPath();
+        return path != null && TEST_JARS.stream()
+                                .filter(path::endsWith)
                                 .findAny()
                                 .isPresent();
     }

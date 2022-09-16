@@ -464,7 +464,7 @@ public class IIOMetadataNode implements Element, NodeList {
      *
      * @return the node being inserted.
      *
-     * @throws IllegalArgumentException if {@code newChild} is
+     * @exception IllegalArgumentException if {@code newChild} is
      * {@code null}.
      */
     public Node insertBefore(Node newChild,
@@ -522,7 +522,7 @@ public class IIOMetadataNode implements Element, NodeList {
      *
      * @return the node replaced.
      *
-     * @throws IllegalArgumentException if {@code newChild} is
+     * @exception IllegalArgumentException if {@code newChild} is
      * {@code null}.
      */
     public Node replaceChild(Node newChild,
@@ -573,7 +573,7 @@ public class IIOMetadataNode implements Element, NodeList {
      *
      * @return the node removed.
      *
-     * @throws IllegalArgumentException if {@code oldChild} is
+     * @exception IllegalArgumentException if {@code oldChild} is
      * {@code null}.
      */
     public Node removeChild(Node oldChild) {
@@ -617,7 +617,7 @@ public class IIOMetadataNode implements Element, NodeList {
      *
      * @return the node added.
      *
-     * @throws IllegalArgumentException if {@code newChild} is
+     * @exception IllegalArgumentException if {@code newChild} is
      * {@code null}.
      */
     public Node appendChild(Node newChild) {

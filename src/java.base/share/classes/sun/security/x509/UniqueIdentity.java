@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,11 +25,10 @@
 package sun.security.x509;
 
 import java.io.IOException;
+import java.math.BigInteger;
 
-import sun.security.util.BitArray;
-import sun.security.util.DerInputStream;
-import sun.security.util.DerOutputStream;
-import sun.security.util.DerValue;
+import sun.security.util.HexDumpEncoder;
+import sun.security.util.*;
 
 /**
  * This class defines the UniqueIdentity class used by certificates.
@@ -39,7 +38,7 @@ import sun.security.util.DerValue;
  */
 public class UniqueIdentity {
     // Private data members
-    private final BitArray    id;
+    private BitArray    id;
 
     /**
      * The default constructor for this class.
@@ -91,7 +90,7 @@ public class UniqueIdentity {
      * Encode the UniqueIdentity in DER form to the stream.
      *
      * @param out the DerOutputStream to marshal the contents to.
-     * @param tag encode it under the following tag.
+     * @param tag enocode it under the following tag.
      * @exception IOException on errors.
      */
     public void encode(DerOutputStream out, byte tag) throws IOException {

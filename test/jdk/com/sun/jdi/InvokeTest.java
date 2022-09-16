@@ -399,7 +399,7 @@ public class InvokeTest extends TestScaffold {
             return null;
         }
 
-        // Then find toString
+        // Then find toSting
         List meths = objectMirror.methods();
         iter = meths.iterator();
         while (iter.hasNext()) {

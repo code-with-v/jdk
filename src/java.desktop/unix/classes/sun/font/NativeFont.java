@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2014, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -32,9 +32,9 @@ import java.awt.font.FontRenderContext;
 import java.awt.geom.GeneralPath;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.io.UnsupportedEncodingException;
+import java.lang.ref.WeakReference;
 import java.util.Locale;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
 
 /*
  * Ideally there would be no native fonts used, and this class would be
@@ -133,14 +133,14 @@ public class NativeFont extends PhysicalFont {
 
             String styleStr = null;
 
-            if (tmpWeight.contains("bold") ||
-                tmpWeight.contains("demi")) {
+            if (tmpWeight.indexOf("bold") >= 0 ||
+                tmpWeight.indexOf("demi") >= 0) {
                 style |= Font.BOLD;
                 styleStr = "Bold";
             }
 
             if (tmpSlant.equals("i") ||
-                tmpSlant.contains("italic")) {
+                tmpSlant.indexOf("italic") >= 0) {
                 style |= Font.ITALIC;
 
                 if (styleStr == null) {
@@ -150,7 +150,7 @@ public class NativeFont extends PhysicalFont {
                 }
             }
             else if (tmpSlant.equals("o") ||
-                tmpSlant.contains("oblique")) {
+                tmpSlant.indexOf("oblique") >= 0) {
                 style |= Font.ITALIC;
                 if (styleStr == null) {
                     styleStr = "Oblique";
@@ -169,10 +169,10 @@ public class NativeFont extends PhysicalFont {
             if (encoding.startsWith("-")) {
                 encoding = xlfd.substring(hPos[13]+1);
             }
-            if (encoding.contains("fontspecific")) {
-                if (tmpFamily.contains("dingbats")) {
+            if (encoding.indexOf("fontspecific") >= 0) {
+                if (tmpFamily.indexOf("dingbats") >= 0) {
                     encoding = "dingbats";
-                } else if (tmpFamily.contains("symbol")) {
+                } else if (tmpFamily.indexOf("symbol") >= 0) {
                     encoding = "symbol";
                 } else {
                     encoding = "iso8859-1";
@@ -213,11 +213,23 @@ public class NativeFont extends PhysicalFont {
             pos = sb.indexOf("-0-", pos);
         };
         String xlfd = sb.toString();
-        return haveBitmapFonts(xlfd.getBytes(UTF_8));
+        byte[] bytes = null;
+        try {
+            bytes = xlfd.getBytes("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            bytes = xlfd.getBytes();
+        }
+        return haveBitmapFonts(bytes);
     }
 
     public static boolean fontExists(String xlfd) {
-        return fontExists(xlfd.getBytes(UTF_8));
+        byte[] bytes = null;
+        try {
+            bytes = xlfd.getBytes("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            bytes = xlfd.getBytes();
+        }
+        return fontExists(bytes);
     }
 
     private static native boolean haveBitmapFonts(byte[] xlfd);
@@ -368,7 +380,13 @@ public class NativeFont extends PhysicalFont {
         }
 
         String xlfd = sb.toString();
-        return xlfd.getBytes(UTF_8);
+        byte[] bytes = null;
+        try {
+            bytes = xlfd.getBytes("UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            bytes = xlfd.getBytes();
+        }
+        return bytes;
     }
 
     public String toString() {

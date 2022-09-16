@@ -22,5 +22,5 @@
  */
 
 module m2 {
-    exports q.r;
+    exports q;
 }

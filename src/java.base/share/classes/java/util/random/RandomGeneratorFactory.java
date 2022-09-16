@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -67,7 +67,7 @@ import jdk.internal.util.random.RandomSupport.RandomGeneratorProperties;
  * {@link RandomGeneratorFactory#create()} is used for random seed
  * construction. Example;
  *
- * {@snippet :
+ * <pre>{@code
  *    RandomGeneratorFactory<RandomGenerator> factory = RandomGeneratorFactory.of("Random");
  *
  *     for (int i = 0; i < 10; i++) {
@@ -76,7 +76,7 @@ import jdk.internal.util.random.RandomSupport.RandomGeneratorProperties;
  *             System.out.println(random.nextDouble());
  *         }).start();
  *     }
- * }
+ * }</pre>
  *
  * RandomGeneratorFactory also provides methods describing the attributes (or properties)
  * of a generator and can be used to select random number generator
@@ -87,19 +87,16 @@ import jdk.internal.util.random.RandomSupport.RandomGeneratorProperties;
  * {@link RandomGenerator RandomGenerators}
  * with the highest number of state bits.
  *
- * {@snippet :
+ * <pre>{@code
  *     RandomGeneratorFactory<RandomGenerator> best = RandomGeneratorFactory.all()
- *         .filter(rgf -> !rgf.name().equals("SecureRandom")) // SecureRandom has MAX_VALUE stateBits.
- *         .sorted(Comparator.comparingInt(RandomGeneratorFactory<RandomGenerator>::stateBits).reversed())
+ *         .sorted(Comparator.comparingInt(RandomGenerator::stateBits).reversed())
  *         .findFirst()
  *         .orElse(RandomGeneratorFactory.of("Random"));
  *     System.out.println(best.name() + " in " + best.group() + " was selected");
  *
  *     RandomGenerator rng = best.create();
  *     System.out.println(rng.nextLong());
- * }
- *
- * @param <T> type of created random generator
+ * }</pre>
  *
  * @since 17
  *

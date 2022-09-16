@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, Oracle and/or its affiliates. All rights reserved.
  * Copyright (c) 2016 SAP SE and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
@@ -24,9 +24,8 @@
 
 /*
  * @test
- * @bug 8149036 8150619 8277531
+ * @bug 8149036 8150619
  * @summary os+thread output should contain logging calls for thread start stop attaches detaches
- * @requires vm.flagless
  * @library /test/lib
  * @modules java.base/jdk.internal.misc
  *          java.management
@@ -36,19 +35,14 @@
 
 import java.io.File;
 import java.util.Map;
-import jdk.test.lib.Platform;
 import jdk.test.lib.process.OutputAnalyzer;
 import jdk.test.lib.process.ProcessTools;
 
 public class ThreadLoggingTest {
 
     static void analyzeOutputForInfoLevel(OutputAnalyzer output) throws Exception {
-        output.shouldMatch("Thread .* started");
-        if (Platform.isWindows()) {
-            output.shouldMatch("Thread is alive \\(tid: [0-9]+, stacksize: [0-9]+k\\)");
-        } else {
-            output.shouldContain("Thread is alive");
-        }
+        output.shouldContain("Thread started");
+        output.shouldContain("Thread is alive");
         output.shouldContain("Thread finished");
         output.shouldHaveExitValue(0);
     }
@@ -68,7 +62,7 @@ public class ThreadLoggingTest {
         pb = ProcessTools.createJavaProcessBuilder("-Xlog:os+thread=debug", "-version");
         output = new OutputAnalyzer(pb.start());
         analyzeOutputForDebugLevel(output);
-        output.reportDiagnosticSummary();
+
     }
 
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -81,13 +81,13 @@ enum Alert {
     // description of the Alert
     final String description;
 
-    // Does the alert happen during handshake only?
+    // Does tha alert happen during handshake only?
     final boolean handshakeOnly;
 
     // Alert message consumer
     static final SSLConsumer alertConsumer = new AlertConsumer();
 
-    Alert(byte id, String description, boolean handshakeOnly) {
+    private Alert(byte id, String description, boolean handshakeOnly) {
         this.id = id;
         this.description = description;
         this.handshakeOnly = handshakeOnly;
@@ -122,15 +122,22 @@ enum Alert {
             reason = (cause != null) ? cause.getMessage() : "";
         }
 
+        SSLException ssle;
         if (cause instanceof IOException) {
-            return new SSLException(reason, cause);
+            ssle = new SSLException(reason);
         } else if ((this == UNEXPECTED_MESSAGE)) {
-            return new SSLProtocolException(reason, cause);
+            ssle = new SSLProtocolException(reason);
         } else if (handshakeOnly) {
-            return new SSLHandshakeException(reason, cause);
+            ssle = new SSLHandshakeException(reason);
         } else {
-            return new SSLException(reason, cause);
+            ssle = new SSLException(reason);
         }
+
+        if (cause != null) {
+            ssle.initCause(cause);
+        }
+
+        return ssle;
     }
 
     /**
@@ -146,7 +153,7 @@ enum Alert {
         // description of the Alert level
         final String description;
 
-        Level(byte level, String description) {
+        private Level(byte level, String description) {
             this.level = level;
             this.description = description;
         }
@@ -197,11 +204,10 @@ enum Alert {
         @Override
         public String toString() {
             MessageFormat messageFormat = new MessageFormat(
-                    """
-                            "Alert": '{'
-                              "level"      : "{0}",
-                              "description": "{1}"
-                            '}'""",
+                    "\"Alert\": '{'\n" +
+                    "  \"level\"      : \"{0}\",\n" +
+                    "  \"description\": \"{1}\"\n" +
+                    "'}'",
                     Locale.ENGLISH);
 
             Object[] messageFields = {
@@ -266,7 +272,7 @@ enum Alert {
                         throw tc.fatal(Alert.HANDSHAKE_FAILURE,
                             "received handshake warning: " + alert.description);
                     } else {
-                        // Otherwise, ignore the warning but remove the
+                        // Otherwise ignore the warning but remove the
                         // Certificate and CertificateVerify handshake
                         // consumer so the state machine doesn't expect it.
                         tc.handshakeContext.handshakeConsumers.remove(

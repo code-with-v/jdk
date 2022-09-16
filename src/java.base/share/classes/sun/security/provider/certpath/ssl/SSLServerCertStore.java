@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2015, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,15 +26,34 @@
 package sun.security.provider.certpath.ssl;
 
 import java.io.IOException;
-import java.net.Socket;
 import java.net.URI;
-import java.net.URLConnection;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.security.GeneralSecurityException;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.Provider;
-import java.security.cert.*;
-import java.util.*;
-import javax.net.ssl.*;
+import java.security.cert.CertificateException;
+import java.security.cert.CertSelector;
+import java.security.cert.CertStore;
+import java.security.cert.CertStoreException;
+import java.security.cert.CertStoreParameters;
+import java.security.cert.CertStoreSpi;
+import java.security.cert.CRLSelector;
+import java.security.cert.X509Certificate;
+import java.security.cert.X509CRL;
+import java.net.Socket;
+import java.net.URLConnection;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509ExtendedTrustManager;
 
 /**
  * A CertStore that retrieves an SSL server's certificate chain.
@@ -48,7 +67,11 @@ public final class SSLServerCertStore extends CertStoreSpi {
 
     static {
         trustManager = new GetChainTrustManager();
-        hostnameVerifier = (hostname, session) -> true;
+        hostnameVerifier = new HostnameVerifier() {
+            public boolean verify(String hostname, SSLSession session) {
+                return true;
+            }
+        };
 
         SSLSocketFactory tempFactory;
         try {
@@ -72,12 +95,13 @@ public final class SSLServerCertStore extends CertStoreSpi {
 
         try {
             URLConnection urlConn = uri.toURL().openConnection();
-            if (urlConn instanceof HttpsURLConnection https) {
+            if (urlConn instanceof HttpsURLConnection) {
                 if (socketFactory == null) {
                     throw new CertStoreException(
                         "No initialized SSLSocketFactory");
                 }
 
+                HttpsURLConnection https = (HttpsURLConnection)urlConn;
                 https.setSSLSocketFactory(socketFactory);
                 https.setHostnameVerifier(hostnameVerifier);
                 synchronized (trustManager) {
@@ -104,7 +128,7 @@ public final class SSLServerCertStore extends CertStoreSpi {
             throw new CertStoreException(ioe);
         }
 
-        return Collections.emptySet();
+        return Collections.<X509Certificate>emptySet();
     }
 
     private static List<X509Certificate> getMatchingCerts
@@ -143,7 +167,7 @@ public final class SSLServerCertStore extends CertStoreSpi {
             extends X509ExtendedTrustManager {
 
         private List<X509Certificate> serverChain =
-                        Collections.emptyList();
+                        Collections.<X509Certificate>emptyList();
         private boolean exchangedServerCerts = false;
 
         @Override
@@ -178,8 +202,8 @@ public final class SSLServerCertStore extends CertStoreSpi {
 
             exchangedServerCerts = true;
             this.serverChain = (chain == null)
-                           ? Collections.emptyList()
-                           : Arrays.asList(chain);
+                           ? Collections.<X509Certificate>emptyList()
+                           : Arrays.<X509Certificate>asList(chain);
 
         }
 
@@ -199,7 +223,7 @@ public final class SSLServerCertStore extends CertStoreSpi {
 
         void cleanup() {
             exchangedServerCerts = false;
-            serverChain = Collections.emptyList();
+            serverChain = Collections.<X509Certificate>emptyList();
         }
     }
 

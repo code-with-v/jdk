@@ -46,6 +46,8 @@ import javax.lang.model.type.*;
 import javax.lang.model.util.*;
 import java.time.*;
 
+import javax.tools.Diagnostic.Kind;
+
 import toolbox.JavacTask;
 import toolbox.Task;
 import toolbox.Task.Mode;
@@ -183,11 +185,11 @@ public class TestSealed extends TestRunner {
 
             @Override
             public Void visitType(TypeElement element, Void p) {
-                messager.printNote("visiting: " + element.getSimpleName() + " Modifiers: " + element.getModifiers());
+                messager.printMessage(Kind.NOTE, "visiting: " + element.getSimpleName() + " Modifiers: " + element.getModifiers());
                 List<? extends TypeMirror> permittedSubclasses = element.getPermittedSubclasses();
-                messager.printNote(String.format("    this class has: %d, permitted subclasses", permittedSubclasses.size()));
+                messager.printMessage(Kind.NOTE, String.format("    this class has: %d, permitted subclasses", permittedSubclasses.size()));
                 for (TypeMirror tm: permittedSubclasses) {
-                    messager.printNote(String.format("    permitted subclass: %s", ((DeclaredType)tm).asElement().getSimpleName()));
+                    messager.printMessage(Kind.NOTE, String.format("    permitted subclass: %s", ((DeclaredType)tm).asElement().getSimpleName()));
                 }
                 return super.visitType(element, p);
             }

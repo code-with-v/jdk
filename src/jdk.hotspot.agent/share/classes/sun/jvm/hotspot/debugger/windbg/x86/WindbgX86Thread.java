@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,6 +25,7 @@
 package sun.jvm.hotspot.debugger.windbg.x86;
 
 import sun.jvm.hotspot.debugger.*;
+import sun.jvm.hotspot.debugger.x86.*;
 import sun.jvm.hotspot.debugger.windbg.*;
 
 class WindbgX86Thread implements ThreadProxy {
@@ -65,11 +66,11 @@ class WindbgX86Thread implements ThreadProxy {
   }
 
   public boolean equals(Object obj) {
-    if (!(obj instanceof WindbgX86Thread other)) {
+    if ((obj == null) || !(obj instanceof WindbgX86Thread)) {
       return false;
     }
 
-    return (other.getThreadID() == getThreadID());
+    return (((WindbgX86Thread) obj).getThreadID() == getThreadID());
   }
 
   public int hashCode() {

@@ -59,27 +59,35 @@ public class TestDieWithHeapDump {
   }
 
   public static void main(String[] args) throws Exception {
-    passWith("-Xmx64m",
+    passWith("-Xmx128m",
              "-XX:+UnlockExperimentalVMOptions",
              "-XX:+UseEpsilonGC",
              "-Dcount=1",
              "-XX:+HeapDumpOnOutOfMemoryError",
              TestDieWithHeapDump.Workload.class.getName());
 
-    failWith("-Xmx64m",
+    failWith("-Xmx128m",
              "-XX:+UnlockExperimentalVMOptions",
              "-XX:+UseEpsilonGC",
              "-XX:+HeapDumpOnOutOfMemoryError",
              TestDieWithHeapDump.Workload.class.getName());
 
-    failWith("-Xmx64m",
+    failWith("-Xmx128m",
              "-Xint",
              "-XX:+UnlockExperimentalVMOptions",
              "-XX:+UseEpsilonGC",
              "-XX:+HeapDumpOnOutOfMemoryError",
              TestDieWithHeapDump.Workload.class.getName());
 
-    failWith("-Xmx64m",
+    failWith("-Xmx128m",
+             "-Xbatch",
+             "-Xcomp",
+             "-XX:+UnlockExperimentalVMOptions",
+             "-XX:+UseEpsilonGC",
+             "-XX:+HeapDumpOnOutOfMemoryError",
+             TestDieWithHeapDump.Workload.class.getName());
+
+    failWith("-Xmx128m",
              "-Xbatch",
              "-Xcomp",
              "-XX:TieredStopAtLevel=1",
@@ -88,7 +96,7 @@ public class TestDieWithHeapDump {
              "-XX:+HeapDumpOnOutOfMemoryError",
              TestDieWithHeapDump.Workload.class.getName());
 
-    failWith("-Xmx64m",
+    failWith("-Xmx128m",
              "-Xbatch",
              "-Xcomp",
              "-XX:-TieredCompilation",

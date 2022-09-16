@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -27,10 +27,14 @@ package sun.security.ssl;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.security.CryptoPrimitive;
 import java.security.GeneralSecurityException;
 import java.text.MessageFormat;
-import java.util.*;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import javax.net.ssl.SSLProtocolException;
 import sun.security.ssl.NamedGroup.NamedGroupSpec;
 import sun.security.ssl.SSLExtension.ExtensionConsumer;
@@ -108,14 +112,12 @@ final class KeyShareExtension {
         @Override
         public String toString() {
             MessageFormat messageFormat = new MessageFormat(
-                    """
-
-                            '{'
-                              "named group": {0}
-                              "key_exchange": '{'
-                            {1}
-                              '}'
-                            '}',""", Locale.ENGLISH);
+                "\n'{'\n" +
+                "  \"named group\": {0}\n" +
+                "  \"key_exchange\": '{'\n" +
+                "{1}\n" +
+                "  '}'\n" +
+                "'}',", Locale.ENGLISH);
 
             HexDumpEncoder hexEncoder = new HexDumpEncoder();
             Object[] messageFields = {
@@ -297,7 +299,7 @@ final class KeyShareExtension {
                 for (SSLPossession pos : poses) {
                     // update the context
                     chc.handshakePossessions.add(pos);
-                    // May need more possession types in the future.
+                    // May need more possesion types in the future.
                     if (pos instanceof NamedGroupPossession) {
                         return pos.encode();
                     }
@@ -347,8 +349,7 @@ final class KeyShareExtension {
                 NamedGroup ng = NamedGroup.valueOf(entry.namedGroupId);
                 if (ng == null || !SupportedGroups.isActivatable(
                         shc.algorithmConstraints, ng)) {
-                    if (SSLLogger.isOn &&
-                            SSLLogger.isOn("ssl,handshake")) {
+                    if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
                         SSLLogger.fine(
                                 "Ignore unsupported named group: " +
                                 NamedGroup.nameOf(entry.namedGroupId));
@@ -358,33 +359,16 @@ final class KeyShareExtension {
 
                 try {
                     SSLCredentials kaCred =
-                        ng.decodeCredentials(entry.keyExchange);
-                    if (shc.algorithmConstraints != null &&
-                            kaCred instanceof
-                                NamedGroupCredentials namedGroupCredentials) {
-                        if (!shc.algorithmConstraints.permits(
-                                EnumSet.of(CryptoPrimitive.KEY_AGREEMENT),
-                                namedGroupCredentials.getPublicKey())) {
-                            if (SSLLogger.isOn &&
-                                    SSLLogger.isOn("ssl,handshake")) {
-                                SSLLogger.warning(
-                                    "key share entry of " + ng + " does not " +
-                                    " comply with algorithm constraints");
-                            }
-
-                            kaCred = null;
-                        }
-                    }
-
+                        ng.decodeCredentials(entry.keyExchange,
+                        shc.algorithmConstraints,
+                        s -> SSLLogger.warning(s));
                     if (kaCred != null) {
                         credentials.add(kaCred);
                     }
                 } catch (GeneralSecurityException ex) {
-                    if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
-                        SSLLogger.warning(
-                                "Cannot decode named group: " +
-                                NamedGroup.nameOf(entry.namedGroupId));
-                    }
+                    SSLLogger.warning(
+                        "Cannot decode named group: " +
+                        NamedGroup.nameOf(entry.namedGroupId));
                 }
             }
 
@@ -469,13 +453,12 @@ final class KeyShareExtension {
         @Override
         public String toString() {
             MessageFormat messageFormat = new MessageFormat(
-                    """
-                            "server_share": '{'
-                              "named group": {0}
-                              "key_exchange": '{'
-                            {1}
-                              '}'
-                            '}',""", Locale.ENGLISH);
+                "\"server_share\": '{'\n" +
+                "  \"named group\": {0}\n" +
+                "  \"key_exchange\": '{'\n" +
+                "{1}\n" +
+                "  '}'\n" +
+                "'}',", Locale.ENGLISH);
 
             HexDumpEncoder hexEncoder = new HexDumpEncoder();
             Object[] messageFields = {
@@ -542,7 +525,7 @@ final class KeyShareExtension {
             // use requested key share entries
             if ((shc.handshakeCredentials == null) ||
                     shc.handshakeCredentials.isEmpty()) {
-                // Unlikely, HelloRetryRequest should be used earlier.
+                // Unlikely, HelloRetryRequest should be used ealier.
                 if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
                     SSLLogger.warning(
                             "No available client key share entries");
@@ -553,7 +536,8 @@ final class KeyShareExtension {
             KeyShareEntry keyShare = null;
             for (SSLCredentials cd : shc.handshakeCredentials) {
                 NamedGroup ng = null;
-                if (cd instanceof NamedGroupCredentials creds) {
+                if (cd instanceof NamedGroupCredentials) {
+                    NamedGroupCredentials creds = (NamedGroupCredentials)cd;
                     ng = creds.getNamedGroup();
                 }
 
@@ -573,7 +557,7 @@ final class KeyShareExtension {
                 SSLPossession[] poses = ke.createPossessions(shc);
                 for (SSLPossession pos : poses) {
                     if (!(pos instanceof NamedGroupPossession)) {
-                        // May need more possession types in the future.
+                        // May need more possesion types in the future.
                         continue;
                     }
 
@@ -597,7 +581,7 @@ final class KeyShareExtension {
             }
 
             if (keyShare == null) {
-                // Unlikely, HelloRetryRequest should be used instead earlier.
+                // Unlikely, HelloRetryRequest should be used instead ealier.
                 if (SSLLogger.isOn && SSLLogger.isOn("ssl,handshake")) {
                     SSLLogger.warning(
                             "No available server key_share extension");
@@ -662,20 +646,9 @@ final class KeyShareExtension {
 
             SSLCredentials credentials = null;
             try {
-                SSLCredentials kaCred =
-                        ng.decodeCredentials(keyShare.keyExchange);
-                if (chc.algorithmConstraints != null &&
-                        kaCred instanceof
-                                NamedGroupCredentials namedGroupCredentials) {
-                    if (!chc.algorithmConstraints.permits(
-                            EnumSet.of(CryptoPrimitive.KEY_AGREEMENT),
-                            namedGroupCredentials.getPublicKey())) {
-                        chc.conContext.fatal(Alert.INSUFFICIENT_SECURITY,
-                            "key share entry of " + ng + " does not " +
-                            " comply with algorithm constraints");
-                    }
-                }
-
+                SSLCredentials kaCred = ng.decodeCredentials(
+                    keyShare.keyExchange, chc.algorithmConstraints,
+                    s -> chc.conContext.fatal(Alert.UNEXPECTED_MESSAGE, s));
                 if (kaCred != null) {
                     credentials = kaCred;
                 }
@@ -708,7 +681,7 @@ final class KeyShareExtension {
             // The producing happens in client side only.
             ClientHandshakeContext chc = (ClientHandshakeContext)context;
 
-            // Cannot use the previous requested key shares anymore.
+            // Cannot use the previous requested key shares any more.
             if (SSLLogger.isOn && SSLLogger.isOn("handshake")) {
                 SSLLogger.fine(
                         "No key_share extension in ServerHello, " +

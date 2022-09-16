@@ -22,13 +22,11 @@
  */
 
 // key: compiler.err.preview.feature.disabled.plural
-// key: compiler.misc.feature.var.syntax.in.implicit.lambda
+// key: compiler.misc.feature.lambda
 // options: -XDforcePreview
-
-import java.util.function.Function;
 
 class PreviewFeatureDisabledPlural {
     void m() {
-        Function<String, String> f = (var s) -> s;
+        Runnable r = () -> {};
     }
 }

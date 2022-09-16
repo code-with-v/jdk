@@ -495,9 +495,9 @@ public abstract class View implements SwingConstants {
      * @param biasRet the returned bias
      * @return the location within the model that best represents the next
      *  location visual position
-     * @throws BadLocationException the given position is not a valid
+     * @exception BadLocationException the given position is not a valid
      *                                 position within the document
-     * @throws IllegalArgumentException if <code>direction</code>
+     * @exception IllegalArgumentException if <code>direction</code>
      *          doesn't have one of the legal values above
      */
     @SuppressWarnings("deprecation")
@@ -585,9 +585,9 @@ public abstract class View implements SwingConstants {
      * </ul>
      * @return the bounding box, in view coordinate space,
      *          of the character at the specified position
-     * @throws BadLocationException  if the specified position does
+     * @exception BadLocationException  if the specified position does
      *   not represent a valid location in the associated document
-     * @throws IllegalArgumentException if <code>b</code> is not one of the
+     * @exception IllegalArgumentException if <code>b</code> is not one of the
      *          legal <code>Position.Bias</code> values listed above
      * @see View#viewToModel
      */
@@ -615,9 +615,9 @@ public abstract class View implements SwingConstants {
      * @param a the area of the view, which encompasses the requested region
      * @return the bounding box which is a union of the region specified
      *          by the first and last character positions
-     * @throws BadLocationException  if the given position does
+     * @exception BadLocationException  if the given position does
      *   not represent a valid location in the associated document
-     * @throws IllegalArgumentException if <code>b0</code> or
+     * @exception IllegalArgumentException if <code>b0</code> or
      *          <code>b1</code> are not one of the
      *          legal <code>Position.Bias</code> values listed above
      * @see View#viewToModel
@@ -1337,7 +1337,7 @@ public abstract class View implements SwingConstants {
      * @param pos the position to convert &gt;= 0
      * @param a the allocated region in which to render
      * @return the bounding box of the given position is returned
-     * @throws BadLocationException  if the given position does
+     * @exception BadLocationException  if the given position does
      *   not represent a valid location in the associated document
      * @see View#modelToView
      * @deprecated

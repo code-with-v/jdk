@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005, 2017, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -1438,11 +1438,7 @@ public abstract class TIFFDecompressor {
      *
      * @param byteCount the number of bytes of compressed data.
      */
-    public void setByteCount(int byteCount) throws IOException{
-        if (byteCount < 0) {
-            throw new IIOException("Strip byte count can't be"
-                + " negative: " + byteCount);
-        }
+    public void setByteCount(int byteCount) {
         this.byteCount = byteCount;
     }
 
@@ -2373,7 +2369,7 @@ public abstract class TIFFDecompressor {
      * and instead override the {@code decodeRaw} and/or
      * {@code getRawImageType} methods.
      *
-     * @throws IOException if an error occurs in
+     * @exception IOException if an error occurs in
      * {@code decodeRaw}.
      */
     public void decode() throws IOException {

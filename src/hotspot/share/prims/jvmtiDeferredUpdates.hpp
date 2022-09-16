@@ -26,12 +26,9 @@
 #ifndef SHARE_PRIMS_JVMTIDEFERREDUPDATES_HPP
 #define SHARE_PRIMS_JVMTIDEFERREDUPDATES_HPP
 
-#include "runtime/javaThread.hpp"
+#include "runtime/thread.inline.hpp"
 #include "utilities/globalDefinitions.hpp"
 #include "utilities/growableArray.hpp"
-
-class MonitorInfo;
-template <typename T> class GrowableArray;
 
 class jvmtiDeferredLocalVariable : public CHeapObj<mtCompiler> {
 

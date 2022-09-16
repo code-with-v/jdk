@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1997, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -71,8 +71,8 @@ private:
   const char *_constraint;
 
 public:
-  // cmpstr does string comparisons.  hashstr computes a key.
-  ProductionState(AdlArena *arena) : _production(cmpstr, hashstr, arena) { initialize(); };
+  // cmpstr does string comparisions.  hashstr computes a key.
+  ProductionState(Arena *arena) : _production(cmpstr, hashstr, arena) { initialize(); };
   ~ProductionState() { };
 
   void        initialize();                // reset local and dictionary state
@@ -182,19 +182,14 @@ static void cost_check(FILE *fp, const char *spaces,
 //   STATE__VALID_CHILD(_kids[0], FOO) &&  STATE__VALID_CHILD(_kids[1], BAR)
 // Macro equivalent to: _kids[0]->valid(FOO) && _kids[1]->valid(BAR)
 //
-static void child_test(FILE *fp, MatchList &mList, bool is_vector_unary_op) {
+static void child_test(FILE *fp, MatchList &mList) {
   if (mList._lchild) { // If left child, check it
     const char* lchild_to_upper = ArchDesc::getMachOperEnum(mList._lchild);
     fprintf(fp, "STATE__VALID_CHILD(_kids[0], %s)", lchild_to_upper);
     delete[] lchild_to_upper;
-
-    if (mList._rchild) { // If both, add the "&&"
-      fprintf(fp, " && ");
-    } else if (is_vector_unary_op) {
-      // If unpredicated vector unary operation, add one extra check, i.e. right
-      // child should be NULL, to distinguish from the predicated version.
-      fprintf(fp, " && _kids[1] == NULL");
-    }
+  }
+  if (mList._lchild && mList._rchild) { // If both, add the "&&"
+    fprintf(fp, " && ");
   }
   if (mList._rchild) { // If right child, check it
     const char* rchild_to_upper = ArchDesc::getMachOperEnum(mList._rchild);
@@ -233,8 +228,7 @@ Expr *ArchDesc::calc_cost(FILE *fp, const char *spaces, MatchList &mList, Produc
 
 
 //---------------------------gen_match-----------------------------------------
-void ArchDesc::gen_match(FILE *fp, MatchList &mList, ProductionState &status,
-                         Dict &operands_chained_from, bool is_vector_unary_op) {
+void ArchDesc::gen_match(FILE *fp, MatchList &mList, ProductionState &status, Dict &operands_chained_from) {
   const char *spaces4 = "    ";
   const char *spaces6 = "      ";
 
@@ -246,7 +240,7 @@ void ArchDesc::gen_match(FILE *fp, MatchList &mList, ProductionState &status,
     // Open the child-and-predicate-test braces
     fprintf(fp, "if( ");
     status.set_constraint(hasConstraint);
-    child_test(fp, mList, is_vector_unary_op);
+    child_test(fp, mList);
     // Only generate predicate test if one exists for this match
     if (predicate_test) {
       if (has_child_constraints) {
@@ -577,26 +571,6 @@ const char*  dfa_shared_preds::_type [dfa_shared_preds::count] = { "int",       
 const char*  dfa_shared_preds::_var  [dfa_shared_preds::count] = { "_n_get_int__", "_n_get_long__", "_n_get_intptr_t__" IA32_ONLY(COMMA "Compile__current____select_24_bit_instr__") };
 const char*  dfa_shared_preds::_pred [dfa_shared_preds::count] = { "n->get_int()", "n->get_long()", "n->get_intptr_t()" IA32_ONLY(COMMA "Compile::current()->select_24_bit_instr()") };
 
-// Helper method to check whether a node is vector unary operation.
-static bool is_vector_unary_op_name(const char* op_name) {
-  static const char* vector_unary_op_list[] = {
-    "AbsVB", "AbsVS", "AbsVI", "AbsVL", "AbsVF", "AbsVD",
-    "NegVI", "NegVL", "NegVF", "NegVD",
-    "SqrtVF", "SqrtVD",
-    "PopCountVI", "PopCountVL",
-    "CountLeadingZerosV", "CountTrailingZerosV",
-    "ReverseV", "ReverseBytesV",
-    "MaskAll", "VectorLoadMask", "VectorMaskFirstTrue"
-  };
-  int cnt = sizeof(vector_unary_op_list) / sizeof(char*);
-  for (int i = 0; i < cnt; i++) {
-    if (strcmp(op_name, vector_unary_op_list[i]) == 0) {
-      return true;
-    }
-  }
-  return false;
-}
-
 void ArchDesc::gen_dfa_state_body(FILE* fp, Dict &minimize, ProductionState &status, Dict &operands_chained_from, int i) {
   // Start the body of each Op_XXX sub-dfa with a clean state.
   status.initialize();
@@ -618,13 +592,12 @@ void ArchDesc::gen_dfa_state_body(FILE* fp, Dict &minimize, ProductionState &sta
   dfa_shared_preds::generate_cse(fp);
 
   mList = _mlistab[i];
-  bool is_vector_unary_op = is_vector_unary_op_name(NodeClassNames[i]);
 
   // Walk the list again, generating code
   do {
     // Each match can generate its own chains
     operands_chained_from.Clear();
-    gen_match(fp, *mList, status, operands_chained_from, is_vector_unary_op);
+    gen_match(fp, *mList, status, operands_chained_from);
     mList = mList->get_next();
   } while(mList != NULL);
   // Fill in any chain rules which add instructions
@@ -844,7 +817,7 @@ bool Expr::check_buffers() {
 
 //------------------------------ExprDict---------------------------------------
 // Constructor
-ExprDict::ExprDict( CmpKey cmp, Hash hash, AdlArena *arena )
+ExprDict::ExprDict( CmpKey cmp, Hash hash, Arena *arena )
   : _expr(cmp, hash, arena), _defines()  {
 }
 ExprDict::~ExprDict() {

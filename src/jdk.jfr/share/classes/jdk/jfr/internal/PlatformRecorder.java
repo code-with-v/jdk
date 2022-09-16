@@ -36,6 +36,7 @@ import java.security.AccessControlContext;
 import java.security.AccessController;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -66,6 +67,8 @@ public final class PlatformRecorder {
     private static final List<SecureRecorderListener> changeListeners = new ArrayList<>();
     private final Repository repository;
     private static final JVM jvm = JVM.getJVM();
+    private final EventType activeRecordingEvent;
+    private final EventType activeSettingEvent;
     private final Thread shutdownHook;
 
     private Timer timer;
@@ -83,9 +86,12 @@ public final class PlatformRecorder {
         Logger.log(JFR_SYSTEM, INFO, "Registered JDK events");
         JDKEvents.addInstrumentation();
         startDiskMonitor();
+        activeRecordingEvent = EventType.getEventType(ActiveRecordingEvent.class);
+        activeSettingEvent = EventType.getEventType(ActiveSettingEvent.class);
         shutdownHook = SecuritySupport.createThreadWitNoPermissions("JFR Shutdown Hook", new ShutdownHook(this));
         SecuritySupport.setUncaughtExceptionHandler(shutdownHook, new ShutdownHook.ExceptionHandler());
         SecuritySupport.registerShutdownHook(shutdownHook);
+
     }
 
 
@@ -137,7 +143,7 @@ public final class PlatformRecorder {
         return Collections.unmodifiableList(new ArrayList<PlatformRecording>(recordings));
     }
 
-    public static synchronized void addListener(FlightRecorderListener changeListener) {
+    public synchronized static void addListener(FlightRecorderListener changeListener) {
         @SuppressWarnings("removal")
         AccessControlContext context = AccessController.getContext();
         SecureRecorderListener sl = new SecureRecorderListener(context, changeListener);
@@ -151,7 +157,7 @@ public final class PlatformRecorder {
         }
     }
 
-    public static synchronized boolean removeListener(FlightRecorderListener changeListener) {
+    public synchronized static boolean removeListener(FlightRecorderListener changeListener) {
         for (SecureRecorderListener s : new ArrayList<>(changeListeners)) {
             if (s.getChangeListener() == changeListener) {
                 changeListeners.remove(s);
@@ -243,13 +249,13 @@ public final class PlatformRecorder {
             }
             currentChunk = newChunk;
             jvm.beginRecording();
-            startNanos = Utils.getChunkStartNanos();
+            startNanos = jvm.getChunkStartNanos();
             startTime = Utils.epochNanosToInstant(startNanos);
             if (currentChunk != null) {
                 currentChunk.setStartTime(startTime);
             }
             recording.setState(RecordingState.RUNNING);
-            updateSettings(false);
+            updateSettings();
             recording.setStartTime(startTime);
             writeMetaEvents();
         } else {
@@ -264,11 +270,11 @@ public final class PlatformRecorder {
                 startTime = MetadataRepository.getInstance().setOutput(p);
                 newChunk.setStartTime(startTime);
             }
-            startNanos = Utils.getChunkStartNanos();
+            startNanos = jvm.getChunkStartNanos();
             startTime = Utils.epochNanosToInstant(startNanos);
             recording.setStartTime(startTime);
             recording.setState(RecordingState.RUNNING);
-            updateSettings(false);
+            updateSettings();
             writeMetaEvents();
             if (currentChunk != null) {
                 finishChunk(currentChunk, startTime, recording);
@@ -311,7 +317,7 @@ public final class PlatformRecorder {
             }
         }
         OldObjectSample.emit(recording);
-        recording.setFinalStartnanos(Utils.getChunkStartNanos());
+        recording.setFinalStartnanos(jvm.getChunkStartNanos());
 
         if (endPhysical) {
             RequestEngine.doChunkEnd();
@@ -332,7 +338,7 @@ public final class PlatformRecorder {
         } else {
             RepositoryChunk newChunk = null;
             RequestEngine.doChunkEnd();
-            updateSettingsButIgnoreRecording(recording, false);
+            updateSettingsButIgnoreRecording(recording);
 
             String path = null;
             if (toDisk) {
@@ -376,11 +382,11 @@ public final class PlatformRecorder {
         MetadataRepository.getInstance().disableEvents();
     }
 
-    void updateSettings(boolean writeSettingEvents) {
-        updateSettingsButIgnoreRecording(null, writeSettingEvents);
+    void updateSettings() {
+        updateSettingsButIgnoreRecording(null);
     }
 
-    void updateSettingsButIgnoreRecording(PlatformRecording ignoreMe, boolean writeSettingEvents) {
+    void updateSettingsButIgnoreRecording(PlatformRecording ignoreMe) {
         List<PlatformRecording> recordings = getRunningRecordings();
         List<Map<String, String>> list = new ArrayList<>(recordings.size());
         for (PlatformRecording r : recordings) {
@@ -388,7 +394,7 @@ public final class PlatformRecorder {
                 list.add(r.getSettings());
             }
         }
-        MetadataRepository.getInstance().setSettings(list, writeSettingEvents);
+        MetadataRepository.getInstance().setSettings(list);
     }
 
 
@@ -431,7 +437,7 @@ public final class PlatformRecorder {
             }
             // n*log(n), should be able to do n*log(k) with a priority queue,
             // where k = number of recordings, n = number of chunks
-            chunks.sort(RepositoryChunk.END_TIME_COMPARATOR);
+            Collections.sort(chunks, RepositoryChunk.END_TIME_COMPARATOR);
             return chunks;
         }
 
@@ -455,34 +461,31 @@ public final class PlatformRecorder {
     }
 
     private void writeMetaEvents() {
-        long timestamp = JVM.counterTime();
-        if (ActiveRecordingEvent.enabled()) {
+        if (activeRecordingEvent.isEnabled()) {
+            ActiveRecordingEvent event = ActiveRecordingEvent.EVENT;
             for (PlatformRecording r : getRecordings()) {
                 if (r.getState() == RecordingState.RUNNING && r.shouldWriteMetadataEvent()) {
-                    WriteableUserPath path = r.getDestination();
+                    event.id = r.getId();
+                    event.name = r.getName();
+                    WriteableUserPath p = r.getDestination();
+                    event.destination = p == null ? null : p.getRealPathText();
+                    Duration d = r.getDuration();
+                    event.recordingDuration = d == null ? Long.MAX_VALUE : d.toMillis();
                     Duration age = r.getMaxAge();
-                    Duration flush = r.getFlushInterval();
+                    event.maxAge = age == null ? Long.MAX_VALUE : age.toMillis();
                     Long size = r.getMaxSize();
-                    Instant rStart = r.getStartTime();
-                    Duration rDuration = r.getDuration();
-                    ActiveRecordingEvent.commit(
-                        timestamp,
-                        0L,
-                        r.getId(),
-                        r.getName(),
-                        path == null ? null : path.getRealPathText(),
-                        age == null ? Long.MAX_VALUE : age.toMillis(),
-                        flush == null ? Long.MAX_VALUE : flush.toMillis(),
-                        size == null ? Long.MAX_VALUE : size,
-                        rStart == null ? Long.MAX_VALUE : rStart.toEpochMilli(),
-                        rDuration == null ? Long.MAX_VALUE : rDuration.toMillis()
-                    );
+                    event.maxSize = size == null ? Long.MAX_VALUE : size;
+                    Instant start = r.getStartTime();
+                    event.recordingStart = start == null ? Long.MAX_VALUE : start.toEpochMilli();
+                    Duration fi = r.getFlushInterval();
+                    event.flushInterval = fi == null ? Long.MAX_VALUE : fi.toMillis();
+                    event.commit();
                 }
             }
         }
-        if (ActiveSettingEvent.enabled()) {
+        if (activeSettingEvent.isEnabled()) {
             for (EventControl ec : MetadataRepository.getInstance().getEventControls()) {
-                ec.writeActiveSettingEvent(timestamp);
+                ec.writeActiveSettingEvent();
             }
         }
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -105,11 +105,8 @@ class ThreadStateConstant : public JfrSerializer {
 class JfrThreadConstant : public JfrSerializer {
  private:
   Thread* _thread;
-  traceid _tid;
-  oop _vthread;
-  void write_name(JfrCheckpointWriter& writer, const char* name, int length);
  public:
-  JfrThreadConstant(Thread* t, traceid tid, oop vthread = NULL) : _thread(t), _tid(tid), _vthread(vthread) {}
+  JfrThreadConstant(Thread* t) : _thread(t) {}
   void serialize(JfrCheckpointWriter& writer);
 };
 

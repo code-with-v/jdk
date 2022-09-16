@@ -32,7 +32,7 @@ package sun.security.krb5.internal;
 
 import sun.security.util.*;
 import sun.security.krb5.Asn1Exception;
-import java.util.ArrayList;
+import java.util.Vector;
 import java.io.IOException;
 import sun.security.krb5.internal.ccache.CCacheOutputStream;
 
@@ -99,15 +99,16 @@ public class AuthorizationData implements Cloneable {
      * @exception IOException if an I/O error occurs while reading encoded data.
      */
     public AuthorizationData(DerValue der) throws Asn1Exception, IOException {
-        ArrayList<AuthorizationDataEntry> v = new ArrayList<>();
+        Vector<AuthorizationDataEntry> v = new Vector<>();
         if (der.getTag() != DerValue.tag_Sequence) {
             throw new Asn1Exception(Krb5.ASN1_BAD_ID);
         }
         while (der.getData().available() > 0) {
-            v.add(new AuthorizationDataEntry(der.getData().getDerValue()));
+            v.addElement(new AuthorizationDataEntry(der.getData().getDerValue()));
         }
         if (v.size() > 0) {
-            entry = v.toArray(new AuthorizationDataEntry[0]);
+            entry = new AuthorizationDataEntry[v.size()];
+            v.copyInto(entry);
         }
     }
 

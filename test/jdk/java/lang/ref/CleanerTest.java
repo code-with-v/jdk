@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2015, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,7 +25,10 @@ import java.lang.ref.Cleaner;
 import java.lang.ref.Reference;
 import java.lang.ref.PhantomReference;
 import java.lang.ref.ReferenceQueue;
+import java.lang.ref.SoftReference;
+import java.lang.ref.WeakReference;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -34,19 +37,18 @@ import java.util.function.Supplier;
 import jdk.internal.ref.PhantomCleanable;
 import jdk.internal.ref.CleanerFactory;
 
-import jdk.test.whitebox.WhiteBox;
+import sun.hotspot.WhiteBox;
 
 import jdk.test.lib.Utils;
 
 import org.testng.Assert;
 import org.testng.TestNG;
-import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 /*
  * @test
  * @library /lib/testlibrary /test/lib
- * @build jdk.test.whitebox.WhiteBox
+ * @build sun.hotspot.WhiteBox
  *        jdk.test.lib.Utils
  *        jdk.test.lib.Asserts
  *        jdk.test.lib.JDKToolFinder
@@ -56,9 +58,7 @@ import org.testng.annotations.Test;
  * @modules java.base/jdk.internal.misc
  *          java.base/jdk.internal.ref
  *          java.management
- * @enablePreview
- * @compile -source ${jdk.version} CleanerTest.java
- * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
+ * @run driver jdk.test.lib.helpers.ClassFileInstaller sun.hotspot.WhiteBox
  * @run testng/othervm
  *      -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI -Xbootclasspath/a:.
  *      -verbose:gc CleanerTest
@@ -72,13 +72,6 @@ public class CleanerTest {
     // Access to WhiteBox utilities
     static final WhiteBox whitebox = WhiteBox.getWhiteBox();
 
-    @DataProvider(name = "cleanerSuppliers")
-    public Object[][] factories() {
-        Supplier<Cleaner> supplier1 = () -> Cleaner.create();
-        Supplier<Cleaner> supplier2 = () -> Cleaner.create(Thread.ofVirtual().factory());
-        return new Object[][] { { supplier1 }, { supplier2 } };
-    }
-
     /**
      * Test that sequences of the various actions on a Reference
      * and on the Cleanable instance have the desired result.
@@ -89,10 +82,10 @@ public class CleanerTest {
      * collection actions on the reference and explicitly performing
      * the cleaning action.
      */
-    @Test(dataProvider = "cleanerSuppliers")
+    @Test
     @SuppressWarnings("unchecked")
-    public void testCleanableActions(Supplier<Cleaner> supplier) {
-        Cleaner cleaner = supplier.get();
+    void testCleanableActions() {
+        Cleaner cleaner = Cleaner.create();
 
         // Individually
         generateCases(cleaner, c -> c.clearRef());
@@ -103,7 +96,7 @@ public class CleanerTest {
 
         CleanableCase s = setupPhantom(COMMON, cleaner);
         cleaner = null;
-        checkCleaned(s.getSemaphore(), true, "Cleaner was cleaned");
+        checkCleaned(s.getSemaphore(), true, "Cleaner was cleaned:");
     }
 
     /**
@@ -116,10 +109,10 @@ public class CleanerTest {
      * collection actions on the reference, explicitly performing
      * the cleanup and explicitly clearing the cleaning action.
      */
-    @Test(dataProvider = "cleanerSuppliers")
+    @Test
     @SuppressWarnings("unchecked")
-    public void testRefSubtypes(Supplier<Cleaner> supplier) {
-        Cleaner cleaner = supplier.get();
+    void testRefSubtypes() {
+        Cleaner cleaner = Cleaner.create();
 
         // Individually
         generateCasesInternal(cleaner, c -> c.clearRef());
@@ -138,7 +131,7 @@ public class CleanerTest {
 
         CleanableCase s = setupPhantom(COMMON, cleaner);
         cleaner = null;
-        checkCleaned(s.getSemaphore(), true, "Cleaner was cleaned");
+        checkCleaned(s.getSemaphore(), true, "Cleaner was cleaned:");
     }
 
     /**
@@ -220,9 +213,9 @@ public class CleanerTest {
 
         checkCleaned(test.getSemaphore(),
                 r == CleanableCase.EV_CLEAN,
-                "Cleanable was cleaned");
+                "Cleanable was cleaned:");
         checkCleaned(cc.getSemaphore(), true,
-                "The reference to the Cleanable was freed");
+                "The reference to the Cleanable was freed:");
     }
 
     /**
@@ -255,10 +248,10 @@ public class CleanerTest {
      * Test that releasing the reference to the Cleaner service allows it to be
      * be freed.
      */
-    @Test(dataProvider = "cleanerSuppliers")
-    public void testCleanerTermination(Supplier<Cleaner> supplier) {
+    @Test
+    void testCleanerTermination() {
         ReferenceQueue<Object> queue = new ReferenceQueue<>();
-        Cleaner service = supplier.get();
+        Cleaner service = Cleaner.create();
 
         PhantomReference<Object> ref = new PhantomReference<>(service, queue);
         System.gc();
@@ -281,10 +274,11 @@ public class CleanerTest {
      * Use a larger number of cycles to wait for an expected cleaning to occur.
      *
      * @param semaphore a Semaphore
-     * @param expectCleaned true if cleaning the function should have been run, otherwise not run
-     * @param msg a message describing the cleaning function expected to be run or not run
+     * @param expectCleaned true if cleaning should occur
+     * @param msg a message to explain the error
      */
-    static void checkCleaned(Semaphore semaphore, boolean expectCleaned, String msg) {
+    static void checkCleaned(Semaphore semaphore, boolean expectCleaned,
+                             String msg) {
         long max_cycles = expectCleaned ? 10 : 3;
         long cycle = 0;
         for (; cycle < max_cycles; cycle++) {
@@ -292,10 +286,9 @@ public class CleanerTest {
             whitebox.fullGC();
 
             try {
-                if (semaphore.tryAcquire(Utils.adjustTimeout(200L), TimeUnit.MILLISECONDS)) {
+                if (semaphore.tryAcquire(Utils.adjustTimeout(10L), TimeUnit.MILLISECONDS)) {
                     System.out.printf(" Cleanable cleaned in cycle: %d%n", cycle);
-                    if (!expectCleaned)
-                        Assert.fail("Should not have been run: " +  msg);
+                    Assert.assertEquals(true, expectCleaned, msg);
                     return;
                 }
             } catch (InterruptedException ie) {
@@ -303,8 +296,7 @@ public class CleanerTest {
             }
         }
         // Object has not been cleaned
-        if (expectCleaned)
-            Assert.fail("Should have been run: " + msg);
+        Assert.assertEquals(false, expectCleaned, msg);
     }
 
     /**
@@ -527,10 +519,10 @@ public class CleanerTest {
      * Verify that casting a Cleanup to a Reference is not allowed to
      * get the referent or clear the reference.
      */
-    @Test(dataProvider = "cleanerSuppliers")
+    @Test
     @SuppressWarnings("rawtypes")
-    public void testReferentNotAvailable(Supplier<Cleaner> supplier) {
-        Cleaner cleaner = supplier.get();
+    void testReferentNotAvailable() {
+        Cleaner cleaner = Cleaner.create();
         Semaphore s1 = new Semaphore(0);
 
         Object obj = new String("a new string");
@@ -552,7 +544,7 @@ public class CleanerTest {
         }
 
         obj = null;
-        checkCleaned(s1, true, "reference was cleaned");
+        checkCleaned(s1, true, "reference was cleaned:");
         cleaner = null;
     }
 
@@ -560,13 +552,13 @@ public class CleanerTest {
      * Test the Cleaner from the CleanerFactory.
      */
     @Test
-    public void testCleanerFactory() {
+    void testCleanerFactory() {
         Cleaner cleaner = CleanerFactory.cleaner();
 
         Object obj = new Object();
         CleanableCase s = setupPhantom(cleaner, obj);
         obj = null;
         checkCleaned(s.getSemaphore(), true,
-                "Object cleaned using internal CleanerFactory.cleaner()");
+                "Object was cleaned using CleanerFactor.cleaner():");
     }
 }

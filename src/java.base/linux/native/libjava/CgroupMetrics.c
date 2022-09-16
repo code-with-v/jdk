@@ -22,7 +22,6 @@
  * or visit www.oracle.com if you need additional information or have any
  * questions.
  */
-#include <unistd.h>
 
 #include "jni.h"
 #include "jvm.h"
@@ -33,11 +32,4 @@ JNIEXPORT jboolean JNICALL
 Java_jdk_internal_platform_CgroupMetrics_isUseContainerSupport(JNIEnv *env, jclass ignored)
 {
     return JVM_IsUseContainerSupport();
-}
-
-JNIEXPORT jlong JNICALL
-Java_jdk_internal_platform_CgroupMetrics_getTotalMemorySize0
-  (JNIEnv *env, jclass ignored)
-{
-    return sysconf(_SC_PHYS_PAGES) * sysconf(_SC_PAGESIZE);
 }

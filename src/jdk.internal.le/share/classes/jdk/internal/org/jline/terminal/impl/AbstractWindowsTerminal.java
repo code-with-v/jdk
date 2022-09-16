@@ -521,6 +521,8 @@ public abstract class AbstractWindowsTerminal extends AbstractTerminal {
         return true;
     }
 
+    protected abstract int getConsoleOutputCP();
+
     protected abstract int getConsoleMode();
 
     protected abstract void setConsoleMode(int mode);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -23,8 +23,7 @@
 
 /*
  * @test
- * @bug 8215922 8267319
- * @modules jdk.jartool/jdk.security.jarsigner
+ * @bug 8215922
  * @summary jar spec is not precise when describing jar file re-signing
  * @library /test/lib
  */
@@ -38,15 +37,10 @@ import java.util.Base64;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
-import jdk.security.jarsigner.JarSigner;
 
 import static jdk.test.lib.SecurityTools.*;
 
 public class SignedAgain {
-
-    private static final String DEF_DIGEST =
-            JarSigner.Builder.getDefaultDigestAlgorithm();
-
     public static void main(String[] args) throws Exception {
 
         String opt = "-storepass changeit -keystore ks";
@@ -79,20 +73,20 @@ public class SignedAgain {
 
             // Hash of manifest for 2 signed JAR files
             String da = Base64.getEncoder().encodeToString(MessageDigest
-                    .getInstance(DEF_DIGEST).digest(ma.readAllBytes()));
+                    .getInstance("SHA-256").digest(ma.readAllBytes()));
             String db = Base64.getEncoder().encodeToString(MessageDigest
-                    .getInstance(DEF_DIGEST).digest(mb.readAllBytes()));
+                    .getInstance("SHA-256").digest(mb.readAllBytes()));
 
             // They are not the same
             Asserts.assertNotEquals(da, db);
 
             // Digest-Manifest in A.SF matches da
             Asserts.assertEQ(new Manifest(sa).getMainAttributes()
-                    .getValue(DEF_DIGEST + "-Digest-Manifest"), da);
+                    .getValue("SHA-256-Digest-Manifest"), da);
 
             // Digest-Manifest in B.SF matches db
             Asserts.assertEQ(new Manifest(sb).getMainAttributes()
-                    .getValue(DEF_DIGEST + "-Digest-Manifest"), db);
+                    .getValue("SHA-256-Digest-Manifest"), db);
         }
     }
 }

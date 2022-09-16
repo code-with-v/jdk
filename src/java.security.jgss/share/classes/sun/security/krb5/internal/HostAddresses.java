@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -178,14 +178,15 @@ public class HostAddresses implements Cloneable {
     */
     public HostAddresses(DerValue encoding)
         throws  Asn1Exception, IOException {
-        ArrayList<HostAddress> tempAddresses = new ArrayList<>();
+        Vector<HostAddress> tempAddresses = new Vector<>();
         DerValue der = null;
         while (encoding.getData().available() > 0) {
             der = encoding.getData().getDerValue();
-            tempAddresses.add(new HostAddress(der));
+            tempAddresses.addElement(new HostAddress(der));
         }
         if (tempAddresses.size() > 0) {
-            addresses = tempAddresses.toArray(new HostAddress[0]);
+            addresses = new HostAddress[tempAddresses.size()];
+            tempAddresses.copyInto(addresses);
         }
     }
 

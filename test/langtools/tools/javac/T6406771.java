@@ -90,8 +90,9 @@ public class T6406771 extends AbstractProcessor {
                         return null;
                     int expect = Integer.parseInt(s.substring(prefix.length()));
                     if (expect != found) {
-                        messager.printError("Error: " + prefix + " pos=" + pos
-                                            + " expect=" + expect + " found=" + found);
+                        messager.printMessage(Diagnostic.Kind.ERROR,
+                                              "Error: " + prefix + " pos=" + pos
+                                              + " expect=" + expect + " found=" + found);
                     }
                 }
                 return null;

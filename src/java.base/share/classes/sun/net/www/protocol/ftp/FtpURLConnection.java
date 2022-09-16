@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1994, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -46,6 +46,7 @@ import java.net.Proxy;
 import java.net.ProxySelector;
 import java.util.List;
 import java.util.StringTokenizer;
+import java.util.Iterator;
 import java.security.Permission;
 import java.util.Properties;
 import sun.net.NetworkClient;
@@ -249,8 +250,9 @@ public class FtpURLConnection extends URLConnection {
                 } catch (IllegalArgumentException iae) {
                     throw new IOException("Failed to select a proxy", iae);
                 }
-                for (Proxy proxy : proxies) {
-                    p = proxy;
+                final Iterator<Proxy> it = proxies.iterator();
+                while (it.hasNext()) {
+                    p = it.next();
                     if (p == null || p == Proxy.NO_PROXY ||
                         p.type() == Proxy.Type.SOCKS) {
                         break;
@@ -410,13 +412,13 @@ public class FtpURLConnection extends URLConnection {
     }
 
     /**
-     * Get the InputStream to retrieve the remote file. It will issue the
+     * Get the InputStream to retreive the remote file. It will issue the
      * "get" (or "dir") command to the ftp server.
      *
      * @return  the {@code InputStream} to the connection.
      *
      * @throws  IOException if already opened for output
-     * @throws  FtpProtocolException if errors occur during the transfer.
+     * @throws  FtpProtocolException if errors occur during the transfert.
      */
     @Override
     public InputStream getInputStream() throws IOException {
@@ -510,7 +512,17 @@ public class FtpURLConnection extends URLConnection {
                 is = new FtpInputStream(ftp, ftp.list(null));
                 msgh.add("content-type", "text/plain");
                 msgh.add("access-type", "directory");
-            } catch (IOException | FtpProtocolException ex) {
+            } catch (IOException ex) {
+                FileNotFoundException fnfe = new FileNotFoundException(fullpath);
+                if (ftp != null) {
+                    try {
+                        ftp.close();
+                    } catch (IOException ioe) {
+                        fnfe.addSuppressed(ioe);
+                    }
+                }
+                throw fnfe;
+            } catch (FtpProtocolException ex2) {
                 FileNotFoundException fnfe = new FileNotFoundException(fullpath);
                 if (ftp != null) {
                     try {
@@ -543,7 +555,7 @@ public class FtpURLConnection extends URLConnection {
      *
      * @throws  IOException if already opened for input or the URL
      *          points to a directory
-     * @throws  FtpProtocolException if errors occur during the transfer.
+     * @throws  FtpProtocolException if errors occur during the transfert.
      */
     @Override
     public OutputStream getOutputStream() throws IOException {
@@ -553,7 +565,7 @@ public class FtpURLConnection extends URLConnection {
 
         if (http != null) {
             OutputStream out = http.getOutputStream();
-            // getInputStream() is necessary to force a writeRequests()
+            // getInputStream() is neccessary to force a writeRequests()
             // on the http client.
             http.getInputStream();
             return out;

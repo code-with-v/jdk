@@ -55,7 +55,6 @@
 @property (readwrite, assign) int topInset;
 @property (readwrite, assign) int leftInset;
 @property (readwrite, assign) CVDisplayLinkRef displayLink;
-@property (readwrite, atomic) int displayLinkCount;
 
 - (id) initWithJavaLayer:(jobject)layer;
 

@@ -83,9 +83,9 @@ public class FileCacheImageInputStream extends ImageInputStreamImpl {
      * cache file should be created, or {@code null} to use the
      * system directory.
      *
-     * @throws IllegalArgumentException if {@code stream} is
+     * @exception IllegalArgumentException if {@code stream} is
      * {@code null}.
-     * @throws IllegalArgumentException if {@code cacheDir} is
+     * @exception IllegalArgumentException if {@code cacheDir} is
      * non-{@code null} but is not a directory.
      * @throws IOException if a cache file cannot be created.
      */
@@ -261,12 +261,16 @@ public class FileCacheImageInputStream extends ImageInputStreamImpl {
     /**
      * {@inheritDoc}
      *
-     * @deprecated Finalization has been deprecated for removal.  See
-     * {@link java.lang.Object#finalize} for background information and details
-     * about migration options.
+     * @deprecated The {@code finalize} method has been deprecated.
+     *     Subclasses that override {@code finalize} in order to perform cleanup
+     *     should be modified to use alternative cleanup mechanisms and
+     *     to remove the overriding {@code finalize} method.
+     *     When overriding the {@code finalize} method, its implementation must explicitly
+     *     ensure that {@code super.finalize()} is invoked as described in {@link Object#finalize}.
+     *     See the specification for {@link Object#finalize()} for further
+     *     information about migration options.
      */
-    @Deprecated(since="9", forRemoval=true)
-    @SuppressWarnings("removal")
+    @Deprecated(since="9")
     protected void finalize() throws Throwable {
         // Empty finalizer: for performance reasons we instead use the
         // Disposer mechanism for ensuring that the underlying

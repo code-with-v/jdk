@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2003, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -39,8 +39,7 @@ import java.util.logging.Level;
 import javax.security.sasl.*;
 import javax.security.auth.callback.*;
 
-import static java.nio.charset.StandardCharsets.ISO_8859_1;
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.nio.charset.StandardCharsets.*;
 
 /**
  * An implementation of the DIGEST-MD5 server SASL mechanism.
@@ -614,7 +613,10 @@ final class DigestMD5Server extends DigestMD5Base implements SaslServer {
                     passwd, nonce /* use own nonce */,
                     cnonce, NONCE_COUNT_VALUE, authzidBytes);
 
-            } catch (NoSuchAlgorithmException | IOException e) {
+            } catch (NoSuchAlgorithmException e) {
+                throw new SaslException(
+                    "DIGEST-MD5: problem duplicating client response", e);
+            } catch (IOException e) {
                 throw new SaslException(
                     "DIGEST-MD5: problem duplicating client response", e);
             }
@@ -702,7 +704,9 @@ final class DigestMD5Server extends DigestMD5Base implements SaslServer {
 
             return challenge;
 
-        } catch (NoSuchAlgorithmException | IOException e) {
+        } catch (NoSuchAlgorithmException e) {
+            throw new SaslException("DIGEST-MD5: problem generating response", e);
+        } catch (IOException e) {
             throw new SaslException("DIGEST-MD5: problem generating response", e);
         }
     }

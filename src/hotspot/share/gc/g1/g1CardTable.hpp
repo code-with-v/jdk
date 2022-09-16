@@ -41,7 +41,7 @@ class G1CardTableChangedListener : public G1MappingChangedListener {
 
   void set_card_table(G1CardTable* card_table) { _card_table = card_table; }
 
-  void on_commit(uint start_idx, size_t num_regions, bool zero_filled) override;
+  virtual void on_commit(uint start_idx, size_t num_regions, bool zero_filled);
 };
 
 class G1CardTable : public CardTable {
@@ -102,7 +102,7 @@ public:
   // already scanned cards. Assumes that most cards in that area are Clean.
   // Returns the number of dirtied cards that were not yet dirty. This result may
   // be inaccurate as it does not perform the dirtying atomically.
-  inline size_t mark_range_dirty(size_t start_card_index, size_t num_cards);
+  inline size_t mark_region_dirty(size_t start_card_index, size_t num_cards);
 
   // Change the given range of dirty cards to "which". All of these cards must be Dirty.
   inline void change_dirty_cards_to(size_t start_card_index, size_t num_cards, CardValue which);
@@ -110,19 +110,19 @@ public:
   inline uint region_idx_for(CardValue* p);
 
   static size_t compute_size(size_t mem_region_size_in_words) {
-    size_t number_of_slots = (mem_region_size_in_words / _card_size_in_words);
+    size_t number_of_slots = (mem_region_size_in_words / card_size_in_words);
     return ReservedSpace::allocation_align_size_up(number_of_slots);
   }
 
   // Returns how many bytes of the heap a single byte of the Card Table corresponds to.
-  static size_t heap_map_factor() { return _card_size; }
+  static size_t heap_map_factor() { return card_size; }
 
-  void initialize() override {}
+  void initialize() {}
   void initialize(G1RegionToSpaceMapper* mapper);
 
-  void resize_covered_region(MemRegion new_region) override { ShouldNotReachHere(); }
+  virtual void resize_covered_region(MemRegion new_region) { ShouldNotReachHere(); }
 
-  bool is_in_young(const void* p) const override;
+  virtual bool is_in_young(oop obj) const;
 };
 
 #endif // SHARE_GC_G1_G1CARDTABLE_HPP

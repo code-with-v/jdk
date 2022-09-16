@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -40,6 +40,7 @@ import sun.jvm.hotspot.gc.shenandoah.*;
 import sun.jvm.hotspot.gc.g1.*;
 import sun.jvm.hotspot.gc.z.*;
 import sun.jvm.hotspot.interpreter.*;
+import sun.jvm.hotspot.memory.*;
 import sun.jvm.hotspot.oops.*;
 import sun.jvm.hotspot.runtime.*;
 import sun.jvm.hotspot.ui.*;
@@ -335,15 +336,6 @@ public class HSDB implements ObjectHistogramPanel.Listener, SAListener {
                              }
                           });
     item.setMnemonic(KeyEvent.VK_M);
-    toolsMenu.add(item);
-
-    item = createMenuItem("Annotated Memory Viewer",
-                          new ActionListener() {
-                             public void actionPerformed(ActionEvent e) {
-                                showAnnotatedMemoryViewer();
-                             }
-                          });
-    item.setMnemonic(KeyEvent.VK_W);
     toolsMenu.add(item);
 
     item = createMenuItem("Monitor Cache Dump",
@@ -959,8 +951,8 @@ public class HSDB implements ObjectHistogramPanel.Listener, SAListener {
             SignalInfo sigInfo = (SignalInfo) interruptedFrameMap.get(curFrame);
             if (sigInfo != null) {
               // This frame took a signal and we need to report it.
-              anno = anno + "\n*** INTERRUPTED BY SIGNAL " + sigInfo.sigNum +
-                      " (" + sigInfo.sigName + ")";
+              anno = (anno + "\n*** INTERRUPTED BY SIGNAL " + Integer.toString(sigInfo.sigNum) +
+                      " (" + sigInfo.sigName + ")");
             }
 
             JavaVFrame nextVFrame = curVFrame;
@@ -1620,11 +1612,7 @@ public class HSDB implements ObjectHistogramPanel.Listener, SAListener {
   }
 
   public void showMemoryViewer() {
-    showPanel("Memory Viewer", new MemoryViewer(agent.getDebugger(), false, agent.getTypeDataBase().getAddressSize() == 8));
-  }
-
-  public void showAnnotatedMemoryViewer() {
-    showPanel("Annotated Memory Viewer", new MemoryViewer(agent.getDebugger(), true, agent.getTypeDataBase().getAddressSize() == 8));
+    showPanel("Memory Viewer", new MemoryViewer(agent.getDebugger(), agent.getTypeDataBase().getAddressSize() == 8));
   }
 
   public void showCommandLineFlags() {
@@ -1749,6 +1737,7 @@ public class HSDB implements ObjectHistogramPanel.Listener, SAListener {
                                String progressBarText,
                                HeapVisitor visitor,
                                CleanupThunk cleanup) {
+    sun.jvm.hotspot.oops.ObjectHistogram histo = new sun.jvm.hotspot.oops.ObjectHistogram();
     HeapProgress progress = new HeapProgress(frameTitle,
                                              progressBarText,
                                              cleanup);

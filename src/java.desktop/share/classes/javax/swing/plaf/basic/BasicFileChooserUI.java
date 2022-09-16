@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2015, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -25,59 +25,22 @@
 
 package javax.swing.plaf.basic;
 
-import java.awt.BorderLayout;
-import java.awt.Toolkit;
-import java.awt.datatransfer.DataFlavor;
-import java.awt.datatransfer.Transferable;
-import java.awt.event.ActionEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.beans.PropertyChangeListener;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Locale;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
-
-import javax.swing.AbstractAction;
-import javax.swing.Action;
-import javax.swing.ActionMap;
-import javax.swing.Icon;
-import javax.swing.InputMap;
-import javax.swing.JButton;
-import javax.swing.JComponent;
-import javax.swing.JFileChooser;
-import javax.swing.JList;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JTable;
-import javax.swing.LookAndFeel;
-import javax.swing.SwingUtilities;
-import javax.swing.TransferHandler;
-import javax.swing.UIDefaults;
-import javax.swing.UIManager;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
+import javax.swing.*;
+import javax.swing.filechooser.*;
 import javax.swing.filechooser.FileFilter;
-import javax.swing.filechooser.FileSystemView;
-import javax.swing.filechooser.FileView;
-import javax.swing.plaf.ActionMapUIResource;
-import javax.swing.plaf.ComponentUI;
-import javax.swing.plaf.FileChooserUI;
-import javax.swing.plaf.UIResource;
-
+import javax.swing.event.*;
+import javax.swing.plaf.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.awt.datatransfer.*;
+import java.beans.*;
+import java.io.*;
+import java.util.*;
+import java.util.List;
+import java.util.regex.*;
 import sun.awt.shell.ShellFolder;
-import sun.swing.DefaultLookup;
-import sun.swing.FilePane;
+import sun.swing.*;
 import sun.swing.SwingUtilities2;
-import sun.swing.UIAction;
 
 /**
  * Basic L&amp;F implementation of a FileChooser.
@@ -707,19 +670,17 @@ public class BasicFileChooserUI extends FileChooserUI {
                         if (objects.length == 1
                             && ((File)objects[0]).isDirectory()
                             && chooser.isTraversable(((File)objects[0]))
-                            && (useSetDirectory
-                                || (!fsv.isFileSystem(((File)objects[0]))
-                                    && !Files.isSymbolicLink(((File)objects[0]).toPath())))) {
+                            && (useSetDirectory || !fsv.isFileSystem(((File)objects[0])))) {
                             setDirectorySelected(true);
                             setDirectory(((File)objects[0]));
                         } else {
                             ArrayList<File> fList = new ArrayList<File>(objects.length);
                             for (Object object : objects) {
-                                File f = (File)object;
+                                File f = (File) object;
                                 boolean isDir = f.isDirectory();
                                 if ((chooser.isFileSelectionEnabled() && !isDir)
                                     || (chooser.isDirectorySelectionEnabled()
-                                        && (fsv.isFileSystem(f) || Files.isSymbolicLink(f.toPath()))
+                                        && fsv.isFileSystem(f)
                                         && isDir)) {
                                     fList.add(f);
                                 }
@@ -741,11 +702,7 @@ public class BasicFileChooserUI extends FileChooserUI {
                         setDirectorySelected(true);
                         setDirectory(file);
                         if (usesSingleFilePane) {
-                            if (Files.isSymbolicLink(file.toPath())) {
-                                chooser.setSelectedFile(file);
-                            } else {
-                                chooser.setSelectedFile(null);
-                            }
+                            chooser.setSelectedFile(null);
                         }
                     } else {
                         setDirectorySelected(false);
@@ -767,12 +724,11 @@ public class BasicFileChooserUI extends FileChooserUI {
         // new functionality add it to the Handler, but make sure this
         // class calls into the Handler.
         Handler handler;
-
         /**
-         * Constructs a {@code DoubleClickListener}.
-         * @param list the list
+         * Constucts a {@code DoubleClickListener}.
+         * @param list the lsit
          */
-        public DoubleClickListener(JList<?> list) {
+        public  DoubleClickListener(JList<?> list) {
             handler = new Handler(list);
         }
 
@@ -1248,7 +1204,7 @@ public class BasicFileChooserUI extends FileChooserUI {
     /* A file filter which accepts file patterns containing
      * the special wildcards *? on Windows and *?[] on Unix.
      */
-    static class GlobFilter extends FileFilter {
+    class GlobFilter extends FileFilter {
         Pattern pattern;
         String globPattern;
 

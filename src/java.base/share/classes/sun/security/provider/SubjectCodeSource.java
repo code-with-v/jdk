@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1999, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1999, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -49,13 +49,13 @@ class SubjectCodeSource extends CodeSource implements java.io.Serializable {
     @java.io.Serial
     private static final long serialVersionUID = 6039418085604715275L;
 
-    private final Subject subject;
-    private final LinkedList<PrincipalEntry> principals;
+    private Subject subject;
+    private LinkedList<PrincipalEntry> principals;
     private static final Class<?>[] PARAMS = { String.class };
     private static final sun.security.util.Debug debug =
         sun.security.util.Debug.getInstance("auth", "\t[Auth Access]");
     @SuppressWarnings("serial") // Not statically typed as Serializable
-    private final ClassLoader sysClassLoader;
+    private ClassLoader sysClassLoader;
 
     /**
      * Creates a new <code>SubjectCodeSource</code>
@@ -164,13 +164,16 @@ class SubjectCodeSource extends CodeSource implements java.io.Serializable {
 
         LinkedList<PrincipalEntry> subjectList = null;
 
-        if (!(codesource instanceof SubjectCodeSource that) ||
-                !super.implies(codesource)) {
+        if (codesource == null ||
+            !(codesource instanceof SubjectCodeSource) ||
+            !(super.implies(codesource))) {
 
             if (debug != null)
                 debug.println("\tSubjectCodeSource.implies: FAILURE 1");
             return false;
         }
+
+        SubjectCodeSource that = (SubjectCodeSource)codesource;
 
         // if the principal list in the policy "implies"
         // the Subject associated with the current AccessControlContext,
@@ -231,7 +234,7 @@ class SubjectCodeSource extends CodeSource implements java.io.Serializable {
                     Iterator<Principal> i =
                                 that.getSubject().getPrincipals().iterator();
 
-                    subjectList = new LinkedList<>();
+                    subjectList = new LinkedList<PrincipalEntry>();
                     while (i.hasNext()) {
                         Principal p = i.next();
                         PrincipalEntry spppe = new PrincipalEntry
@@ -315,11 +318,13 @@ class SubjectCodeSource extends CodeSource implements java.io.Serializable {
         if (obj == this)
             return true;
 
-        if (!super.equals(obj))
+        if (super.equals(obj) == false)
             return false;
 
-        if (!(obj instanceof SubjectCodeSource that))
+        if (!(obj instanceof SubjectCodeSource))
             return false;
+
+        SubjectCodeSource that = (SubjectCodeSource)obj;
 
         // the principal lists must match
         try {
@@ -333,9 +338,11 @@ class SubjectCodeSource extends CodeSource implements java.io.Serializable {
             (this.principals != null && that.principals == null))
             return false;
 
-        if (this.principals != null) {
-            return this.principals.containsAll(that.principals) &&
-                    that.principals.containsAll(this.principals);
+        if (this.principals != null && that.principals != null) {
+            if (!this.principals.containsAll(that.principals) ||
+                !that.principals.containsAll(this.principals))
+
+                return false;
         }
 
         return true;
@@ -377,7 +384,9 @@ class SubjectCodeSource extends CodeSource implements java.io.Serializable {
             }
         }
         if (principals != null) {
-            for (PrincipalEntry pppe : principals) {
+            ListIterator<PrincipalEntry> li = principals.listIterator();
+            while (li.hasNext()) {
+                PrincipalEntry pppe = li.next();
                 returnMe = returnMe + ResourcesMgr.getAuthResourceString("NEWLINE") +
                         pppe.getPrincipalClass() + " " +
                         pppe.getPrincipalName();

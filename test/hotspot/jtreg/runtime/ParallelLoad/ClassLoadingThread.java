@@ -21,16 +21,14 @@
  * questions.
  */
 
-import java.util.concurrent.Semaphore;
-
 class ClassLoadingThread extends Thread {
 
     private ClassLoader ldr = null;
-    private Semaphore mainSync = null;
+    private Object thread_sync = null;
 
-    public ClassLoadingThread(ClassLoader loader, Semaphore sem) {
+    public ClassLoadingThread(ClassLoader loader, Object sync) {
         ldr = loader;
-        mainSync = sem;
+        thread_sync = sync;
     }
 
     private boolean success = true;
@@ -49,9 +47,9 @@ class ClassLoadingThread extends Thread {
             success = false;
         } finally {
             ThreadPrint.println("Finished");
-            // Signal main thread to start t2.
-            if (mainSync != null) {
-                mainSync.release();
+            // Wake up the second thread
+            synchronized (thread_sync) {
+                thread_sync.notify();
             }
         }
     }

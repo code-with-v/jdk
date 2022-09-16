@@ -114,7 +114,7 @@ public final class JRSUIControl {
         changes.putAll(other.changes);
     }
 
-    @SuppressWarnings("removal")
+    @SuppressWarnings("deprecation")
     protected synchronized void finalize() throws Throwable {
         if (cfDictionaryPtr == 0) return;
         disposeCFDictionary(cfDictionaryPtr);

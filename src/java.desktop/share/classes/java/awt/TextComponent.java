@@ -67,9 +67,7 @@ import sun.awt.InputMethodSupport;
  * @author      Arthur van Hoff
  * @since       1.0
  */
-public sealed class TextComponent extends Component implements Accessible
-     permits TextArea,
-             TextField {
+public class TextComponent extends Component implements Accessible {
 
     /**
      * The value of the text.
@@ -139,7 +137,7 @@ public sealed class TextComponent extends Component implements Accessible
      * @param      text       the text to be displayed; if
      *             {@code text} is {@code null}, the empty
      *             string {@code ""} will be displayed
-     * @throws  HeadlessException if
+     * @exception  HeadlessException if
      *             {@code GraphicsEnvironment.isHeadless}
      *             returns true
      * @see        java.awt.GraphicsEnvironment#isHeadless
@@ -513,7 +511,7 @@ public sealed class TextComponent extends Component implements Accessible
      * is thrown.
      *
      * @param        position the position of the text insertion caret
-     * @throws    IllegalArgumentException if {@code position}
+     * @exception    IllegalArgumentException if {@code position}
      *               is less than zero
      * @since        1.1
      */
@@ -647,7 +645,7 @@ public sealed class TextComponent extends Component implements Accessible
      *          <code><em>Foo</em>Listener</code>s on this text component,
      *          or an empty array if no such
      *          listeners have been added
-     * @throws ClassCastException if {@code listenerType}
+     * @exception ClassCastException if {@code listenerType}
      *          doesn't specify a class or interface that implements
      *          {@code java.util.EventListener}
      *

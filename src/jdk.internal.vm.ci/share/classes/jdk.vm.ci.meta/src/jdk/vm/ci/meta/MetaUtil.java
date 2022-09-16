@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2012, 2019, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -26,11 +26,6 @@ package jdk.vm.ci.meta;
  * Miscellaneous collection of utility methods used by {@code jdk.vm.ci.meta} and its clients.
  */
 public class MetaUtil {
-
-    public static final char PACKAGE_SEPARATOR_INTERNAL = '/';
-    public static final char HIDDEN_SEPARATOR_INTERNAL = '.';
-    public static final char PACKAGE_SEPARATOR_JAVA = HIDDEN_SEPARATOR_INTERNAL;
-    public static final char HIDDEN_SEPARATOR_JAVA = PACKAGE_SEPARATOR_INTERNAL;
 
     /**
      * Extends the functionality of {@link Class#getSimpleName()} to include a non-empty string for
@@ -92,27 +87,25 @@ public class MetaUtil {
     }
 
     /**
-     * Hidden classes have {@code /} characters in their internal names and {@code .} characters in their names returned
-     * by {@link Class#getName()} that are not package separators.
-     * These are distinguished by being followed by a character that is not a
+     * Classes for lambdas can have {@code /} characters that are not package separators. These are
+     * distinguished by being followed by a character that is not a
      * {@link Character#isJavaIdentifierStart(char)} (e.g.,
      * "jdk.vm.ci.runtime.test.TypeUniverse$$Lambda$1/869601985").
-     *
-     * @param name the name to perform the replacements on
-     * @param packageSeparator the {@link Character} used as the package separator, e.g. {@code /} in internal form
-     * @param hiddenSeparator the {@link Character} used as the hidden class separator, e.g. {@code .} in internal form
      */
-    private static String replacePackageAndHiddenSeparators(String name, Character packageSeparator, Character hiddenSeparator) {
-        int index = name.indexOf(hiddenSeparator);   // check if it's a hidden class
+    private static String replacePackageSeparatorsWithDot(String name) {
         int length = name.length();
+        int i = 0;
         StringBuilder buf = new StringBuilder(length);
-        if (index < 0) {
-            buf.append(name.replace(packageSeparator, hiddenSeparator));
-        } else {
-            buf.append(name.substring(0, index).replace(packageSeparator, hiddenSeparator));
-            buf.append(packageSeparator);
-            buf.append(name.substring(index + 1));
+        while (i < length - 1) {
+            char ch = name.charAt(i);
+            if (ch == '/' && Character.isJavaIdentifierStart(name.charAt(i + 1))) {
+                buf.append('.');
+            } else {
+                buf.append(ch);
+            }
+            i++;
         }
+        buf.append(name.charAt(length - 1));
         return buf.toString();
     }
 
@@ -129,10 +122,9 @@ public class MetaUtil {
     public static String internalNameToJava(String name, boolean qualified, boolean classForNameCompatible) {
         switch (name.charAt(0)) {
             case 'L': {
-                String type = name.substring(1, name.length() - 1);
-                String result = replacePackageAndHiddenSeparators(type, PACKAGE_SEPARATOR_INTERNAL, HIDDEN_SEPARATOR_INTERNAL);
+                String result = replacePackageSeparatorsWithDot(name.substring(1, name.length() - 1));
                 if (!qualified) {
-                    final int lastDot = result.lastIndexOf(HIDDEN_SEPARATOR_INTERNAL);
+                    final int lastDot = result.lastIndexOf('.');
                     if (lastDot != -1) {
                         result = result.substring(lastDot + 1);
                     }
@@ -140,11 +132,7 @@ public class MetaUtil {
                 return result;
             }
             case '[':
-                if (classForNameCompatible) {
-                    return replacePackageAndHiddenSeparators(name, PACKAGE_SEPARATOR_INTERNAL, HIDDEN_SEPARATOR_INTERNAL);
-                } else {
-                    return internalNameToJava(name.substring(1), qualified, false) + "[]";
-                }
+                return classForNameCompatible ? replacePackageSeparatorsWithDot(name) : internalNameToJava(name.substring(1), qualified, classForNameCompatible) + "[]";
             default:
                 if (name.length() != 1) {
                     throw new IllegalArgumentException("Illegal internal name: " + name);
@@ -225,7 +213,7 @@ public class MetaUtil {
     public static String toInternalName(String className) {
         if (className.startsWith("[")) {
             /* Already in the correct array style. */
-            return replacePackageAndHiddenSeparators(className, PACKAGE_SEPARATOR_JAVA, HIDDEN_SEPARATOR_JAVA);
+            return className.replace('.', '/');
         }
 
         StringBuilder result = new StringBuilder();
@@ -264,9 +252,7 @@ public class MetaUtil {
                 result.append("V");
                 break;
             default:
-                result.append("L")
-                        .append(replacePackageAndHiddenSeparators(base, PACKAGE_SEPARATOR_JAVA, HIDDEN_SEPARATOR_JAVA))
-                        .append(";");
+                result.append("L").append(base.replace('.', '/')).append(";");
                 break;
         }
         return result.toString();

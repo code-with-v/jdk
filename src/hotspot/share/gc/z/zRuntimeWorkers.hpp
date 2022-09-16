@@ -24,18 +24,18 @@
 #ifndef SHARE_GC_Z_ZRUNTIMEWORKERS_HPP
 #define SHARE_GC_Z_ZRUNTIMEWORKERS_HPP
 
-#include "gc/shared/workerThread.hpp"
+#include "gc/shared/workgroup.hpp"
 
 class ThreadClosure;
 
 class ZRuntimeWorkers {
 private:
-  WorkerThreads _workers;
+  WorkGang _workers;
 
 public:
   ZRuntimeWorkers();
 
-  WorkerThreads* workers();
+  WorkGang* workers();
 
   void threads_do(ThreadClosure* tc) const;
 };

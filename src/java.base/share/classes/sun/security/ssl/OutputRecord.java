@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1996, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -141,11 +141,6 @@ abstract class OutputRecord
     // SSLEngine and SSLSocket
     abstract void encodeChangeCipherSpec() throws IOException;
 
-    // SSLEngine and SSLSocket
-    void disposeWriteCipher() {
-        throw new UnsupportedOperationException();
-    }
-
     // apply to SSLEngine only
     Ciphertext encode(
         ByteBuffer[] srcs, int srcsOffset, int srcsLength,
@@ -195,7 +190,7 @@ abstract class OutputRecord
              * Since MAC's doFinal() is called for every SSL/TLS packet, it's
              * not necessary to do the same with MAC's.
              */
-            disposeWriteCipher();
+            writeCipher.dispose();
 
             this.writeCipher = writeCipher;
             this.isFirstAppOutputRecord = true;
@@ -224,7 +219,7 @@ abstract class OutputRecord
             flush();
 
             // Dispose of any intermediate state in the underlying cipher.
-            disposeWriteCipher();
+            writeCipher.dispose();
 
             this.writeCipher = writeCipher;
             this.isFirstAppOutputRecord = true;
@@ -543,7 +538,7 @@ abstract class OutputRecord
     }
 
     static ByteBuffer encodeV2ClientHello(
-            byte[] fragment, int offset, int length) {
+            byte[] fragment, int offset, int length) throws IOException {
         int v3SessIdLenOffset = offset + 34;      //  2: client_version
                                                   // 32: random
 
@@ -603,7 +598,7 @@ abstract class OutputRecord
          * Build the first part of the V3 record header from the V2 one
          * that's now buffered up.  (Lengths are fixed up later).
          */
-        int msgLen = dstBuf.position() - 2;   // Exclude the length field itself
+        int msgLen = dstBuf.position() - 2;   // Exclude the legth field itself
         dstBuf.position(0);
         dstBuf.put((byte)(0x80 | ((msgLen >>> 8) & 0xFF)));  // pos: 0
         dstBuf.put((byte)(msgLen & 0xFF));                   // pos: 1

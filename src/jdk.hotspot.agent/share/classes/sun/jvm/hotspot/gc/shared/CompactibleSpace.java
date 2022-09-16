@@ -39,6 +39,7 @@ import sun.jvm.hotspot.utilities.Observer;
     full GC's. */
 
 public abstract class CompactibleSpace extends Space {
+  private static AddressField compactionTopField;
 
   static {
     VM.registerVMInitializedObserver(new Observer() {
@@ -50,9 +51,16 @@ public abstract class CompactibleSpace extends Space {
 
   private static synchronized void initialize(TypeDataBase db) {
     Type type = db.lookupType("CompactibleSpace");
+
+    compactionTopField = type.getAddressField("_compaction_top");
   }
 
   public CompactibleSpace(Address addr) {
     super(addr);
+  }
+
+  /** May be used temporarily during a compaction phase. */
+  public Address compactionTop() {
+    return compactionTopField.getValue(addr);
   }
 }

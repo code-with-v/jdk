@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2021, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -21,30 +21,31 @@
  * questions.
  */
 
-import java.lang.foreign.Addressable;
-import java.lang.foreign.Linker;
-import java.lang.foreign.FunctionDescriptor;
-import java.lang.foreign.MemorySession;
+import jdk.incubator.foreign.CLinker;
+import jdk.incubator.foreign.FunctionDescriptor;
+import jdk.incubator.foreign.MemoryAddress;
+import jdk.incubator.foreign.ResourceScope;
+import jdk.incubator.foreign.SymbolLookup;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.security.Permission;
 
-public class ThrowingUpcall extends NativeTestHelper {
+import static jdk.incubator.foreign.CLinker.C_POINTER;
 
-    private static final MethodHandle downcallVoid;
-    private static final MethodHandle downcallNonVoid;
+public class ThrowingUpcall {
+
+    private static final MethodHandle downcall;
     public static final MethodHandle MH_throwException;
 
     static {
         System.loadLibrary("TestUpcall");
-        downcallVoid = Linker.nativeLinker().downcallHandle(
-            findNativeOrThrow("f0_V__"),
-                FunctionDescriptor.ofVoid(C_POINTER)
-        );
-        downcallNonVoid = Linker.nativeLinker().downcallHandle(
-                findNativeOrThrow("f10_I_I_"),
-                FunctionDescriptor.of(C_INT, C_INT, C_POINTER)
+        SymbolLookup lookup = SymbolLookup.loaderLookup();
+        downcall = CLinker.getInstance().downcallHandle(
+            lookup.lookup("f0_V__").orElseThrow(),
+            MethodType.methodType(void.class, MemoryAddress.class),
+            FunctionDescriptor.ofVoid(C_POINTER)
         );
 
         try {
@@ -60,35 +61,18 @@ public class ThrowingUpcall extends NativeTestHelper {
     }
 
     public static void main(String[] args) throws Throwable {
-        if (args[0].equals("void")) {
-            testVoid();
-        } else {
-            testNonVoid();
-        }
+        test();
     }
 
-    public static void testVoid() throws Throwable {
+    public static void test() throws Throwable {
         MethodHandle handle = MH_throwException;
         MethodHandle invoker = MethodHandles.exactInvoker(MethodType.methodType(void.class));
         handle = MethodHandles.insertArguments(invoker, 0, handle);
 
-        try (MemorySession session = MemorySession.openConfined()) {
-            Addressable stub = Linker.nativeLinker().upcallStub(handle, FunctionDescriptor.ofVoid(), session);
+        try (ResourceScope scope = ResourceScope.newConfinedScope()) {
+            MemoryAddress stub = CLinker.getInstance().upcallStub(handle, FunctionDescriptor.ofVoid(), scope);
 
-            downcallVoid.invoke(stub); // should call Shutdown.exit(1);
-        }
-    }
-
-    public static void testNonVoid() throws Throwable {
-        MethodHandle handle = MethodHandles.identity(int.class);
-        handle = MethodHandles.collectArguments(handle, 0, MH_throwException);
-        MethodHandle invoker = MethodHandles.exactInvoker(MethodType.methodType(int.class, int.class));
-        handle = MethodHandles.insertArguments(invoker, 0, handle);
-
-        try (MemorySession session = MemorySession.openConfined()) {
-            Addressable stub = Linker.nativeLinker().upcallStub(handle, FunctionDescriptor.of(C_INT, C_INT), session);
-
-            downcallNonVoid.invoke(42, stub); // should call Shutdown.exit(1);
+            downcall.invokeExact(stub); // should call Shutdown.exit(1);
         }
     }
 

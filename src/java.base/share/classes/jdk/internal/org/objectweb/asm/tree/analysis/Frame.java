@@ -56,7 +56,6 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package jdk.internal.org.objectweb.asm.tree.analysis;
 
 import java.util.ArrayList;
@@ -81,9 +80,6 @@ import jdk.internal.org.objectweb.asm.tree.VarInsnNode;
  */
 public class Frame<V extends Value> {
 
-    /** The maximum size of the operand stack of any method. */
-    private static final int MAX_STACK_SIZE = 65536;
-
     /**
       * The expected return type of the analyzed method, or {@literal null} if the method returns void.
       */
@@ -92,43 +88,26 @@ public class Frame<V extends Value> {
     /**
       * The local variables and the operand stack of this frame. The first {@link #numLocals} elements
       * correspond to the local variables. The following {@link #numStack} elements correspond to the
-      * operand stack. Long and double values are represented with two elements in the local variables
-      * section, and with one element in the operand stack section.
+      * operand stack.
       */
     private V[] values;
 
-    /**
-      * The number of local variables of this frame. Long and double values are represented with two
-      * elements.
-      */
+    /** The number of local variables of this frame. */
     private int numLocals;
 
-    /**
-      * The number of elements in the operand stack. Long and double values are represented with a
-      * single element.
-      */
+    /** The number of elements in the operand stack. */
     private int numStack;
-
-    /**
-      * The maximum number of elements in the operand stack. Long and double values are represented
-      * with a single element.
-      */
-    private int maxStack;
 
     /**
       * Constructs a new frame with the given size.
       *
-      * @param numLocals the number of local variables of the frame. Long and double values are
-      *     represented with two elements.
-      * @param maxStack the maximum number of elements in the operand stack, or -1 if there is no
-      *     maximum value. Long and double values are represented with a single element.
+      * @param numLocals the maximum number of local variables of the frame.
+      * @param numStack the maximum stack size of the frame.
       */
     @SuppressWarnings("unchecked")
-    public Frame(final int numLocals, final int maxStack) {
-        this.values = (V[]) new Value[numLocals + (maxStack >= 0 ? maxStack : 4)];
+    public Frame(final int numLocals, final int numStack) {
+        this.values = (V[]) new Value[numLocals + numStack];
         this.numLocals = numLocals;
-        this.numStack = 0;
-        this.maxStack = maxStack >= 0 ? maxStack : MAX_STACK_SIZE;
     }
 
     /**
@@ -149,14 +128,8 @@ public class Frame<V extends Value> {
       */
     public Frame<V> init(final Frame<? extends V> frame) {
         returnValue = frame.returnValue;
-        if (values.length < frame.values.length) {
-            values = frame.values.clone();
-        } else {
-            System.arraycopy(frame.values, 0, values, 0, frame.values.length);
-        }
-        numLocals = frame.numLocals;
+        System.arraycopy(frame.values, 0, values, 0, values.length);
         numStack = frame.numStack;
-        maxStack = frame.maxStack;
         return this;
     }
 
@@ -193,8 +166,7 @@ public class Frame<V extends Value> {
     }
 
     /**
-      * Returns the maximum number of local variables of this frame. Long and double values are
-      * represented with two variables.
+      * Returns the maximum number of local variables of this frame.
       *
       * @return the maximum number of local variables of this frame.
       */
@@ -203,18 +175,16 @@ public class Frame<V extends Value> {
     }
 
     /**
-      * Returns the maximum number of elements in the operand stack of this frame. Long and double
-      * values are represented with a single element.
+      * Returns the maximum stack size of this frame.
       *
-      * @return the maximum number of elements in the operand stack of this frame.
+      * @return the maximum stack size of this frame.
       */
     public int getMaxStackSize() {
-        return maxStack;
+        return values.length - numLocals;
     }
 
     /**
-      * Returns the value of the given local variable. Long and double values are represented with two
-      * variables.
+      * Returns the value of the given local variable.
       *
       * @param index a local variable index.
       * @return the value of the given local variable.
@@ -228,8 +198,7 @@ public class Frame<V extends Value> {
     }
 
     /**
-      * Sets the value of the given local variable. Long and double values are represented with two
-      * variables.
+      * Sets the value of the given local variable.
       *
       * @param index a local variable index.
       * @param value the new value of this local variable.
@@ -243,10 +212,10 @@ public class Frame<V extends Value> {
     }
 
     /**
-      * Returns the number of elements in the operand stack of this frame. Long and double values are
-      * represented with a single element.
+      * Returns the number of values in the operand stack of this frame. Long and double values are
+      * treated as single values.
       *
-      * @return the number of elements in the operand stack of this frame.
+      * @return the number of values in the operand stack of this frame.
       */
     public int getStackSize() {
         return numStack;
@@ -298,15 +267,9 @@ public class Frame<V extends Value> {
       * @param value the value that must be pushed into the stack.
       * @throws IndexOutOfBoundsException if the operand stack is full.
       */
-    @SuppressWarnings("unchecked")
     public void push(final V value) {
         if (numLocals + numStack >= values.length) {
-            if (numLocals + numStack >= maxStack) {
-                throw new IndexOutOfBoundsException("Insufficient maximum stack size.");
-            }
-            V[] oldValues = values;
-            values = (V[]) new Value[2 * values.length];
-            System.arraycopy(oldValues, 0, values, 0, oldValues.length);
+            throw new IndexOutOfBoundsException("Insufficient maximum stack size.");
         }
         values[numLocals + (numStack++)] = value;
     }
@@ -325,7 +288,7 @@ public class Frame<V extends Value> {
         V value2;
         V value3;
         V value4;
-        int varIndex;
+        int var;
 
         switch (insn.getOpcode()) {
             case Opcodes.NOP:
@@ -363,15 +326,15 @@ public class Frame<V extends Value> {
             case Opcodes.DSTORE:
             case Opcodes.ASTORE:
                 value1 = interpreter.copyOperation(insn, pop());
-                varIndex = ((VarInsnNode) insn).var;
-                setLocal(varIndex, value1);
+                var = ((VarInsnNode) insn).var;
+                setLocal(var, value1);
                 if (value1.getSize() == 2) {
-                    setLocal(varIndex + 1, interpreter.newEmptyValue(varIndex + 1));
+                    setLocal(var + 1, interpreter.newEmptyValue(var + 1));
                 }
-                if (varIndex > 0) {
-                    Value local = getLocal(varIndex - 1);
+                if (var > 0) {
+                    Value local = getLocal(var - 1);
                     if (local != null && local.getSize() == 2) {
-                        setLocal(varIndex - 1, interpreter.newEmptyValue(varIndex - 1));
+                        setLocal(var - 1, interpreter.newEmptyValue(var - 1));
                     }
                 }
                 break;
@@ -559,8 +522,8 @@ public class Frame<V extends Value> {
                 push(interpreter.unaryOperation(insn, pop()));
                 break;
             case Opcodes.IINC:
-                varIndex = ((IincInsnNode) insn).var;
-                setLocal(varIndex, interpreter.unaryOperation(insn, getLocal(varIndex)));
+                var = ((IincInsnNode) insn).var;
+                setLocal(var, interpreter.unaryOperation(insn, getLocal(var)));
                 break;
             case Opcodes.I2L:
             case Opcodes.I2F:
@@ -782,4 +745,3 @@ public class Frame<V extends Value> {
         return stringBuilder.toString();
     }
 }
-

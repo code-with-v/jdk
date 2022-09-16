@@ -56,7 +56,6 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package jdk.internal.org.objectweb.asm.commons;
 
 import java.util.Collections;
@@ -102,7 +101,7 @@ public class TryCatchBlockSorter extends MethodNode {
             final String signature,
             final String[] exceptions) {
         this(
-                /* latest api = */ Opcodes.ASM9,
+                /* latest api = */ Opcodes.ASM8,
                 methodVisitor,
                 access,
                 name,
@@ -155,4 +154,3 @@ public class TryCatchBlockSorter extends MethodNode {
         }
     }
 }
-

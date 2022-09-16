@@ -33,7 +33,6 @@
  * @bug 7037122
  * @bug 7123945
  * @bug 8016029
- * @requires vm.flagless
  * @library /test/lib
  * @modules java.base/jdk.internal.misc
  *          java.desktop

@@ -24,6 +24,7 @@
 package nsk.jdi.EventRequestManager.deleteEventRequests;
 
 import nsk.share.*;
+import nsk.share.jpda.*;
 import nsk.share.jdi.*;
 
 /**
@@ -55,7 +56,7 @@ public class delevtreqs002a {
 
     static int                   testField1   = 0;
     static NullPointerException  testField2   = new NullPointerException("test");
-    static Thread testField3[] = new Thread[10];
+    static Thread1delevtreqs002a testField3[] = new Thread1delevtreqs002a[10];
 
     //------------------------------------------------------ common section
 
@@ -99,7 +100,7 @@ public class delevtreqs002a {
                     case 0:
                             synchronized (lockObj1) {
                                 for (int ii = 0; ii < 10; ii++) {
-                                    testField3[ii] = JDIThreadFactory.newThread(new Thread1delevtreqs002a("thread" + ii));
+                                    testField3[ii] = new Thread1delevtreqs002a("thread" + ii);
                                     threadStart(testField3[ii]);
                                 }
                                 methodForCommunication();
@@ -137,19 +138,22 @@ public class delevtreqs002a {
 
 }
 
-class Thread1delevtreqs002a extends NamedTask {
+class Thread1delevtreqs002a extends Thread {
+
+    String tName = null;
 
     public Thread1delevtreqs002a(String threadName) {
         super(threadName);
+        tName = threadName;
     }
 
     public void run() {
-        delevtreqs002a.log1("  'run': enter  :: threadName == " + getName());
+        delevtreqs002a.log1("  'run': enter  :: threadName == " + tName);
         synchronized(delevtreqs002a.waitnotifyObj) {
             delevtreqs002a.waitnotifyObj.notify();
         }
         synchronized(delevtreqs002a.lockObj1) {
-            delevtreqs002a.log1("  'run': exit   :: threadName == " + getName());
+            delevtreqs002a.log1("  'run': exit   :: threadName == " + tName);
         }
         return;
     }

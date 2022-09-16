@@ -28,10 +28,9 @@
  * @modules java.base/jdk.internal.misc
  *          java.management
  *
- * @build jdk.test.whitebox.WhiteBox
- * @run driver jdk.test.lib.helpers.ClassFileInstaller jdk.test.whitebox.WhiteBox
+ * @build sun.hotspot.WhiteBox
+ * @run driver jdk.test.lib.helpers.ClassFileInstaller sun.hotspot.WhiteBox
  * @run main/bootclasspath/othervm -Xbatch -XX:+UnlockDiagnosticVMOptions -XX:+WhiteBoxAPI -XX:+AbortVMOnCompilationFailure
- *      -XX:CompileCommand=compileonly,compiler.intrinsics.bmi.*::*
  *      -XX:+IgnoreUnrecognizedVMOptions -XX:+UseBMI2Instructions
  *      compiler.intrinsics.bmi.verifycode.BzhiTestI2L
  */

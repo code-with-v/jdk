@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -34,7 +34,6 @@ import java.net.SocketOption;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.nio.channels.spi.*;
-import java.util.Objects;
 
 
 /**
@@ -45,7 +44,7 @@ class SinkChannelImpl
     extends Pipe.SinkChannel
     implements SelChImpl
 {
-    // The SocketChannel associated with this pipe
+    // The SocketChannel assoicated with this pipe
     private final SocketChannelImpl sc;
 
     public FileDescriptor getFD() {
@@ -140,7 +139,8 @@ class SinkChannelImpl
     public long write(ByteBuffer[] srcs, int offset, int length)
         throws IOException
     {
-        Objects.checkFromIndexSize(offset, length, srcs.length);
+        if ((offset < 0) || (length < 0) || (offset > srcs.length - length))
+           throw new IndexOutOfBoundsException();
         try {
             return write(Util.subsequence(srcs, offset, length));
         } catch (AsynchronousCloseException x) {

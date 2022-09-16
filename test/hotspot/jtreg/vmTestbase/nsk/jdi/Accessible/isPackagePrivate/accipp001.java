@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000, 2021, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2018, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -109,8 +109,24 @@ public class accipp001 extends Log {
         logHandler      = new Log(out, argsHandler);
         Binder binder   = new Binder(argsHandler, logHandler);
 
-        debugee = Debugee.prepareDebugee(argsHandler, logHandler,
-                debugeeName + (argsHandler.verbose() ? " -vbs" : ""));
+
+        if (argsHandler.verbose()) {
+            debugee = binder.bindToDebugee(debugeeName + " -vbs");
+        } else {
+            debugee = binder.bindToDebugee(debugeeName);
+        }
+
+        IOPipe pipe     = new IOPipe(debugee);
+
+
+        debugee.redirectStderr(out);
+        debugee.resume();
+
+        String line = pipe.readln();
+        if (!line.equals("ready")) {
+            logHandler.complain("# Cannot recognize debugee's signal: " + line);
+            return 2;
+        };
 
 //        ReferenceType classes[] = debugee.classes();
 //        for (int i=0; i<classes.length; i++) {
@@ -149,8 +165,10 @@ public class accipp001 extends Log {
             return 2;
         };
 
-        debugee.sendSignal("quit");
-        int status = debugee.endDebugee();
+        pipe.println("quit");
+        debugee.waitFor();
+
+        int status = debugee.getStatus();
         if (status != 95) {
             logHandler.complain("Debugee's exit status=" + status);
             return 2;

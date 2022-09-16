@@ -36,7 +36,7 @@ import static java.net.http.HttpRequest.BodyPublishers.noBody;
 
 /**
  * @test
- * @bug 8170064 8276559
+ * @bug 8170064
  * @summary  HttpRequest[.Builder] API and behaviour checks
  */
 public class HttpRequestBuilderTest {
@@ -156,7 +156,6 @@ public class HttpRequestBuilderTest {
                         IllegalArgumentException.class);
 
         test0("DELETE", () -> HttpRequest.newBuilder(TEST_URI).DELETE().build(), null);
-        test0("HEAD", () -> HttpRequest.newBuilder(TEST_URI).HEAD().build(), null);
 
         builder = test1("POST", builder, builder::POST,
                         noBody(), null);
@@ -255,9 +254,7 @@ public class HttpRequestBuilderTest {
                () -> HttpRequest.newBuilder(TEST_URI).GET().DELETE(),
                "DELETE");
 
-        method("newBuilder(TEST_URI).HEAD().build().method() == HEAD",
-                () -> HttpRequest.newBuilder(TEST_URI).HEAD(),
-                "HEAD");
+
 
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2013, 2020, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -127,12 +127,12 @@ public final class TypeAnnotationParser {
         // has no annotations and the annotations to parameter mapping
         // should be offset by 1.
         boolean offset = false;
-        if (decl instanceof Constructor<?> ctor) {
+        if (decl instanceof Constructor) {
+            Constructor<?> ctor = (Constructor<?>) decl;
             Class<?> declaringClass = ctor.getDeclaringClass();
             if (!declaringClass.isEnum() &&
                 (declaringClass.isMemberClass() &&
-                 (declaringClass.getModifiers() & Modifier.STATIC) == 0) &&
-                 filter == TypeAnnotation.TypeAnnotationTarget.METHOD_FORMAL_PARAMETER) {
+                 (declaringClass.getModifiers() & Modifier.STATIC) == 0) ) {
                 offset = true;
             }
         }
@@ -225,11 +225,11 @@ public final class TypeAnnotationParser {
             int typeVarIndex) {
         AnnotatedElement decl;
         TypeAnnotationTarget predicate;
-        if (genericDecl instanceof Class<?> classDecl) {
-            decl = classDecl;
+        if (genericDecl instanceof Class) {
+            decl = (Class<?>)genericDecl;
             predicate = TypeAnnotationTarget.CLASS_TYPE_PARAMETER;
-        } else if (genericDecl instanceof Executable execDecl) {
-            decl = execDecl;
+        } else if (genericDecl instanceof Executable) {
+            decl = (Executable)genericDecl;
             predicate = TypeAnnotationTarget.METHOD_TYPE_PARAMETER;
         } else {
             throw new AssertionError("Unknown GenericDeclaration " + genericDecl + "\nthis should not happen.");
@@ -278,11 +278,13 @@ public final class TypeAnnotationParser {
             // if applicable.
             if (bounds.length > 0) {
                 Type b0 = bounds[0];
-                if (b0 instanceof Class<?> c) {
+                if (b0 instanceof Class<?>) {
+                    Class<?> c = (Class<?>) b0;
                     if (c.isInterface()) {
                         startIndex = 1;
                     }
-                } else if (b0 instanceof ParameterizedType p) {
+                } else if (b0 instanceof ParameterizedType) {
+                    ParameterizedType p = (ParameterizedType) b0;
                     Class<?> c = (Class<?>) p.getRawType();
                     if (c.isInterface()) {
                         startIndex = 1;
@@ -313,9 +315,9 @@ public final class TypeAnnotationParser {
     private static <D extends GenericDeclaration> List<TypeAnnotation> fetchBounds(D decl) {
         AnnotatedElement boundsDecl;
         TypeAnnotationTarget target;
-        if (decl instanceof Class<?> classDecl) {
+        if (decl instanceof Class) {
             target = TypeAnnotationTarget.CLASS_TYPE_PARAMETER_BOUND;
-            boundsDecl = classDecl;
+            boundsDecl = (Class)decl;
         } else {
             target = TypeAnnotationTarget.METHOD_TYPE_PARAMETER_BOUND;
             boundsDecl = (Executable)decl;
@@ -334,12 +336,12 @@ public final class TypeAnnotationParser {
         Class<?> container;
         byte[] rawBytes;
         JavaLangAccess javaLangAccess = SharedSecrets.getJavaLangAccess();
-        if (decl instanceof Class<?> classDecl) {
-            container = classDecl;
+        if (decl instanceof Class) {
+            container = (Class<?>)decl;
             rawBytes = javaLangAccess.getRawClassTypeAnnotations(container);
-        } else if (decl instanceof Executable execDecl) {
-            container = execDecl.getDeclaringClass();
-            rawBytes = javaLangAccess.getRawExecutableTypeAnnotations(execDecl);
+        } else if (decl instanceof Executable) {
+            container = ((Executable)decl).getDeclaringClass();
+            rawBytes = javaLangAccess.getRawExecutableTypeAnnotations((Executable)decl);
         } else {
             // Should not reach here. Assert?
             return EMPTY_TYPE_ANNOTATION_ARRAY;

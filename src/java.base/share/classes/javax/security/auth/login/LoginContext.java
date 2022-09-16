@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 1998, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -40,10 +40,6 @@ import java.util.ServiceLoader;
 import sun.security.util.PendingException;
 import sun.security.util.ResourcesMgr;
 
-import java.util.Set;
-import java.util.WeakHashMap;
-import java.util.stream.*;
-import java.util.ServiceLoader.Provider;
 /**
  * <p> The {@code LoginContext} class describes the basic methods used
  * to authenticate Subjects and provides a way to develop an
@@ -208,7 +204,7 @@ public class LoginContext {
     private boolean subjectProvided = false;
     private boolean loginSucceeded = false;
     private CallbackHandler callbackHandler;
-    private final Map<String,?> state = new HashMap<>();
+    private Map<String,?> state = new HashMap<String,Object>();
 
     private Configuration config;
     @SuppressWarnings("removal")
@@ -226,8 +222,6 @@ public class LoginContext {
 
     private static final sun.security.util.Debug debug =
         sun.security.util.Debug.getInstance("logincontext", "\t[LoginContext]");
-    private static final WeakHashMap<ClassLoader, Set<Provider<LoginModule>>> providersCache =
-        new WeakHashMap<>();
 
     @SuppressWarnings("removal")
     private void init(String name) throws LoginException {
@@ -294,7 +288,6 @@ public class LoginContext {
                     return loader;
                 }
         });
-
     }
 
     @SuppressWarnings("removal")
@@ -658,7 +651,8 @@ public class LoginContext {
         clearState();
 
         // throw the exception
-        throw (originalError != null) ? originalError : le;
+        LoginException error = (originalError != null) ? originalError : le;
+        throw error;
     }
 
     /**
@@ -690,42 +684,28 @@ public class LoginContext {
         // - this can only be non-zero if methodName is LOGIN_METHOD
 
         for (int i = moduleIndex; i < moduleStack.length; i++, moduleIndex++) {
-            String name = moduleStack[i].entry.getLoginModuleName();
             try {
 
                 if (moduleStack[i].module == null) {
 
                     // locate and instantiate the LoginModule
                     //
-                    Set<Provider<LoginModule>> lmProviders;
-                    synchronized(providersCache){
-                        lmProviders = providersCache.get(contextClassLoader);
-                        if (lmProviders == null){
-                            if (debug != null){
-                                debug.println("Build ServiceProviders cache for ClassLoader: " + contextClassLoader.getName());
-                            }
-                            @SuppressWarnings("removal")
-                            ServiceLoader<LoginModule> sc = AccessController.doPrivileged(
-                                    (PrivilegedAction<ServiceLoader<LoginModule>>)
-                                            () -> java.util.ServiceLoader.load(
-                                                LoginModule.class, contextClassLoader));
-                            lmProviders = sc.stream().collect(Collectors.toSet());
-                                if (debug != null){
-                                    debug.println("Discovered ServiceProviders for ClassLoader: " + contextClassLoader.getName());
-                                    lmProviders.forEach(System.err::println);
-                                }
-                            providersCache.put(contextClassLoader,lmProviders);
-                        }
-                    }
-                    for (Provider<LoginModule> lm: lmProviders){
-                        if (lm.type().getName().equals(name)){
-                            moduleStack[i].module = lm.get();
+                    String name = moduleStack[i].entry.getLoginModuleName();
+                    @SuppressWarnings("removal")
+                    ServiceLoader<LoginModule> sc = AccessController.doPrivileged(
+                            (PrivilegedAction<ServiceLoader<LoginModule>>)
+                                    () -> ServiceLoader.load(
+                                        LoginModule.class, contextClassLoader));
+                    for (LoginModule m: sc) {
+                        if (m.getClass().getName().equals(name)) {
+                            moduleStack[i].module = m;
                             if (debug != null) {
                                 debug.println(name + " loaded as a service");
                             }
                             break;
                         }
                     }
+
                     if (moduleStack[i].module == null) {
                         try {
                             @SuppressWarnings("deprecation")
@@ -766,7 +746,7 @@ public class LoginContext {
                         throw new AssertionError("Unknown method " + methodName);
                 }
 
-                if (status) {
+                if (status == true) {
 
                     // if SUFFICIENT, return if no prior REQUIRED errors
                     if (!methodName.equals(ABORT_METHOD) &&
@@ -779,16 +759,16 @@ public class LoginContext {
                         clearState();
 
                         if (debug != null)
-                            debug.println(name + " " + methodName + " SUFFICIENT success");
+                            debug.println(methodName + " SUFFICIENT success");
                         return;
                     }
 
                     if (debug != null)
-                        debug.println(name + " " + methodName + " success");
+                        debug.println(methodName + " success");
                     success = true;
                 } else {
                     if (debug != null)
-                        debug.println(name + " " + methodName + " ignored");
+                        debug.println(methodName + " ignored");
                 }
             } catch (Exception ite) {
 
@@ -853,7 +833,7 @@ public class LoginContext {
                     AppConfigurationEntry.LoginModuleControlFlag.REQUISITE) {
 
                     if (debug != null)
-                        debug.println(name + " " + methodName + " REQUISITE failure");
+                        debug.println(methodName + " REQUISITE failure");
 
                     // if REQUISITE, then immediately throw an exception
                     if (methodName.equals(ABORT_METHOD) ||
@@ -868,17 +848,16 @@ public class LoginContext {
                     AppConfigurationEntry.LoginModuleControlFlag.REQUIRED) {
 
                     if (debug != null)
-                        debug.println(name + " " + methodName + " REQUIRED failure");
+                        debug.println(methodName + " REQUIRED failure");
 
                     // mark down that a REQUIRED module failed
                     if (firstRequiredError == null)
                         firstRequiredError = le;
 
                 } else {
-                    if (debug != null) {
-                        debug.println(name + " " + methodName + " OPTIONAL failure");
-                        le.printStackTrace();
-                    }
+
+                    if (debug != null)
+                        debug.println(methodName + " OPTIONAL failure");
 
                     // mark down that an OPTIONAL module failed
                     if (firstError == null)
@@ -887,14 +866,14 @@ public class LoginContext {
             }
         }
 
-        // we went through all the LoginModules.
+        // we went thru all the LoginModules.
         if (firstRequiredError != null) {
             // a REQUIRED module failed -- return the error
             throwException(firstRequiredError, null);
-        } else if (!success && firstError != null) {
+        } else if (success == false && firstError != null) {
             // no module succeeded -- return the first error
             throwException(firstError, null);
-        } else if (!success) {
+        } else if (success == false) {
             // no module succeeded -- all modules were IGNORED
             throwException(new LoginException
                 (ResourcesMgr.getString("Login.Failure.all.modules.ignored")),
@@ -903,6 +882,7 @@ public class LoginContext {
             // success
 
             clearState();
+            return;
         }
     }
 
@@ -947,7 +927,7 @@ public class LoginContext {
 
     /**
      * LoginModule information -
-     *          encapsulates Configuration info and actual module instances
+     *          incapsulates Configuration info and actual module instances
      */
     private static class ModuleInfo {
         AppConfigurationEntry entry;

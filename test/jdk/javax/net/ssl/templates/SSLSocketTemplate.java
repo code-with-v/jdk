@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, 2022, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2016, 2021, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -210,12 +210,12 @@ public class SSLSocketTemplate {
     /*
      * Is the server ready to serve?
      */
-    protected final CountDownLatch serverCondition = new CountDownLatch(1);
+    private final CountDownLatch serverCondition = new CountDownLatch(1);
 
     /*
      * Is the client ready to handshake?
      */
-    protected final CountDownLatch clientCondition = new CountDownLatch(1);
+    private final CountDownLatch clientCondition = new CountDownLatch(1);
 
     /*
      * What's the server port?  Use any free port by default
@@ -482,15 +482,7 @@ public class SSLSocketTemplate {
      * Both sides can throw exceptions, but do you have a preference
      * as to which side should be the main thread.
      */
-    private final boolean separateServerThread;
-
-    public SSLSocketTemplate() {
-        this(false);
-    }
-
-    public SSLSocketTemplate(boolean sepSrvThread) {
-        this.separateServerThread = sepSrvThread;
-    }
+    private static final boolean separateServerThread = false;
 
     /*
      * Boot up the testing, used to drive remainder of the test.
@@ -544,7 +536,7 @@ public class SSLSocketTemplate {
          */
         if ((local != null) && (remote != null)) {
             // If both failed, return the curthread's exception.
-            local.addSuppressed(remote);
+            local.initCause(remote);
             exception = local;
         } else if (local != null) {
             exception = local;

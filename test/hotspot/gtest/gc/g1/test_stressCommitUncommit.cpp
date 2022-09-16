@@ -26,36 +26,36 @@
 #include "gc/g1/g1BlockOffsetTable.hpp"
 #include "gc/g1/g1RegionToSpaceMapper.hpp"
 #include "memory/virtualspace.hpp"
-#include "gc/shared/workerThread.hpp"
+#include "gc/shared/workgroup.hpp"
 #include "runtime/atomic.hpp"
 #include "runtime/os.hpp"
 #include "unittest.hpp"
 
 class G1MapperWorkers : AllStatic {
-  static WorkerThreads* _workers;
-  static WorkerThreads* workers() {
-    if (_workers == NULL) {
-      _workers = new WorkerThreads("G1 Small Workers", MaxWorkers);
-      _workers->initialize_workers();
-      _workers->set_active_workers(MaxWorkers);
+  static WorkGang* _work_gang;
+  static WorkGang* work_gang() {
+    if (_work_gang == NULL) {
+      _work_gang = new WorkGang("G1 Small Workers", MaxWorkers, false, false);
+      _work_gang->initialize_workers();
+      _work_gang->update_active_workers(MaxWorkers);
     }
-    return _workers;
+    return _work_gang;
   }
 
 public:
   static const uint MaxWorkers = 4;
-  static void run_task(WorkerTask* task) {
-    workers()->run_task(task);
+  static void run_task(AbstractGangTask* task) {
+    work_gang()->run_task(task);
   }
 };
-WorkerThreads* G1MapperWorkers::_workers = NULL;
+WorkGang* G1MapperWorkers::_work_gang = NULL;
 
-class G1TestCommitUncommit : public WorkerTask {
+class G1TestCommitUncommit : public AbstractGangTask {
   G1RegionToSpaceMapper* _mapper;
   uint _claim_id;
 public:
   G1TestCommitUncommit(G1RegionToSpaceMapper* mapper) :
-      WorkerTask("Stress mapper"),
+      AbstractGangTask("Stress mapper"),
       _mapper(mapper),
       _claim_id(0) { }
 
